@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, RecurringTransaction } from '../lib/db';
+import { syncManager } from '../lib/sync';
 import { v4 as uuidv4 } from 'uuid';
 import { addDays, addWeeks, addMonths, addYears, isBefore, parseISO } from 'date-fns';
 
@@ -20,6 +21,7 @@ export function useRecurringTransactions() {
             deleted_at: null,
             last_generated: undefined,
         });
+        syncManager.sync();
     };
 
     const updateRecurringTransaction = async (id: string, updates: Partial<Omit<RecurringTransaction, 'id' | 'sync_token' | 'pendingSync'>>) => {

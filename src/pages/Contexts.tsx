@@ -50,12 +50,12 @@ export function ContextsPage() {
                 <h1 className="text-2xl font-bold">{t('contexts')}</h1>
                 <Dialog open={isOpen} onOpenChange={setIsOpen}>
                     <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" />
-                            {t('add_context')}
+                        <Button size="icon" className="md:w-auto md:px-4 md:h-10">
+                            <Plus className="h-4 w-4 md:mr-2" />
+                            <span className="hidden md:inline">{t('add_context')}</span>
                         </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="w-[95vw] rounded-lg">
                         <DialogHeader>
                             <DialogTitle>{t('add_context')}</DialogTitle>
                         </DialogHeader>
@@ -81,7 +81,27 @@ export function ContextsPage() {
                 </Dialog>
             </div>
 
-            <div className="rounded-md border">
+            {/* Mobile View: Card Stack */}
+            <div className="space-y-4 md:hidden">
+                {contexts?.map((c) => (
+                    <div key={c.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="font-medium">{c.name}</div>
+                            <Button variant="ghost" size="sm" onClick={() => deleteContext(c.id)} className="text-destructive hover:text-destructive">
+                                {t('delete')}
+                            </Button>
+                        </div>
+                        {c.description && (
+                            <div className="text-sm text-muted-foreground">
+                                {c.description}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>

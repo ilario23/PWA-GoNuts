@@ -86,12 +86,12 @@ export function CategoriesPage() {
                 <h1 className="text-2xl font-bold">{t('categories')}</h1>
                 <Dialog open={isOpen} onOpenChange={setIsOpen}>
                     <DialogTrigger asChild>
-                        <Button onClick={openNew}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            {t('add_category')}
+                        <Button onClick={openNew} size="icon" className="md:w-auto md:px-4 md:h-10">
+                            <Plus className="h-4 w-4 md:mr-2" />
+                            <span className="hidden md:inline">{t('add_category')}</span>
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-md">
+                    <DialogContent className="max-w-md w-[95vw] rounded-lg">
                         <DialogHeader>
                             <DialogTitle>{editingId ? t('edit_category') : t('add_category')}</DialogTitle>
                         </DialogHeader>
@@ -174,7 +174,39 @@ export function CategoriesPage() {
                 </Dialog>
             </div>
 
-            <div className="rounded-md border">
+            {/* Mobile View: Card Stack */}
+            <div className="space-y-4 md:hidden">
+                {categories?.map((c) => (
+                    <div key={c.id} className="rounded-lg border bg-card p-4 shadow-sm flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: c.color }}>
+                                {c.icon && (() => {
+                                    const IconComp = getIconComponent(c.icon);
+                                    return IconComp ? <IconComp className="h-4 w-4" /> : null;
+                                })()}
+                            </div>
+                            <div>
+                                <div className="font-medium flex items-center gap-2">
+                                    {c.name}
+                                    <SyncStatusBadge isPending={c.pendingSync === 1} />
+                                </div>
+                                <div className="text-sm text-muted-foreground capitalize">{t(c.type)}</div>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(c)}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteCategory(c.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>

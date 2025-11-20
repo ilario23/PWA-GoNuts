@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useTranslation } from 'react-i18next';
+import { TransactionList } from '@/components/TransactionList';
 
 export function Dashboard() {
     const { transactions } = useTransactions();
@@ -26,7 +27,7 @@ export function Dashboard() {
                         <CardTitle className="text-sm font-medium">{t('total_balance')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className={`text - 2xl font - bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'} `}>
+                        <div className={`text-2xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             €{balance.toFixed(2)}
                         </div>
                     </CardContent>
@@ -59,23 +60,10 @@ export function Dashboard() {
                         <CardTitle>{t('recent_transactions')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {transactions && transactions.length > 0 ? (
-                            <div className="space-y-4">
-                                {transactions.filter(t => !t.deleted_at).slice(0, 5).map((t) => (
-                                    <div key={t.id} className="flex items-center justify-between border-b pb-2 last:border-0">
-                                        <div>
-                                            <div className="font-medium">{t.description}</div>
-                                            <div className="text-sm text-muted-foreground">{new Date(t.date).toLocaleDateString()}</div>
-                                        </div>
-                                        <div className={`font - bold ${t.type === 'expense' ? 'text-red-600' : 'text-green-600'} `}>
-                                            {t.type === 'expense' ? '-' : '+'}€{t.amount.toFixed(2)}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-muted-foreground">{t('no_transactions')}</div>
-                        )}
+                        <TransactionList
+                            transactions={transactions?.filter(t => !t.deleted_at).slice(0, 5)}
+                            showActions={false}
+                        />
                     </CardContent>
                 </Card>
             </div>

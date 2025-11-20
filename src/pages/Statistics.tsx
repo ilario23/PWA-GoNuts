@@ -1,6 +1,6 @@
 import { useStatistics } from '@/hooks/useStatistics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Label, RadialBarChart, RadialBar, PolarGrid, PolarAngleAxis } from 'recharts';
+import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Label, RadialBarChart, RadialBar, PolarGrid, LabelList } from 'recharts';
 import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useTranslation } from 'react-i18next';
 import { TrendingUp, TrendingDown } from 'lucide-react';
@@ -83,16 +83,16 @@ export function StatisticsPage() {
             </div>
 
             {/* Charts Grid */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 min-w-0">
                 {/* Pie Chart - Income vs Expense */}
-                <Card className="flex flex-col">
+                <Card className="flex flex-col min-w-0">
                     <CardHeader className="items-center pb-0">
                         <CardTitle>{t('income_vs_expense')}</CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-1 pb-0">
+                    <CardContent className="flex-1 pb-0 min-w-0">
                         <ChartContainer
                             config={chartConfig}
-                            className="mx-auto aspect-square max-h-[300px]"
+                            className="mx-auto aspect-square max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
                         >
                             <PieChart>
                                 <ChartTooltip
@@ -119,7 +119,7 @@ export function StatisticsPage() {
                                                         <tspan
                                                             x={viewBox.cx}
                                                             y={viewBox.cy}
-                                                            className="fill-foreground text-2xl font-bold"
+                                                            className="fill-foreground text-3xl font-bold"
                                                         >
                                                             €{(stats.income + stats.expense + stats.investment).toFixed(0)}
                                                         </tspan>
@@ -136,40 +136,40 @@ export function StatisticsPage() {
                                         }}
                                     />
                                 </Pie>
-                                <ChartLegend content={<ChartLegendContent />} />
+                                <ChartLegend content={<ChartLegendContent className="flex-wrap gap-2" />} />
                             </PieChart>
                         </ChartContainer>
                     </CardContent>
                 </Card>
 
                 {/* Radial Chart - Category Distribution */}
-                <Card className="flex flex-col">
+                <Card className="flex flex-col min-w-0">
                     <CardHeader className="items-center pb-0">
                         <CardTitle>{t('category_distribution')}</CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-1 pb-0">
+                    <CardContent className="flex-1 pb-0 min-w-0">
                         {categoryPercentages.length > 0 ? (
                             <ChartContainer
                                 config={{}}
-                                className="mx-auto aspect-square max-h-[300px]"
+                                className="mx-auto aspect-square max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
                             >
                                 <RadialBarChart
                                     data={categoryPercentages.slice(0, 5)}
-                                    innerRadius={30}
-                                    outerRadius={110}
+                                    innerRadius={40}
+                                    outerRadius={130}
+                                    barSize={20}
                                 >
                                     <ChartTooltip
                                         cursor={false}
                                         content={<ChartTooltipContent hideLabel nameKey="name" />}
                                     />
                                     <PolarGrid gridType="circle" />
-                                    <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
                                     <RadialBar
                                         dataKey="value"
                                         background
                                         cornerRadius={10}
                                     />
-                                    <ChartLegend content={<ChartLegendContent />} />
+                                    <ChartLegend content={<ChartLegendContent className="flex-wrap gap-2" />} />
                                 </RadialBarChart>
                             </ChartContainer>
                         ) : (
@@ -181,18 +181,18 @@ export function StatisticsPage() {
                 </Card>
 
                 {/* Horizontal Bar Chart - Expense Breakdown */}
-                <Card className="md:col-span-2">
+                <Card className="md:col-span-2 min-w-0">
                     <CardHeader>
                         <CardTitle>{t('expense_breakdown')}</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="min-w-0">
                         {sortedBarData.length > 0 ? (
-                            <ChartContainer config={{}} className="h-[400px] w-full">
+                            <ChartContainer config={{}} className="min-h-[500px] w-full max-w-[100%] overflow-hidden">
                                 <BarChart
                                     accessibilityLayer
                                     data={sortedBarData}
                                     layout="vertical"
-                                    margin={{ left: 80, right: 20 }}
+                                    margin={{ left: 0, right: 40, top: 0, bottom: 0 }}
                                 >
                                     <CartesianGrid horizontal={false} />
                                     <YAxis
@@ -201,11 +201,20 @@ export function StatisticsPage() {
                                         tickLine={false}
                                         tickMargin={10}
                                         axisLine={false}
-                                        width={80}
+                                        width={100}
+                                        className="text-xs font-medium"
                                     />
-                                    <XAxis type="number" />
+                                    <XAxis type="number" hide />
                                     <ChartTooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="value" radius={4} />
+                                    <Bar dataKey="value" radius={4} barSize={32}>
+                                        <LabelList
+                                            dataKey="value"
+                                            position="right"
+                                            className="fill-foreground font-bold"
+                                            fontSize={12}
+                                            formatter={(value: number) => `€${value.toFixed(0)}`}
+                                        />
+                                    </Bar>
                                 </BarChart>
                             </ChartContainer>
                         ) : (

@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../lib/db';
+import { syncManager } from '../lib/sync';
 import { v4 as uuidv4 } from 'uuid';
 
 export function useTransactions() {
@@ -15,6 +16,7 @@ export function useTransactions() {
             pendingSync: 1,
             deleted_at: null,
         });
+        syncManager.sync();
     };
 
     const updateTransaction = async (id: string, updates: Partial<Omit<Transaction, 'id' | 'sync_token' | 'pendingSync'>>) => {

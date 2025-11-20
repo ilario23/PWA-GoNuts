@@ -4,14 +4,6 @@ import { useCategories } from '@/hooks/useCategories';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import {
     Dialog,
     DialogContent,
     DialogHeader,
@@ -25,10 +17,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
-import { SyncStatusBadge } from '@/components/SyncStatus';
+import { TransactionList } from '@/components/TransactionList';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 export function TransactionsPage() {
     const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
@@ -43,6 +37,16 @@ export function TransactionsPage() {
         type: 'expense' as 'income' | 'expense' | 'investment',
         category_id: '',
         date: new Date().toISOString().split('T')[0],
+    });
+
+    const [filters, setFilters] = useState({
+        text: '',
+        dateFrom: '',
+        dateTo: '',
+        minAmount: '',
+        maxAmount: '',
+        categoryId: 'all',
+        type: 'all',
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -108,12 +112,6 @@ export function TransactionsPage() {
         setIsOpen(true);
     };
 
-    const getCategoryName = (id?: string) => {
-        if (!id) return '-';
-        const cat = categories?.find(c => c.id === id);
-        return cat ? cat.name : '-';
-    };
-
     const getTypeColor = (type: string) => {
         switch (type) {
             case 'expense': return 'bg-red-500 hover:bg-red-600 text-white';
@@ -123,160 +121,294 @@ export function TransactionsPage() {
         }
     };
 
-    const getTypeTextColor = (type: string) => {
-        switch (type) {
-            case 'expense': return 'text-red-500';
-            case 'income': return 'text-green-500';
-            case 'investment': return 'text-blue-500';
-            default: return '';
-        }
+    const handleResetFilters = () => {
+        setFilters({
+            text: '',
+            dateFrom: '',
+            dateTo: '',
+            minAmount: '',
+            maxAmount: '',
+            categoryId: 'all',
+            type: 'all',
+        });
     };
+
+    const filteredTransactions = transactions?.filter(transaction => {
+        if (transaction.deleted_at) return false;
+
+        // Text Search
+        if (filters.text && !transaction.description?.toLowerCase().includes(filters.text.toLowerCase())) {
+            return false;
+        }
+
+        // Date Range
+        if (filters.dateFrom && transaction.date < filters.dateFrom) return false;
+        if (filters.dateTo && transaction.date > filters.dateTo) return false;
+
+        // Amount Range
+        if (filters.minAmount && transaction.amount < parseFloat(filters.minAmount)) return false;
+        if (filters.maxAmount && transaction.amount > parseFloat(filters.maxAmount)) return false;
+
+        // Category
+        if (filters.categoryId !== 'all' && transaction.category_id !== filters.categoryId) return false;
+
+        // Type
+        if (filters.type !== 'all' && transaction.type !== filters.type) return false;
+
+        return true;
+    }) || [];
+
+    const FilterContent = () => (
+        <div className="space-y-4 py-4">
+            <div className="space-y-2">
+                <label className="text-sm font-medium">{t('description')}</label>
+                <Input
+                    placeholder={t('search_placeholder') || "Search..."}
+                    value={filters.text}
+                    onChange={(e) => setFilters({ ...filters, text: e.target.value })}
+                />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium">{t('type')}</label>
+                <Select
+                    value={filters.type}
+                    onValueChange={(value) => setFilters({ ...filters, type: value })}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder={t('all_types')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">{t('all_types') || "All Types"}</SelectItem>
+                        <SelectItem value="expense">{t('expense')}</SelectItem>
+                        <SelectItem value="income">{t('income')}</SelectItem>
+                        <SelectItem value="investment">{t('investment')}</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium">{t('category')}</label>
+                <Select
+                    value={filters.categoryId}
+                    onValueChange={(value) => setFilters({ ...filters, categoryId: value })}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder={t('all_categories')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">{t('all_categories') || "All Categories"}</SelectItem>
+                        {categories?.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                                <div className="flex items-center gap-2">
+                                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: category.color }} />
+                                    {category.name}
+                                </div>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium">{t('date_from')}</label>
+                <Input
+                    type="date"
+                    value={filters.dateFrom}
+                    onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium">{t('date_to')}</label>
+                <Input
+                    type="date"
+                    value={filters.dateTo}
+                    onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">{t('min_amount')}</label>
+                    <Input
+                        type="number"
+                        placeholder="0.00"
+                        value={filters.minAmount}
+                        onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">{t('max_amount')}</label>
+                    <Input
+                        type="number"
+                        placeholder="∞"
+                        value={filters.maxAmount}
+                        onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
+                    />
+                </div>
+            </div>
+
+            <Button variant="outline" onClick={handleResetFilters} className="w-full gap-2">
+                <X className="h-4 w-4" />
+                {t('reset_filters') || "Reset Filters"}
+            </Button>
+        </div>
+    );
 
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">{t('transactions')}</h1>
-                <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={openNew}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            {t('add_transaction')}
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{editingId ? t('edit_transaction') : t('add_transaction')}</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">{t('type')}</label>
-                                <div className="flex gap-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className={`w-full ${formData.type === 'expense' ? getTypeColor('expense') : ''}`}
-                                        onClick={() => setFormData({ ...formData, type: 'expense' })}
-                                    >
-                                        {t('expense')}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className={`w-full ${formData.type === 'income' ? getTypeColor('income') : ''}`}
-                                        onClick={() => setFormData({ ...formData, type: 'income' })}
-                                    >
-                                        {t('income')}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className={`w-full ${formData.type === 'investment' ? getTypeColor('investment') : ''}`}
-                                        onClick={() => setFormData({ ...formData, type: 'investment' })}
-                                    >
-                                        {t('investment')}
-                                    </Button>
+                <div className="flex gap-2">
+                    {/* Mobile Filter Sheet */}
+                    <div className="md:hidden">
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" size="icon">
+                                    <Search className="h-4 w-4" />
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="left">
+                                <SheetHeader>
+                                    <SheetTitle>{t('filters')}</SheetTitle>
+                                </SheetHeader>
+                                <FilterContent />
+                            </SheetContent>
+                        </Sheet>
+                    </div>
+
+                    {/* Desktop Filter Popover */}
+                    <div className="hidden md:block">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="gap-2">
+                                    <Search className="h-4 w-4" />
+                                    {t('filters') || "Filters"}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80" align="end">
+                                <FilterContent />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                        <DialogTrigger asChild>
+                            <Button onClick={openNew} size="icon" className="md:w-auto md:px-4 md:h-10">
+                                <Plus className="h-4 w-4 md:mr-2" />
+                                <span className="hidden md:inline">{t('add_transaction')}</span>
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-lg">
+                            <DialogHeader>
+                                <DialogTitle>{editingId ? t('edit_transaction') : t('add_transaction')}</DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t('type')}</label>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className={`w-full ${formData.type === 'expense' ? getTypeColor('expense') : ''}`}
+                                            onClick={() => setFormData({ ...formData, type: 'expense' })}
+                                        >
+                                            {t('expense')}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className={`w-full ${formData.type === 'income' ? getTypeColor('income') : ''}`}
+                                            onClick={() => setFormData({ ...formData, type: 'income' })}
+                                        >
+                                            {t('income')}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className={`w-full ${formData.type === 'investment' ? getTypeColor('investment') : ''}`}
+                                            onClick={() => setFormData({ ...formData, type: 'investment' })}
+                                        >
+                                            {t('investment')}
+                                        </Button>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">{t('category')}</label>
-                                <Select
-                                    value={formData.category_id}
-                                    onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-                                    required
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={t('select_category') || "Select Category"} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {categories?.filter(c => c.type === formData.type).map((category) => (
-                                            <SelectItem key={category.id} value={category.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: category.color }} />
-                                                    {category.name}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t('category')}</label>
+                                    <Select
+                                        value={formData.category_id}
+                                        onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                                        required
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('select_category') || "Select Category"} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {categories?.filter(c => c.type === formData.type).map((category) => (
+                                                <SelectItem key={category.id} value={category.id}>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: category.color }} />
+                                                        {category.name}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">{t('amount')}</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    value={formData.amount}
-                                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">{t('date')}</label>
-                                <Input
-                                    type="date"
-                                    value={formData.date}
-                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">{t('description')}</label>
-                                <Input
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                />
-                            </div>
-                            <Button type="submit" className="w-full">{t('save')}</Button>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t('amount')}</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.amount}
+                                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t('date')}</label>
+                                    <Input
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t('description')}</label>
+                                    <Input
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    />
+                                </div>
+                                <Button type="submit" className="w-full">{t('save')}</Button>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
 
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>{t('date')}</TableHead>
-                            <TableHead>{t('description')}</TableHead>
-                            <TableHead>{t('category')}</TableHead>
-                            <TableHead>{t('type')}</TableHead>
-                            <TableHead className="text-right">{t('amount')}</TableHead>
-                            <TableHead></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {transactions?.map((t_item) => (
-                            <TableRow key={t_item.id}>
-                                <TableCell>{t_item.date}</TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2">
-                                        {t_item.description}
-                                        <SyncStatusBadge isPending={t_item.pendingSync === 1} />
-                                    </div>
-                                </TableCell>
-                                <TableCell>{getCategoryName(t_item.category_id)}</TableCell>
-                                <TableCell className="capitalize">
-                                    {t(t_item.type)}
-                                </TableCell>
-                                <TableCell className={`text-right ${getTypeTextColor(t_item.type)}`}>
-                                    {t_item.type === 'expense' ? '-' : t_item.type === 'investment' ? '' : '+'}€{t_item.amount.toFixed(2)}
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center justify-end gap-2">
-                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(t_item)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => deleteTransaction(t_item.id)}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </div>
+            {/* Active Filters Summary */}
+            {(filters.text || filters.dateFrom || filters.dateTo || filters.minAmount || filters.maxAmount || filters.categoryId !== 'all' || filters.type !== 'all') && (
+                <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
+                    <span>{t('active_filters')}:</span>
+                    {filters.text && <span className="bg-muted px-2 py-1 rounded-md">"{filters.text}"</span>}
+                    {filters.type !== 'all' && <span className="bg-muted px-2 py-1 rounded-md capitalize">{t(filters.type)}</span>}
+                    <Button variant="ghost" size="sm" onClick={handleResetFilters} className="h-auto p-0 text-destructive hover:text-destructive">
+                        <X className="h-3 w-3 mr-1" />
+                        {t('clear')}
+                    </Button>
+                </div>
+            )}
+
+            <TransactionList
+                transactions={filteredTransactions}
+                onEdit={handleEdit}
+                onDelete={deleteTransaction}
+            />
         </div>
     );
 }

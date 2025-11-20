@@ -31,6 +31,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { getIconComponent } from '@/lib/icons';
 import { SyncStatusBadge } from '@/components/SyncStatus';
+import { addDays, addWeeks, addMonths, addYears, isAfter, isSameDay, parseISO, format, startOfDay } from 'date-fns';
 
 export function RecurringTransactionsPage() {
     const { recurringTransactions, addRecurringTransaction, updateRecurringTransaction, deleteRecurringTransaction, generateTransactions } = useRecurringTransactions();
@@ -81,10 +82,10 @@ export function RecurringTransactionsPage() {
         setFormData({
             amount: '',
             description: '',
+            category_id: '',
             type: 'expense',
             frequency: 'monthly',
             start_date: new Date().toISOString().split('T')[0],
-            category_id: '',
             context_id: '',
         });
     };
@@ -108,16 +109,44 @@ export function RecurringTransactionsPage() {
         setFormData({
             amount: '',
             description: '',
+            category_id: '',
             type: 'expense',
             frequency: 'monthly',
             start_date: new Date().toISOString().split('T')[0],
-            category_id: '',
             context_id: '',
         });
         setIsOpen(true);
     };
 
+    const getNextOccurrence = (startDateStr: string, frequency: string) => {
+        const startDate = parseISO(startDateStr);
+        const today = startOfDay(new Date());
 
+        if (isAfter(startDate, today) || isSameDay(startDate, today)) {
+            return format(startDate, 'yyyy-MM-dd');
+        }
+
+        let nextDate = startDate;
+        while (isAfter(today, nextDate)) {
+            switch (frequency) {
+                case 'daily':
+                    nextDate = addDays(nextDate, 1);
+                    break;
+                case 'weekly':
+                    nextDate = addWeeks(nextDate, 1);
+                    break;
+                case 'monthly':
+                    nextDate = addMonths(nextDate, 1);
+                    break;
+                case 'yearly':
+                    nextDate = addYears(nextDate, 1);
+                    break;
+                default:
+                    return startDateStr;
+            }
+        }
+        return format(nextDate, 'yyyy-MM-dd');
+    };
 
     const getCategoryDisplay = (id?: string) => {
         if (!id) return '-';
@@ -148,18 +177,18 @@ export function RecurringTransactionsPage() {
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">{t('recurring')}</h1>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => generateTransactions()}>
-                        <Play className="mr-2 h-4 w-4" />
-                        {t('run_now')}
+                    <Button variant="outline" onClick={() => generateTransactions()} size="icon" className="md:w-auto md:px-4 md:h-10">
+                        <Play className="h-4 w-4 md:mr-2" />
+                        <span className="hidden md:inline">{t('run_now')}</span>
                     </Button>
                     <Dialog open={isOpen} onOpenChange={setIsOpen}>
                         <DialogTrigger asChild>
-                            <Button onClick={openNew}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                {t('add_recurring')}
+                            <Button onClick={openNew} size="icon" className="md:w-auto md:px-4 md:h-10">
+                                <Plus className="h-4 w-4 md:mr-2" />
+                                <span className="hidden md:inline">{t('add_recurring')}</span>
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="w-[95vw] rounded-lg">
                             <DialogHeader>
                                 <DialogTitle>{editingId ? t('edit_recurring') : t('add_recurring')}</DialogTitle>
                             </DialogHeader>
@@ -278,7 +307,40 @@ export function RecurringTransactionsPage() {
                 </div>
             </div>
 
-            <div className="rounded-md border">
+            {/* Mobile View: Card Stack */}
+            <div className="space-y-4 md:hidden">
+                {recurringTransactions?.map((t_item) => (
+                    <div key={t_item.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="font-medium text-sm text-muted-foreground">
+                                {t('next')}: {getNextOccurrence(t_item.start_date, t_item.frequency)}
+                            </div>
+                            <div className="font-bold">€{t_item.amount.toFixed(2)}</div>
+                        </div>
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                {getCategoryDisplay(t_item.category_id)}
+                                <SyncStatusBadge isPending={t_item.pendingSync === 1} />
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+                            <div className="capitalize">{t(t_item.frequency)}</div>
+                            <div className="capitalize">{t(t_item.type)}</div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(t_item)}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteRecurringTransaction(t_item.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -286,7 +348,7 @@ export function RecurringTransactionsPage() {
                             <TableHead>{t('frequency')}</TableHead>
                             <TableHead>{t('type')}</TableHead>
                             <TableHead className="text-right">{t('amount')}</TableHead>
-                            <TableHead>{t('start_date')}</TableHead>
+                            <TableHead>{t('next_occurrence') || "Next Occurrence"}</TableHead>
                             <TableHead></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -302,7 +364,7 @@ export function RecurringTransactionsPage() {
                                 <TableCell className="capitalize">{t(t_item.frequency)}</TableCell>
                                 <TableCell className="capitalize">{t(t_item.type)}</TableCell>
                                 <TableCell className="text-right">€{t_item.amount.toFixed(2)}</TableCell>
-                                <TableCell>{t_item.start_date}</TableCell>
+                                <TableCell>{getNextOccurrence(t_item.start_date, t_item.frequency)}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center justify-end gap-2">
                                         <Button variant="ghost" size="icon" onClick={() => handleEdit(t_item)}>

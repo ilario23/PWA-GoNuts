@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Category } from '../lib/db';
+import { syncManager } from '../lib/sync';
 import { v4 as uuidv4 } from 'uuid';
 
 export function useCategories() {
@@ -19,6 +20,7 @@ export function useCategories() {
             pendingSync: 1,
             deleted_at: null,
         });
+        syncManager.sync();
     };
 
     const updateCategory = async (id: string, updates: Partial<Omit<Category, 'id' | 'sync_token' | 'pendingSync'>>) => {
