@@ -22,6 +22,7 @@ import { Plus, Trash2, Edit } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { AVAILABLE_ICONS, getIconComponent } from '@/lib/icons';
 import { SyncStatusBadge } from '@/components/SyncStatus';
+import { CategorySelector } from '@/components/CategorySelector';
 
 export function CategoriesPage() {
     const { t } = useTranslation();
@@ -34,6 +35,7 @@ export function CategoriesPage() {
         color: '#000000',
         type: 'expense' as 'income' | 'expense' | 'investment',
         icon: '',
+        parent_id: '',
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -46,6 +48,7 @@ export function CategoriesPage() {
                 color: formData.color,
                 type: formData.type,
                 icon: formData.icon,
+                parent_id: formData.parent_id || undefined,
             });
         } else {
             await addCategory({
@@ -54,11 +57,12 @@ export function CategoriesPage() {
                 color: formData.color,
                 type: formData.type,
                 icon: formData.icon,
+                parent_id: formData.parent_id || undefined,
             });
         }
         setIsOpen(false);
         setEditingId(null);
-        setFormData({ name: '', color: '#000000', type: 'expense', icon: '' });
+        setFormData({ name: '', color: '#000000', type: 'expense', icon: '', parent_id: '' });
     };
 
     const handleEdit = (category: any) => {
@@ -68,13 +72,14 @@ export function CategoriesPage() {
             color: category.color,
             type: category.type,
             icon: category.icon || '',
+            parent_id: category.parent_id || '',
         });
         setIsOpen(true);
     };
 
     const openNew = () => {
         setEditingId(null);
-        setFormData({ name: '', color: '#000000', type: 'expense', icon: '' });
+        setFormData({ name: '', color: '#000000', type: 'expense', icon: '', parent_id: '' });
         setIsOpen(true);
     };
 
@@ -167,6 +172,16 @@ export function CategoriesPage() {
                                         );
                                     })}
                                 </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('parent_category')}</label>
+                                <CategorySelector
+                                    value={formData.parent_id}
+                                    onChange={(value) => setFormData({ ...formData, parent_id: value })}
+                                    type={formData.type}
+                                    excludeId={editingId || undefined}
+                                    modal
+                                />
                             </div>
                             <Button type="submit" className="w-full">{t('save')}</Button>
                         </form>

@@ -1,6 +1,8 @@
+
 import { useState } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
+import { CategorySelector } from '@/components/CategorySelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -337,27 +339,13 @@ export function TransactionsPage() {
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">{t('category')}</label>
-                                    <Select
+                                    <CategorySelector
                                         value={formData.category_id}
-                                        onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-                                        required
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={t('select_category') || "Select Category"} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {categories?.filter(c => c.type === formData.type).map((category) => (
-                                                <SelectItem key={category.id} value={category.id}>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: category.color }} />
-                                                        {category.name}
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                        onChange={(value) => setFormData({ ...formData, category_id: value })}
+                                        type={formData.type}
+                                        modal
+                                    />
                                 </div>
-
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">{t('amount')}</label>
                                     <Input

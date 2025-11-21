@@ -19,19 +19,13 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Plus, Trash2, Play, Edit } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { getIconComponent } from '@/lib/icons';
 import { SyncStatusBadge } from '@/components/SyncStatus';
 import { addDays, addWeeks, addMonths, addYears, isAfter, isSameDay, parseISO, format, startOfDay } from 'date-fns';
+import { CategorySelector } from '@/components/CategorySelector';
 
 export function RecurringTransactionsPage() {
     const { recurringTransactions, addRecurringTransaction, updateRecurringTransaction, deleteRecurringTransaction, generateTransactions } = useRecurringTransactions();
@@ -256,29 +250,12 @@ export function RecurringTransactionsPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">{t('category')}</label>
-                                    <Select
+                                    <CategorySelector
                                         value={formData.category_id}
-                                        onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={t('select_category')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {categories?.filter(c => c.type === formData.type).map((category) => {
-                                                const IconComp = category.icon ? getIconComponent(category.icon) : null;
-                                                return (
-                                                    <SelectItem key={category.id} value={category.id}>
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="h-4 w-4 rounded-full flex items-center justify-center" style={{ backgroundColor: category.color }}>
-                                                                {IconComp && <IconComp className="h-3 w-3 text-white" />}
-                                                            </div>
-                                                            {category.name}
-                                                        </div>
-                                                    </SelectItem>
-                                                );
-                                            })}
-                                        </SelectContent>
-                                    </Select>
+                                        onChange={(value) => setFormData({ ...formData, category_id: value })}
+                                        type={formData.type}
+                                        modal
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">{t('description')}</label>
