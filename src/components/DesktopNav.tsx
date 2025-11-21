@@ -30,9 +30,9 @@ export function DesktopNav({ navigation }: DesktopNavProps) {
 
     return (
         <div className="hidden w-64 flex-col border-r bg-muted/10 md:flex h-full shrink-0">
-            <div className={cn("flex h-14 items-center border-b px-4 font-bold text-xl shrink-0", !isOnline && "text-destructive")}>
-                <Wallet className="mr-2 h-6 w-6" />
-                <span>{t('app_title')}</span>
+            <div className="flex h-14 items-center border-b px-4 font-bold text-xl shrink-0">
+                <Wallet className={cn("mr-2 h-6 w-6", !isOnline && "text-destructive")} />
+                <span className="text-primary">{t('app_title')}</span>
             </div>
             <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
                 {navigation.map((item) => {

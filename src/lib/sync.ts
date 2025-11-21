@@ -95,6 +95,7 @@ export class SyncManager {
                     currency: 'EUR',
                     language: 'en',
                     theme: 'light',
+                    accentColor: 'slate',
                     start_of_week: 'monday',
                     default_view: 'list',
                     include_investments_in_expense_totals: false,

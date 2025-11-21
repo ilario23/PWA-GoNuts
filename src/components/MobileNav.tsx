@@ -45,13 +45,13 @@ export function MobileNav({ navigation }: MobileNavProps) {
                         <Menu className="h-6 w-6" />
                     </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-64 p-0">
+                <SheetContent side="left" className="w-64 p-0" hideClose={true}>
                     <SheetTitle className="sr-only">{t('app_title')}</SheetTitle>
                     <SheetDescription className="sr-only">{t('navigation_menu')}</SheetDescription>
                     <div className="flex h-full flex-col">
-                        <div className={cn("flex items-center gap-2 border-b p-4 font-bold text-xl", !isOnline && "text-destructive")}>
-                            <Wallet className="h-6 w-6" />
-                            <span>{t('app_title')}</span>
+                        <div className="flex items-center gap-2 border-b p-4 font-bold text-xl">
+                            <Wallet className={cn("h-6 w-6", !isOnline && "text-destructive")} />
+                            <span className="text-primary">{t('app_title')}</span>
                         </div>
                         <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
                             {navigation.map((item) => {
@@ -86,9 +86,9 @@ export function MobileNav({ navigation }: MobileNavProps) {
                     </div>
                 </SheetContent>
             </Sheet>
-            <div className={cn("flex items-center gap-2 font-bold text-xl", !isOnline && "text-destructive")}>
-                <Wallet className="h-6 w-6" />
-                <span>{t('app_title')}</span>
+            <div className="flex items-center gap-2 font-bold text-xl">
+                <Wallet className={cn("h-6 w-6", !isOnline && "text-destructive")} />
+                <span className="text-primary">{t('app_title')}</span>
             </div>
             {/* Placeholder for right side actions if needed, e.g. profile or add */}
             <div className="w-10" />

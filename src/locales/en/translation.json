@@ -108,5 +108,7 @@
     "next": "Next",
     "about": "About",
     "app_info": "Application information",
-    "version": "Version"
+    "version": "Version",
+    "accent_color": "Accent Color",
+    "select_accent_color": "Select accent color"
 }

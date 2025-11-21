@@ -63,6 +63,7 @@ export interface Setting {
     currency: string;
     language: string;
     theme: string;
+    accentColor: string;
     start_of_week: string;
     default_view: string;
     include_investments_in_expense_totals: boolean;

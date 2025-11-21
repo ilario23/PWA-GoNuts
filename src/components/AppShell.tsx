@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     LayoutDashboard,
@@ -10,9 +11,22 @@ import {
 } from 'lucide-react';
 import { MobileNav } from '@/components/MobileNav';
 import { DesktopNav } from '@/components/DesktopNav';
+import { useSettings } from '@/hooks/useSettings';
+import { applyThemeColor } from '@/lib/theme-colors';
+import { useTheme } from 'next-themes';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const { t } = useTranslation();
+    const { settings } = useSettings();
+    const { theme } = useTheme();
+
+    // Apply accent color when settings or theme changes
+    useEffect(() => {
+        if (settings?.accentColor) {
+            const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            applyThemeColor(settings.accentColor, isDark);
+        }
+    }, [settings?.accentColor, theme]);
 
     const navigation = [
         { name: t('dashboard'), href: '/', icon: LayoutDashboard },
