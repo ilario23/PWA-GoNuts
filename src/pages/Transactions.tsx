@@ -27,11 +27,49 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
+import { format } from 'date-fns';
+
 export function TransactionsPage() {
-    const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+    const now = new Date();
+    const [selectedMonth, setSelectedMonth] = useState(format(now, 'yyyy-MM'));
+    const [selectedYear, setSelectedYear] = useState(format(now, 'yyyy'));
+
+    // Pass undefined for limit, and the selectedMonth (which is in yyyy-MM format) for yearMonth
+    const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions(undefined, selectedMonth);
+
+    const { t } = useTranslation();
     const { categories } = useCategories();
     const { user } = useAuth();
-    const { t } = useTranslation();
+
+    // Generate years for selector (last 5 years + current + next)
+    const currentYearNum = new Date().getFullYear();
+    const years = Array.from({ length: 7 }, (_, i) => (currentYearNum - 5 + i).toString());
+
+    // Generate months
+    const months = [
+        { value: '01', label: t('january') },
+        { value: '02', label: t('february') },
+        { value: '03', label: t('march') },
+        { value: '04', label: t('april') },
+        { value: '05', label: t('may') },
+        { value: '06', label: t('june') },
+        { value: '07', label: t('july') },
+        { value: '08', label: t('august') },
+        { value: '09', label: t('september') },
+        { value: '10', label: t('october') },
+        { value: '11', label: t('november') },
+        { value: '12', label: t('december') },
+    ];
+
+    const handleMonthChange = (monthValue: string) => {
+        setSelectedMonth(`${selectedYear}-${monthValue}`);
+    };
+
+    const handleYearChange = (year: string) => {
+        setSelectedYear(year);
+        const currentMonthPart = selectedMonth.split('-')[1];
+        setSelectedMonth(`${year}-${currentMonthPart}`);
+    };
     const [isOpen, setIsOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -303,6 +341,34 @@ export function TransactionsPage() {
                         </Sheet>
                     </div>
 
+                    {/* Date Selectors */}
+                    <div className="flex gap-2">
+                        <Select value={selectedMonth.split('-')[1]} onValueChange={handleMonthChange}>
+                            <SelectTrigger className="w-[130px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {months.map(month => (
+                                    <SelectItem key={month.value} value={month.value}>
+                                        {month.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select value={selectedYear} onValueChange={handleYearChange}>
+                            <SelectTrigger className="w-[100px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map(year => (
+                                    <SelectItem key={year} value={year}>
+                                        {year}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     {/* Desktop Filter Popover */}
                     <div className="hidden md:block">
                         <Popover>
@@ -416,11 +482,23 @@ export function TransactionsPage() {
                 </div>
             )}
 
-            <TransactionList
-                transactions={filteredTransactions}
-                onEdit={handleEdit}
-                onDelete={handleDeleteClick}
-            />
+            {/* Mobile View: Card Stack */}
+            <div className="space-y-4 md:hidden">
+                <TransactionList
+                    transactions={filteredTransactions}
+                    onEdit={handleEdit}
+                    onDelete={handleDeleteClick}
+                />
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block rounded-md border">
+                <TransactionList
+                    transactions={filteredTransactions}
+                    onEdit={handleEdit}
+                    onDelete={handleDeleteClick}
+                />
+            </div>
 
             <DeleteConfirmDialog
                 open={deleteDialogOpen}
