@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { CategorySelector } from '@/components/CategorySelector';
@@ -53,6 +53,13 @@ export function TransactionsPage() {
         categoryId: 'all',
         type: 'all',
     });
+
+    // Reset category when type changes (only when creating new transaction)
+    useEffect(() => {
+        if (!editingId && formData.category_id) {
+            setFormData(prev => ({ ...prev, category_id: '' }));
+        }
+    }, [formData.type, editingId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

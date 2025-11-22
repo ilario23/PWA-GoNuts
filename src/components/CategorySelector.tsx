@@ -21,7 +21,14 @@ import {
     BreadcrumbLink,
     BreadcrumbSeparator,
     BreadcrumbPage,
+    BreadcrumbEllipsis,
 } from "@/components/ui/breadcrumb"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useCategories } from "@/hooks/useCategories"
 import { Category } from "@/lib/db"
 import { getIconComponent } from "@/lib/icons"
@@ -119,14 +126,16 @@ export function CategorySelector({ value, onChange, type, excludeId, modal = fal
             return
         }
 
-        // If category has children, navigate into it
+        // Always allow selection, even if category has children
+        onChange(category.id)
+        setOpen(false)
+        setNavigationPath([])
+    }
+
+    const handleNavigate = (category: CategoryNode) => {
+        // Navigate into category's children
         if (category.children.length > 0) {
             setNavigationPath([...navigationPath, category])
-        } else {
-            // If no children, select it and close
-            onChange(category.id)
-            setOpen(false)
-            setNavigationPath([])
         }
     }
 
@@ -168,6 +177,7 @@ export function CategorySelector({ value, onChange, type, excludeId, modal = fal
                 <div className="border-b p-3">
                     <Breadcrumb>
                         <BreadcrumbList>
+                            {/* Always show root */}
                             <BreadcrumbItem>
                                 <BreadcrumbLink
                                     className="cursor-pointer"
@@ -176,23 +186,67 @@ export function CategorySelector({ value, onChange, type, excludeId, modal = fal
                                     {t('categories')}
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            {navigationPath.map((cat, index) => (
-                                <React.Fragment key={cat.id}>
-                                    <BreadcrumbSeparator />
+                            <BreadcrumbSeparator />
+
+                            {navigationPath.length <= 2 ? (
+                                // Short path: show all items
+                                navigationPath.map((cat, index) => (
+                                    <React.Fragment key={cat.id}>
+                                        <BreadcrumbItem>
+                                            {index === navigationPath.length - 1 ? (
+                                                <BreadcrumbPage>{cat.name}</BreadcrumbPage>
+                                            ) : (
+                                                <BreadcrumbLink
+                                                    className="cursor-pointer"
+                                                    onClick={() => handleBreadcrumbClick(index)}
+                                                >
+                                                    {cat.name}
+                                                </BreadcrumbLink>
+                                            )}
+                                        </BreadcrumbItem>
+                                        {index < navigationPath.length - 1 && <BreadcrumbSeparator />}
+                                    </React.Fragment>
+                                ))
+                            ) : (
+                                // Long path: show first, ellipsis with dropdown, and last
+                                <>
+                                    {/* First item */}
                                     <BreadcrumbItem>
-                                        {index === navigationPath.length - 1 ? (
-                                            <BreadcrumbPage>{cat.name}</BreadcrumbPage>
-                                        ) : (
-                                            <BreadcrumbLink
-                                                className="cursor-pointer"
-                                                onClick={() => handleBreadcrumbClick(index)}
-                                            >
-                                                {cat.name}
-                                            </BreadcrumbLink>
-                                        )}
+                                        <BreadcrumbLink
+                                            className="cursor-pointer"
+                                            onClick={() => handleBreadcrumbClick(0)}
+                                        >
+                                            {navigationPath[0].name}
+                                        </BreadcrumbLink>
                                     </BreadcrumbItem>
-                                </React.Fragment>
-                            ))}
+                                    <BreadcrumbSeparator />
+
+                                    {/* Ellipsis with dropdown for middle items */}
+                                    <BreadcrumbItem>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger className="flex items-center gap-1">
+                                                <BreadcrumbEllipsis className="h-4 w-4" />
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="start">
+                                                {navigationPath.slice(1, -1).map((cat, index) => (
+                                                    <DropdownMenuItem
+                                                        key={cat.id}
+                                                        onClick={() => handleBreadcrumbClick(index + 1)}
+                                                    >
+                                                        {cat.name}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </BreadcrumbItem>
+                                    <BreadcrumbSeparator />
+
+                                    {/* Last item */}
+                                    <BreadcrumbItem>
+                                        <BreadcrumbPage>{navigationPath[navigationPath.length - 1].name}</BreadcrumbPage>
+                                    </BreadcrumbItem>
+                                </>
+                            )}
                         </BreadcrumbList>
                     </Breadcrumb>
                 </div>
@@ -218,20 +272,31 @@ export function CategorySelector({ value, onChange, type, excludeId, modal = fal
                     <div
                         key={category.id}
                         className={cn(
-                            "flex items-center justify-between p-2 rounded-md hover:bg-accent cursor-pointer",
+                            "flex items-center justify-between p-2 rounded-md hover:bg-accent",
                             value === category.id && "bg-accent"
                         )}
-                        onClick={() => handleSelect(category)}
                     >
-                        <div className="flex items-center">
+                        <div
+                            className="flex items-center flex-1 cursor-pointer"
+                            onClick={() => handleSelect(category)}
+                        >
                             {renderCategoryIcon(category.icon, category.color)}
                             <span>{category.name}</span>
                         </div>
-                        {category.children.length > 0 ? (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                            value === category.id && <Check className="h-4 w-4" />
-                        )}
+                        <div className="flex items-center gap-1">
+                            {value === category.id && <Check className="h-4 w-4" />}
+                            {category.children.length > 0 && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleNavigate(category)
+                                    }}
+                                    className="p-1 hover:bg-accent-foreground/10 rounded"
+                                >
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 ))}
 
@@ -292,20 +357,21 @@ export function CategorySelector({ value, onChange, type, excludeId, modal = fal
                             <span className="font-medium">{category.name}</span>
                         </div>
 
-                        {category.children.length > 0 ? (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    setNavigationPath([...navigationPath, category])
-                                }}
-                            >
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        ) : (
-                            value === category.id && <Check className="h-4 w-4 text-primary" />
-                        )}
+                        <div className="flex items-center gap-2">
+                            {value === category.id && <Check className="h-4 w-4 text-primary" />}
+                            {category.children.length > 0 && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleNavigate(category)
+                                    }}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 ))}
                 {currentLevelCategories.length === 0 && navigationPath.length === 0 && !excludeId && (

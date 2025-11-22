@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRecurringTransactions } from '@/hooks/useRecurringTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useContexts } from '@/hooks/useContexts';
@@ -47,6 +47,13 @@ export function RecurringTransactionsPage() {
         category_id: '',
         context_id: '',
     });
+
+    // Reset category when type changes (only when creating new recurring transaction)
+    useEffect(() => {
+        if (!editingId && formData.category_id) {
+            setFormData(prev => ({ ...prev, category_id: '' }));
+        }
+    }, [formData.type, editingId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
