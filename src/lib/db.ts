@@ -9,7 +9,7 @@ export interface Transaction {
     amount: number;
     date: string;
     year_month: string;
-    description?: string;
+    description: string;
     deleted_at?: string | null;
     pendingSync?: number; // 1 for true, 0 for false (indexeddb boolean indexing is tricky sometimes, number is safer)
     sync_token?: number;
@@ -47,7 +47,7 @@ export interface RecurringTransaction {
     category_id: string; // Now required
     context_id?: string;
     amount: number;
-    description?: string; // Added description field
+    description: string; // Now required
     frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
     start_date: string;
     end_date?: string | null;

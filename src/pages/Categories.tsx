@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { AVAILABLE_ICONS, getIconComponent } from '@/lib/icons';
 import { SyncStatusBadge } from '@/components/SyncStatus';
 import { CategorySelector } from '@/components/CategorySelector';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 export function CategoriesPage() {
     const { t } = useTranslation();
@@ -30,6 +31,8 @@ export function CategoriesPage() {
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         color: '#000000',
@@ -41,6 +44,11 @@ export function CategoriesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
+
+        if (!formData.icon) {
+            alert(t('icon_required') || 'Please select an icon');
+            return;
+        }
 
         if (editingId) {
             await updateCategory(editingId, {
@@ -82,6 +90,19 @@ export function CategoriesPage() {
         setFormData({ name: '', color: '#000000', type: 'expense', icon: '', parent_id: '' });
         setIsOpen(true);
     };
+
+    const handleDeleteClick = (id: string) => {
+        setDeletingId(id);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (deletingId) {
+            deleteCategory(deletingId);
+            setDeletingId(null);
+        }
+    };
+
 
 
 
@@ -212,7 +233,7 @@ export function CategoriesPage() {
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(c)}>
                                 <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteCategory(c.id)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteClick(c.id)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                         </div>
@@ -252,7 +273,7 @@ export function CategoriesPage() {
                                         <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => deleteCategory(c.id)}>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c.id)}>
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
                                     </div>
@@ -262,6 +283,14 @@ export function CategoriesPage() {
                     </TableBody>
                 </Table >
             </div >
+
+            <DeleteConfirmDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                onConfirm={handleConfirmDelete}
+                title={t('confirm_delete_category') || t('confirm_delete')}
+                description={t('confirm_delete_category_description') || t('confirm_delete_description')}
+            />
         </div >
     );
 }

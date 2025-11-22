@@ -90,7 +90,7 @@ create table public.transactions (
   type text check (type in ('income', 'expense', 'investment')) not null,
   amount numeric not null,
   date date not null,
-  description text,
+  description text not null,
   deleted_at timestamptz,
   sync_token bigint default nextval('global_sync_token_seq'),
   updated_at timestamptz default now(),
@@ -124,7 +124,7 @@ create table public.recurring_transactions (
   category_id uuid references public.categories(id) not null, -- Now required
   context_id uuid references public.contexts(id),
   amount numeric not null,
-  description text, -- Added description field
+  description text not null, -- Now required
   frequency text check (frequency in ('daily', 'weekly', 'monthly', 'yearly')) not null,
   start_date date not null,
   end_date date,

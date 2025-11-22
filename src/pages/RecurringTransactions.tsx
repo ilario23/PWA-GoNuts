@@ -26,6 +26,7 @@ import { getIconComponent } from '@/lib/icons';
 import { SyncStatusBadge } from '@/components/SyncStatus';
 import { addDays, addWeeks, addMonths, addYears, isAfter, isSameDay, parseISO, format, startOfDay } from 'date-fns';
 import { CategorySelector } from '@/components/CategorySelector';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 export function RecurringTransactionsPage() {
     const { recurringTransactions, addRecurringTransaction, updateRecurringTransaction, deleteRecurringTransaction, generateTransactions } = useRecurringTransactions();
@@ -35,6 +36,8 @@ export function RecurringTransactionsPage() {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         amount: '',
         description: '',
@@ -166,6 +169,19 @@ export function RecurringTransactionsPage() {
         }
     };
 
+    const handleDeleteClick = (id: string) => {
+        setDeletingId(id);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (deletingId) {
+            deleteRecurringTransaction(deletingId);
+            setDeletingId(null);
+        }
+    };
+
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -262,6 +278,7 @@ export function RecurringTransactionsPage() {
                                     <Input
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        required
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -308,7 +325,7 @@ export function RecurringTransactionsPage() {
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(t_item)}>
                                 <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteRecurringTransaction(t_item.id)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteClick(t_item.id)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                         </div>
@@ -347,7 +364,7 @@ export function RecurringTransactionsPage() {
                                         <Button variant="ghost" size="icon" onClick={() => handleEdit(t_item)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => deleteRecurringTransaction(t_item.id)}>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(t_item.id)}>
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
                                     </div>
@@ -357,6 +374,14 @@ export function RecurringTransactionsPage() {
                     </TableBody>
                 </Table>
             </div>
+
+            <DeleteConfirmDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                onConfirm={handleConfirmDelete}
+                title={t('confirm_delete_recurring') || t('confirm_delete')}
+                description={t('confirm_delete_recurring_description') || t('confirm_delete_description')}
+            />
         </div>
     );
 }

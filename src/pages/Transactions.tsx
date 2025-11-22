@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { TransactionList } from '@/components/TransactionList';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 export function TransactionsPage() {
     const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
@@ -33,6 +34,8 @@ export function TransactionsPage() {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         amount: '',
         description: '',
@@ -134,6 +137,19 @@ export function TransactionsPage() {
             type: 'all',
         });
     };
+
+    const handleDeleteClick = (id: string) => {
+        setDeletingId(id);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (deletingId) {
+            deleteTransaction(deletingId);
+            setDeletingId(null);
+        }
+    };
+
 
     const filteredTransactions = transactions?.filter(transaction => {
         if (transaction.deleted_at) return false;
@@ -370,6 +386,7 @@ export function TransactionsPage() {
                                     <Input
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        required
                                     />
                                 </div>
                                 <Button type="submit" className="w-full">{t('save')}</Button>
@@ -395,7 +412,15 @@ export function TransactionsPage() {
             <TransactionList
                 transactions={filteredTransactions}
                 onEdit={handleEdit}
-                onDelete={deleteTransaction}
+                onDelete={handleDeleteClick}
+            />
+
+            <DeleteConfirmDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                onConfirm={handleConfirmDelete}
+                title={t('confirm_delete_transaction') || t('confirm_delete')}
+                description={t('confirm_delete_transaction_description') || t('confirm_delete_description')}
             />
         </div>
     );

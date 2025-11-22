@@ -20,12 +20,15 @@ import {
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 export function ContextsPage() {
     const { contexts, addContext, deleteContext } = useContexts();
     const { user } = useAuth();
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -42,6 +45,18 @@ export function ContextsPage() {
         });
         setIsOpen(false);
         setFormData({ name: '', description: '' });
+    };
+
+    const handleDeleteClick = (id: string) => {
+        setDeletingId(id);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (deletingId) {
+            deleteContext(deletingId);
+            setDeletingId(null);
+        }
     };
 
     return (
@@ -87,7 +102,7 @@ export function ContextsPage() {
                     <div key={c.id} className="rounded-lg border bg-card p-4 shadow-sm">
                         <div className="flex items-center justify-between mb-2">
                             <div className="font-medium">{c.name}</div>
-                            <Button variant="ghost" size="sm" onClick={() => deleteContext(c.id)} className="text-destructive hover:text-destructive">
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(c.id)} className="text-destructive hover:text-destructive">
                                 {t('delete')}
                             </Button>
                         </div>
@@ -116,13 +131,21 @@ export function ContextsPage() {
                                 <TableCell>{c.name}</TableCell>
                                 <TableCell>{c.description}</TableCell>
                                 <TableCell>
-                                    <Button variant="ghost" size="sm" onClick={() => deleteContext(c.id)}>{t('delete')}</Button>
+                                    <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(c.id)}>{t('delete')}</Button>
                                 </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </div>
+
+            <DeleteConfirmDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                onConfirm={handleConfirmDelete}
+                title={t('confirm_delete_context') || t('confirm_delete')}
+                description={t('confirm_delete_context_description') || t('confirm_delete_description')}
+            />
         </div>
     );
 }
