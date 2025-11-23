@@ -108,7 +108,7 @@ export function Dashboard() {
                     </CardHeader>
                     <CardContent>
                         {dailyCumulativeExpenses.length > 0 ? (
-                            <ChartContainer config={chartConfig}>
+                            <ChartContainer config={chartConfig} className="h-[180px] w-full md:h-auto">
                                 <AreaChart
                                     accessibilityLayer
                                     data={dailyCumulativeExpenses}
@@ -167,7 +167,7 @@ export function Dashboard() {
                 </Card>
 
                 {/* Summary Cards - Hidden on mobile, stacked vertically on desktop */}
-                <div className="hidden md:flex md:flex-col gap-4 md:min-w-[280px]">
+                <div className="hidden md:flex md:flex-col gap-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">{t('total_balance')}</CardTitle>
@@ -207,7 +207,7 @@ export function Dashboard() {
                         <CardTitle>{t('recent_transactions')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ScrollArea className="h-[300px] pr-4">
+                        <ScrollArea className="h-[250px] pr-4 md:h-[300px]">
                             <TransactionList
                                 transactions={transactions?.filter(t => !t.deleted_at).slice(0, 5)}
                                 showActions={false}

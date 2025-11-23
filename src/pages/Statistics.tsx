@@ -3,10 +3,10 @@ import { useStatistics } from '@/hooks/useStatistics';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Label, LabelList, Radar, RadarChart, PolarAngleAxis, PolarGrid } from 'recharts';
+import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Label, LabelList, Radar, RadarChart, PolarAngleAxis, PolarGrid, LineChart, Line, ComposedChart } from 'recharts';
 import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useTranslation } from 'react-i18next';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function StatisticsPage() {
@@ -29,6 +29,11 @@ export function StatisticsPage() {
         monthlyExpenses,
         monthlyIncome,
         monthlyInvestments,
+        monthlyTrendData,
+        monthlyCashFlow,
+        contextStats,
+        burnRate,
+        yearlyBurnRate,
     } = useStatistics({ selectedMonth, selectedYear });
 
     // Determine which stats to display based on active tab
@@ -337,7 +342,11 @@ export function StatisticsPage() {
                             </CardHeader>
                             <CardContent className="min-w-0">
                                 {sortedBarData.length > 0 ? (
-                                    <ChartContainer config={{}} className="min-h-[500px] w-full max-w-[100%] overflow-hidden">
+                                    <ChartContainer
+                                        config={{}}
+                                        className="w-full max-w-[100%] overflow-hidden"
+                                        style={{ height: `${Math.max(sortedBarData.length * 45, 250)}px` }}
+                                    >
                                         <BarChart
                                             accessibilityLayer
                                             data={sortedBarData}
@@ -593,6 +602,192 @@ export function StatisticsPage() {
                     </div>
                 </div>
             )}
-        </div>
+
+            <div className="space-y-4">
+                {/* === NEW CHARTS SECTION === */}
+
+                {/* Temporal Trend Chart (Line/Area) */}
+                {activeTab === 'yearly' && (
+                    <Card className="min-w-0">
+                        <CardHeader>
+                            <CardTitle>{t('temporal_trend')}</CardTitle>
+                            <CardDescription>{t('temporal_trend_desc')}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {monthlyTrendData.length > 0 ? (
+                                <ChartContainer
+                                    config={{
+                                        income: { label: t('income'), color: 'hsl(var(--chart-2))' },
+                                        expense: { label: t('expense'), color: 'hsl(var(--chart-1))' },
+                                        balance: { label: t('balance'), color: 'hsl(var(--chart-3))' },
+                                    }}
+                                    className="h-[350px] w-full"
+                                >
+                                    <LineChart
+                                        data={monthlyTrendData}
+                                        margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis
+                                            dataKey="period"
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tickMargin={8}
+                                        />
+                                        <YAxis
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tickFormatter={(value) => `€${value}`}
+                                        />
+                                        <ChartTooltip content={<ChartTooltipContent />} />
+                                        <ChartLegend content={<ChartLegendContent />} />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="income"
+                                            stroke="var(--color-income)"
+                                            strokeWidth={2}
+                                            dot={false}
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="expense"
+                                            stroke="var(--color-expense)"
+                                            strokeWidth={2}
+                                            dot={false}
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="balance"
+                                            stroke="var(--color-balance)"
+                                            strokeWidth={2}
+                                            strokeDasharray="5 5"
+                                            dot={false}
+                                        />
+                                    </LineChart>
+                                </ChartContainer>
+                            ) : (
+                                <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                                    {t('no_data')}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Cash Flow Chart (Stacked Bar) */}
+                {activeTab === 'yearly' && (
+                    <Card className="min-w-0">
+                        <CardHeader>
+                            <CardTitle>{t('cash_flow')}</CardTitle>
+                            <CardDescription>{t('cash_flow_desc')}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {activeTab === 'yearly' && monthlyCashFlow.length > 0 ? (
+                                <ChartContainer
+                                    config={{
+                                        income: { label: t('income'), color: 'hsl(var(--chart-2))' },
+                                        expense: { label: t('expense'), color: 'hsl(var(--chart-1))' },
+                                    }}
+                                    className="h-[300px] w-full"
+                                >
+                                    <ComposedChart
+                                        data={monthlyCashFlow}
+                                        margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="period" />
+                                        <YAxis />
+                                        <ChartTooltip content={<ChartTooltipContent />} />
+                                        <ChartLegend content={<ChartLegendContent />} />
+                                        <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="expense" fill="var(--color-expense)" radius={[4, 4, 0, 0]} />
+                                    </ComposedChart>
+                                </ChartContainer>
+                            ) : (
+                                <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+                                    {t('no_data')}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Context Analytics (if contexts exist) */}
+                {
+                    contextStats.length > 0 && (
+                        <Card className="min-w-0">
+                            <CardHeader>
+                                <CardTitle>{t('context_analytics')}</CardTitle>
+                                <CardDescription>{t('context_analytics_desc')}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-1 pb-0">
+                                <ChartContainer
+                                    config={{}}
+                                    className="mx-auto aspect-square max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
+                                >
+                                    <PieChart>
+                                        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                                        <Pie
+                                            data={contextStats}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            innerRadius={60}
+                                            strokeWidth={5}
+                                        />
+                                        <ChartLegend content={<ChartLegendContent className="flex-wrap gap-2" />} />
+                                    </PieChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                    )
+                }
+
+                {/* Burn Rate Indicator */}
+                <Card className="min-w-0">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <div>
+                            <CardTitle>{t('burn_rate')}</CardTitle>
+                            <CardDescription>{t('burn_rate_desc')}</CardDescription>
+                        </div>
+                        {(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? (
+                            <Activity className="h-5 w-5 text-green-500" />
+                        ) : (
+                            <AlertCircle className="h-5 w-5 text-red-500" />
+                        )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <div className="text-xs text-muted-foreground">{t('daily_average')}</div>
+                                <div className="text-2xl font-bold">€{(activeTab === 'monthly' ? burnRate : yearlyBurnRate).dailyAverage.toFixed(2)}/day</div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-muted-foreground">{activeTab === 'monthly' ? t('projected_month_end') : t('projected_year_end')}</div>
+                                <div className={`text-2xl font-bold ${(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? 'text-green-500' : 'text-red-500'}`}>
+                                    €{(activeTab === 'monthly' ? burnRate.projectedMonthEnd : yearlyBurnRate.projectedYearEnd).toFixed(2)}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span>{t('days_elapsed')}: {(activeTab === 'monthly' ? burnRate : yearlyBurnRate).daysElapsed}</span>
+                                <span>{t('days_remaining')}: {(activeTab === 'monthly' ? burnRate : yearlyBurnRate).daysRemaining}</span>
+                            </div>
+                            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full ${(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? 'bg-green-500' : 'bg-red-500'}`}
+                                    style={{ width: `${((activeTab === 'monthly' ? burnRate : yearlyBurnRate).daysElapsed / ((activeTab === 'monthly' ? burnRate : yearlyBurnRate).daysElapsed + (activeTab === 'monthly' ? burnRate : yearlyBurnRate).daysRemaining)) * 100}%` }}
+                                />
+                            </div>
+                            <div className="text-center">
+                                <span className={`text-sm font-medium ${(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? 'text-green-500' : 'text-red-500'}`}>
+                                    {(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? t('on_track') : t('over_budget')}
+                                </span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div >
+        </div >
     );
 }
