@@ -50,12 +50,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden flex-col md:flex-row bg-background">
+    <div className="flex min-h-screen flex-col md:flex-row bg-background overscroll-none">
       <MobileNav navigation={navigation} />
       <DesktopNav navigation={navigation} />
 
-      {/* Main Content */}
-      <main className="flex-1 w-full overflow-y-auto p-4 md:p-8">
+      {/* Main Content - pt-14 compensates for fixed mobile header */}
+      <main className="flex-1 w-full overflow-y-auto overscroll-contain p-4 pt-16 md:p-8 md:pt-8">
         <div className="mx-auto max-w-6xl space-y-6">{children}</div>
       </main>
     </div>

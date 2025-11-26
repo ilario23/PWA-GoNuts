@@ -45,7 +45,7 @@ export function MobileNav({ navigation }: MobileNavProps) {
   };
 
   return (
-    <div className="flex items-center justify-between border-b p-2 md:hidden bg-background sticky top-0 z-50">
+    <header className="flex items-center justify-between border-b p-2 md:hidden bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 fixed top-0 left-0 right-0 z-50">
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" aria-label={t("open_menu")}>
@@ -106,6 +106,6 @@ export function MobileNav({ navigation }: MobileNavProps) {
       </div>
       {/* Placeholder for right side actions if needed, e.g. profile or add */}
       <div className="w-9" />
-    </div>
+    </header>
   );
 }
