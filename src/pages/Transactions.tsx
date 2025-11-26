@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
+import { useGroups } from '@/hooks/useGroups';
 import { CategorySelector } from '@/components/CategorySelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, X } from 'lucide-react';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { Plus, Search, X, ChevronDown, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { TransactionList } from '@/components/TransactionList';
@@ -44,6 +50,7 @@ export function TransactionsPage() {
 
     const { t } = useTranslation();
     const { categories } = useCategories();
+    const { groups } = useGroups();
     const { user } = useAuth();
 
     // Generate years for selector (last 5 years + current + next)
@@ -90,12 +97,15 @@ export function TransactionsPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [groupSectionOpen, setGroupSectionOpen] = useState(false);
     const [formData, setFormData] = useState({
         amount: '',
         description: '',
         type: 'expense' as 'income' | 'expense' | 'investment',
         category_id: '',
         date: new Date().toISOString().split('T')[0],
+        group_id: '' as string | null,
+        paid_by_user_id: '' as string | null,
     });
 
     const [filters, setFilters] = useState({
@@ -106,6 +116,7 @@ export function TransactionsPage() {
         maxAmount: '',
         categoryId: 'all',
         type: 'all',
+        groupFilter: 'all' as 'all' | 'personal' | 'group' | string, // 'all', 'personal', 'group', or specific group id
     });
 
     // Reset category when type changes (only when creating new transaction)
@@ -123,6 +134,9 @@ export function TransactionsPage() {
             return;
         }
 
+        const groupId = formData.group_id || null;
+        const paidByUserId = groupId ? (formData.paid_by_user_id || user.id) : null;
+
         if (editingId) {
             await updateTransaction(editingId, {
                 amount: parseFloat(formData.amount),
@@ -131,6 +145,8 @@ export function TransactionsPage() {
                 category_id: formData.category_id,
                 date: formData.date,
                 year_month: formData.date.substring(0, 7),
+                group_id: groupId,
+                paid_by_user_id: paidByUserId,
             });
         } else {
             await addTransaction({
@@ -141,16 +157,21 @@ export function TransactionsPage() {
                 category_id: formData.category_id,
                 date: formData.date,
                 year_month: formData.date.substring(0, 7),
+                group_id: groupId,
+                paid_by_user_id: paidByUserId,
             });
         }
         setIsOpen(false);
         setEditingId(null);
+        setGroupSectionOpen(false);
         setFormData({
             amount: '',
             description: '',
             category_id: '',
             type: 'expense',
             date: new Date().toISOString().split('T')[0],
+            group_id: '',
+            paid_by_user_id: '',
         });
     };
 
@@ -162,7 +183,11 @@ export function TransactionsPage() {
             type: transaction.type,
             category_id: transaction.category_id || '',
             date: transaction.date,
+            group_id: transaction.group_id || '',
+            paid_by_user_id: transaction.paid_by_user_id || '',
         });
+        // Open the group section if transaction has a group
+        setGroupSectionOpen(!!transaction.group_id);
         setIsOpen(true);
     };
 
@@ -174,7 +199,10 @@ export function TransactionsPage() {
             category_id: '',
             type: 'expense',
             date: new Date().toISOString().split('T')[0],
+            group_id: '',
+            paid_by_user_id: '',
         });
+        setGroupSectionOpen(false);
         setIsOpen(true);
     };
 
@@ -196,6 +224,7 @@ export function TransactionsPage() {
             maxAmount: '',
             categoryId: 'all',
             type: 'all',
+            groupFilter: 'all',
         });
     };
 
@@ -235,6 +264,18 @@ export function TransactionsPage() {
             // Type
             if (filters.type !== 'all' && transaction.type !== filters.type) return false;
 
+            // Group Filter
+            if (filters.groupFilter !== 'all') {
+                if (filters.groupFilter === 'personal') {
+                    if (transaction.group_id) return false;
+                } else if (filters.groupFilter === 'group') {
+                    if (!transaction.group_id) return false;
+                } else {
+                    // Specific group id
+                    if (transaction.group_id !== filters.groupFilter) return false;
+                }
+            }
+
             return true;
         }) || [];
     }, [transactions, filters]);
@@ -267,6 +308,30 @@ export function TransactionsPage() {
                     </SelectContent>
                 </Select>
             </div>
+
+            {groups.length > 0 && (
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">{t('group')}</label>
+                    <Select
+                        value={filters.groupFilter}
+                        onValueChange={(value) => setFilters({ ...filters, groupFilter: value })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder={t('all')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{t('all')}</SelectItem>
+                            <SelectItem value="personal">{t('personal')}</SelectItem>
+                            <SelectItem value="group">{t('all_groups')}</SelectItem>
+                            {groups.map((group) => (
+                                <SelectItem key={group.id} value={group.id}>
+                                    {group.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
 
             <div className="space-y-2">
                 <label className="text-sm font-medium">{t('category')}</label>
@@ -481,6 +546,76 @@ export function TransactionsPage() {
                                         required
                                     />
                                 </div>
+
+                                {/* Collapsible Group Section */}
+                                {groups.length > 0 && (
+                                    <Collapsible open={groupSectionOpen} onOpenChange={setGroupSectionOpen}>
+                                        <CollapsibleTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                className="w-full flex items-center justify-between p-2 h-auto"
+                                            >
+                                                <div className="flex items-center gap-2 text-muted-foreground">
+                                                    <Users className="h-4 w-4" />
+                                                    <span className="text-sm font-medium">
+                                                        {formData.group_id 
+                                                            ? groups.find(g => g.id === formData.group_id)?.name 
+                                                            : t('group_expense')}
+                                                    </span>
+                                                </div>
+                                                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${groupSectionOpen ? 'rotate-180' : ''}`} />
+                                            </Button>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent className="space-y-3 pt-2">
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium">{t('group')}</label>
+                                                <Select
+                                                    value={formData.group_id || 'none'}
+                                                    onValueChange={(value) => setFormData({ 
+                                                        ...formData, 
+                                                        group_id: value === 'none' ? '' : value,
+                                                        paid_by_user_id: value === 'none' ? '' : (formData.paid_by_user_id || user?.id || '')
+                                                    })}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('select_group')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">{t('personal_expense')}</SelectItem>
+                                                        {groups.map((group) => (
+                                                            <SelectItem key={group.id} value={group.id}>
+                                                                {group.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            {formData.group_id && (
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-medium">{t('paid_by')}</label>
+                                                    <Select
+                                                        value={formData.paid_by_user_id || user?.id || ''}
+                                                        onValueChange={(value) => setFormData({ ...formData, paid_by_user_id: value })}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder={t('select_payer')} />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {groups.find(g => g.id === formData.group_id)?.members.map((member) => (
+                                                                <SelectItem key={member.id} value={member.user_id}>
+                                                                    {member.user_id === user?.id ? t('me') : member.user_id.substring(0, 8) + '...'}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
+                                        </CollapsibleContent>
+                                    </Collapsible>
+                                )}
+
                                 <Button type="submit" className="w-full">{t('save')}</Button>
                             </form>
                         </DialogContent>
@@ -517,11 +652,20 @@ export function TransactionsPage() {
             </div>
 
             {/* Active Filters Summary */}
-            {(filters.text || filters.dateFrom || filters.dateTo || filters.minAmount || filters.maxAmount || filters.categoryId !== 'all' || filters.type !== 'all') && (
+            {(filters.text || filters.dateFrom || filters.dateTo || filters.minAmount || filters.maxAmount || filters.categoryId !== 'all' || filters.type !== 'all' || filters.groupFilter !== 'all') && (
                 <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
                     <span>{t('active_filters')}:</span>
                     {filters.text && <span className="bg-muted px-2 py-1 rounded-md">"{filters.text}"</span>}
                     {filters.type !== 'all' && <span className="bg-muted px-2 py-1 rounded-md capitalize">{t(filters.type)}</span>}
+                    {filters.groupFilter !== 'all' && (
+                        <span className="bg-muted px-2 py-1 rounded-md">
+                            {filters.groupFilter === 'personal' 
+                                ? t('personal') 
+                                : filters.groupFilter === 'group' 
+                                    ? t('all_groups')
+                                    : groups.find(g => g.id === filters.groupFilter)?.name || filters.groupFilter}
+                        </span>
+                    )}
                     <Button variant="ghost" size="sm" onClick={handleResetFilters} className="h-auto p-0 text-destructive hover:text-destructive">
                         <X className="h-3 w-3 mr-1" />
                         {t('clear')}

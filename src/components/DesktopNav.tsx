@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnlineSync } from '@/hooks/useOnlineSync';
+import packageJson from '../../package.json';
 
 interface NavItem {
     name: string;
@@ -54,7 +55,7 @@ export function DesktopNav({ navigation }: DesktopNavProps) {
                     );
                 })}
             </nav>
-            <div className="border-t p-4 shrink-0">
+            <div className="border-t p-4 shrink-0 space-y-2">
                 <Button
                     variant="ghost"
                     className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
@@ -63,6 +64,9 @@ export function DesktopNav({ navigation }: DesktopNavProps) {
                     <LogOut className="h-4 w-4" />
                     {t('logout')}
                 </Button>
+                <div className="text-xs text-muted-foreground text-center">
+                    v{packageJson.version}
+                </div>
             </div>
         </div>
     );

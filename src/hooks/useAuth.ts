@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { db } from '../lib/db';
 import { User } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -14,13 +15,24 @@ export function useAuth() {
         });
 
         // Listen for changes on auth state (sign in, sign out, etc.)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             setUser(session?.user ?? null);
             setLoading(false);
+
+            // Clear local cache on sign out
+            if (event === 'SIGNED_OUT') {
+                await db.clearLocalCache();
+            }
         });
 
         return () => subscription.unsubscribe();
     }, []);
 
-    return { user, loading, signOut: () => supabase.auth.signOut() };
+    const signOut = async () => {
+        // Clear local cache before signing out
+        await db.clearLocalCache();
+        return supabase.auth.signOut();
+    };
+
+    return { user, loading, signOut };
 }

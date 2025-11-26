@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRecurringTransactions } from '@/hooks/useRecurringTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useContexts } from '@/hooks/useContexts';
+import { useGroups } from '@/hooks/useGroups';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -19,7 +20,19 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, Play, Edit } from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { Plus, Trash2, Play, Edit, ChevronDown, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { getIconComponent } from '@/lib/icons';
@@ -32,12 +45,14 @@ export function RecurringTransactionsPage() {
     const { recurringTransactions, addRecurringTransaction, updateRecurringTransaction, deleteRecurringTransaction, generateTransactions } = useRecurringTransactions();
     const { categories } = useCategories();
     const { contexts } = useContexts();
+    const { groups } = useGroups();
     const { user } = useAuth();
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [groupSectionOpen, setGroupSectionOpen] = useState(false);
     const [formData, setFormData] = useState({
         amount: '',
         description: '',
@@ -46,6 +61,8 @@ export function RecurringTransactionsPage() {
         start_date: new Date().toISOString().split('T')[0],
         category_id: '',
         context_id: '',
+        group_id: '' as string | null,
+        paid_by_user_id: '' as string | null,
     });
 
     // Reset category when type changes (only when creating new recurring transaction)
@@ -59,6 +76,9 @@ export function RecurringTransactionsPage() {
         e.preventDefault();
         if (!user) return;
 
+        const groupId = formData.group_id || null;
+        const paidByUserId = groupId ? (formData.paid_by_user_id || user.id) : null;
+
         if (editingId) {
             await updateRecurringTransaction(editingId, {
                 amount: parseFloat(formData.amount),
@@ -68,6 +88,8 @@ export function RecurringTransactionsPage() {
                 start_date: formData.start_date,
                 category_id: formData.category_id,
                 context_id: formData.context_id || undefined,
+                group_id: groupId,
+                paid_by_user_id: paidByUserId,
             });
         } else {
             await addRecurringTransaction({
@@ -79,10 +101,13 @@ export function RecurringTransactionsPage() {
                 start_date: formData.start_date,
                 category_id: formData.category_id,
                 context_id: formData.context_id || undefined,
+                group_id: groupId,
+                paid_by_user_id: paidByUserId,
             });
         }
         setIsOpen(false);
         setEditingId(null);
+        setGroupSectionOpen(false);
         setFormData({
             amount: '',
             description: '',
@@ -91,6 +116,8 @@ export function RecurringTransactionsPage() {
             frequency: 'monthly',
             start_date: new Date().toISOString().split('T')[0],
             context_id: '',
+            group_id: '',
+            paid_by_user_id: '',
         });
     };
 
@@ -104,7 +131,10 @@ export function RecurringTransactionsPage() {
             start_date: transaction.start_date,
             category_id: transaction.category_id || '',
             context_id: transaction.context_id || '',
+            group_id: transaction.group_id || '',
+            paid_by_user_id: transaction.paid_by_user_id || '',
         });
+        setGroupSectionOpen(!!transaction.group_id);
         setIsOpen(true);
     };
 
@@ -118,7 +148,10 @@ export function RecurringTransactionsPage() {
             frequency: 'monthly',
             start_date: new Date().toISOString().split('T')[0],
             context_id: '',
+            group_id: '',
+            paid_by_user_id: '',
         });
+        setGroupSectionOpen(false);
         setIsOpen(true);
     };
 
@@ -301,6 +334,76 @@ export function RecurringTransactionsPage() {
                                         ))}
                                     </select>
                                 </div>
+
+                                {/* Collapsible Group Section */}
+                                {groups.length > 0 && (
+                                    <Collapsible open={groupSectionOpen} onOpenChange={setGroupSectionOpen}>
+                                        <CollapsibleTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                className="w-full flex items-center justify-between p-2 h-auto"
+                                            >
+                                                <div className="flex items-center gap-2 text-muted-foreground">
+                                                    <Users className="h-4 w-4" />
+                                                    <span className="text-sm font-medium">
+                                                        {formData.group_id 
+                                                            ? groups.find(g => g.id === formData.group_id)?.name 
+                                                            : t('group_expense')}
+                                                    </span>
+                                                </div>
+                                                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${groupSectionOpen ? 'rotate-180' : ''}`} />
+                                            </Button>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent className="space-y-3 pt-2">
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium">{t('group')}</label>
+                                                <Select
+                                                    value={formData.group_id || 'none'}
+                                                    onValueChange={(value) => setFormData({ 
+                                                        ...formData, 
+                                                        group_id: value === 'none' ? '' : value,
+                                                        paid_by_user_id: value === 'none' ? '' : (formData.paid_by_user_id || user?.id || '')
+                                                    })}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('select_group')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">{t('personal_expense')}</SelectItem>
+                                                        {groups.map((group) => (
+                                                            <SelectItem key={group.id} value={group.id}>
+                                                                {group.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            {formData.group_id && (
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-medium">{t('paid_by')}</label>
+                                                    <Select
+                                                        value={formData.paid_by_user_id || user?.id || ''}
+                                                        onValueChange={(value) => setFormData({ ...formData, paid_by_user_id: value })}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder={t('select_payer')} />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {groups.find(g => g.id === formData.group_id)?.members.map((member) => (
+                                                                <SelectItem key={member.id} value={member.user_id}>
+                                                                    {member.user_id === user?.id ? t('me') : member.user_id.substring(0, 8) + '...'}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
+                                        </CollapsibleContent>
+                                    </Collapsible>
+                                )}
+
                                 <Button type="submit" className="w-full">{t('save')}</Button>
                             </form>
                         </DialogContent>

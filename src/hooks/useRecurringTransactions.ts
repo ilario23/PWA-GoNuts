@@ -4,12 +4,26 @@ import { syncManager } from '../lib/sync';
 import { v4 as uuidv4 } from 'uuid';
 import { addDays, addWeeks, addMonths, addYears, isBefore, parseISO } from 'date-fns';
 
-export function useRecurringTransactions() {
+export function useRecurringTransactions(groupId?: string | null) {
     const recurringTransactions = useLiveQuery(() =>
         db.recurring_transactions.toArray()
     );
 
-    const activeRecurring = recurringTransactions?.filter(r => !r.deleted_at) || [];
+    // Filter out deleted items and optionally by group
+    const activeRecurring = recurringTransactions?.filter(r => {
+        if (r.deleted_at) return false;
+        
+        if (groupId === undefined) {
+            // Return all recurring transactions (no group filter)
+            return true;
+        } else if (groupId === null) {
+            // Return only personal recurring transactions
+            return !r.group_id;
+        } else {
+            // Return only recurring transactions for specific group
+            return r.group_id === groupId;
+        }
+    }) || [];
 
     const addRecurringTransaction = async (transaction: Omit<RecurringTransaction, 'id' | 'sync_token' | 'pendingSync' | 'deleted_at' | 'active' | 'last_generated'>) => {
         const id = uuidv4();
@@ -70,6 +84,8 @@ export function useRecurringTransactions() {
                 await db.transactions.add({
                     id: transactionId,
                     user_id: rt.user_id,
+                    group_id: rt.group_id || null,
+                    paid_by_user_id: rt.paid_by_user_id || null,
                     category_id: rt.category_id,
                     context_id: rt.context_id,
                     type: rt.type,

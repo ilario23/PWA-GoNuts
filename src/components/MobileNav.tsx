@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from 
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnlineSync } from '@/hooks/useOnlineSync';
+import packageJson from '../../package.json';
 
 // Temporary interface until we centralize types
 interface NavItem {
@@ -73,7 +74,7 @@ export function MobileNav({ navigation }: MobileNavProps) {
                                 );
                             })}
                         </nav>
-                        <div className="border-t p-4">
+                        <div className="border-t p-4 space-y-2">
                             <Button
                                 variant="ghost"
                                 className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
@@ -82,6 +83,9 @@ export function MobileNav({ navigation }: MobileNavProps) {
                                 <LogOut className="h-4 w-4" />
                                 {t('logout')}
                             </Button>
+                            <div className="text-xs text-muted-foreground text-center pt-2">
+                                v{packageJson.version}
+                            </div>
                         </div>
                     </div>
                 </SheetContent>

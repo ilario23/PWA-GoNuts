@@ -3,7 +3,7 @@ import { db, Transaction } from '../lib/db';
 import { syncManager } from '../lib/sync';
 import { v4 as uuidv4 } from 'uuid';
 
-export function useTransactions(limit?: number, yearMonth?: string) {
+export function useTransactions(limit?: number, yearMonth?: string, groupId?: string | null) {
     const transactions = useLiveQuery(() => {
         if (yearMonth) {
             // If yearMonth is just a year (e.g. "2024"), filter by date range
@@ -28,6 +28,22 @@ export function useTransactions(limit?: number, yearMonth?: string) {
         }
         return collection.toArray();
     }, [limit, yearMonth]);
+
+    // Filter by group if specified
+    const filteredTransactions = useLiveQuery(async () => {
+        if (!transactions) return undefined;
+        
+        if (groupId === undefined) {
+            // Return all transactions (no group filter)
+            return transactions;
+        } else if (groupId === null) {
+            // Return only personal transactions
+            return transactions.filter(t => !t.group_id);
+        } else {
+            // Return only transactions for specific group
+            return transactions.filter(t => t.group_id === groupId);
+        }
+    }, [transactions, groupId]);
 
     const addTransaction = async (transaction: Omit<Transaction, 'id' | 'sync_token' | 'pendingSync' | 'deleted_at'>) => {
         const id = uuidv4();
@@ -56,7 +72,7 @@ export function useTransactions(limit?: number, yearMonth?: string) {
     };
 
     return {
-        transactions,
+        transactions: groupId !== undefined ? filteredTransactions : transactions,
         addTransaction,
         updateTransaction,
         deleteTransaction,

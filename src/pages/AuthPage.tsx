@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { syncManager } from '@/lib/sync';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,8 +34,14 @@ export function AuthPage() {
                     password,
                 });
                 if (error) throw error;
+                
+                // Sync data from Supabase after successful login
                 toast.success(t('sign_in_success') || 'Signed in successfully!');
-                // Redirect to dashboard after successful sign in
+                toast.loading(t('syncing') || 'Syncing data...');
+                await syncManager.sync();
+                toast.dismiss();
+                
+                // Redirect to dashboard after successful sign in and sync
                 navigate('/');
             }
         } catch (error: any) {

@@ -1,6 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useAuth } from '../useAuth';
 import { supabase } from '../../lib/supabase';
+import { db } from '../../lib/db';
 
 // Mock Supabase
 jest.mock('../../lib/supabase', () => ({
@@ -10,6 +11,13 @@ jest.mock('../../lib/supabase', () => ({
             onAuthStateChange: jest.fn(),
             signOut: jest.fn(),
         },
+    },
+}));
+
+// Mock DB
+jest.mock('../../lib/db', () => ({
+    db: {
+        clearLocalCache: jest.fn().mockResolvedValue(undefined),
     },
 }));
 
@@ -88,6 +96,7 @@ describe('useAuth', () => {
         });
 
         await result.current.signOut();
+        expect(db.clearLocalCache).toHaveBeenCalled();
         expect(supabase.auth.signOut).toHaveBeenCalled();
     });
 

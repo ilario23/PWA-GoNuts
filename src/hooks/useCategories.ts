@@ -3,13 +3,26 @@ import { db, Category } from '../lib/db';
 import { syncManager } from '../lib/sync';
 import { v4 as uuidv4 } from 'uuid';
 
-export function useCategories() {
+export function useCategories(groupId?: string | null) {
     const categories = useLiveQuery(() =>
         db.categories.toArray()
     );
 
-    // Filter out deleted items in JS if Dexie query is tricky with null
-    const activeCategories = categories?.filter(c => !c.deleted_at) || [];
+    // Filter out deleted items and optionally by group
+    const filteredCategories = categories?.filter(c => {
+        if (c.deleted_at) return false;
+        
+        if (groupId === undefined) {
+            // Return all categories (no group filter)
+            return true;
+        } else if (groupId === null) {
+            // Return only personal categories
+            return !c.group_id;
+        } else {
+            // Return only categories for specific group OR personal categories
+            return c.group_id === groupId || !c.group_id;
+        }
+    }) || [];
 
     const addCategory = async (category: Omit<Category, 'id' | 'sync_token' | 'pendingSync' | 'deleted_at'>) => {
         const id = uuidv4();
@@ -50,7 +63,7 @@ export function useCategories() {
     };
 
     return {
-        categories: activeCategories,
+        categories: filteredCategories,
         addCategory,
         updateCategory,
         deleteCategory,

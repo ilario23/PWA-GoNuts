@@ -8,6 +8,7 @@ import {
     Settings,
     Layers,
     PieChart,
+    Users,
 } from 'lucide-react';
 import { MobileNav } from '@/components/MobileNav';
 import { DesktopNav } from '@/components/DesktopNav';
@@ -34,6 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         { name: t('recurring'), href: '/recurring', icon: Repeat },
         { name: t('categories'), href: '/categories', icon: Tags },
         { name: t('contexts'), href: '/contexts', icon: Layers },
+        { name: t('groups'), href: '/groups', icon: Users },
         { name: t('statistics'), href: '/statistics', icon: PieChart },
         { name: t('settings'), href: '/settings', icon: Settings },
     ];

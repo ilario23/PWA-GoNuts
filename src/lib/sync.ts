@@ -1,7 +1,7 @@
 import { db } from './db';
 import { supabase } from './supabase';
 
-const TABLES = ['transactions', 'categories', 'contexts', 'recurring_transactions'] as const;
+const TABLES = ['groups', 'group_members', 'transactions', 'categories', 'contexts', 'recurring_transactions'] as const;
 
 export class SyncManager {
     private isSyncing = false;
@@ -32,7 +32,19 @@ export class SyncManager {
 
             const itemsToPush = pendingItems.map(item => {
                 const { pendingSync, year_month, ...rest } = item; // Remove local-only fields
-                return { ...rest, user_id: userId, updated_at: new Date().toISOString() }; // Ensure user_id and updated_at
+                
+                // For groups, use created_by. For others, ensure user_id
+                const pushItem = { 
+                    ...rest, 
+                    updated_at: new Date().toISOString() 
+                };
+                
+                // Add user_id only if the table uses it (not groups)
+                if (tableName !== 'groups' && tableName !== 'group_members') {
+                    pushItem.user_id = userId;
+                }
+                
+                return pushItem;
             });
 
             const { error } = await supabase.from(tableName).upsert(itemsToPush);
@@ -99,6 +111,7 @@ export class SyncManager {
                     start_of_week: 'monday',
                     default_view: 'list',
                     include_investments_in_expense_totals: false,
+                    include_group_expenses: false,
                     last_sync_token: maxToken,
                     updated_at: new Date().toISOString(),
                 });

@@ -1,0 +1,576 @@
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useGroups, GroupWithMembers } from '@/hooks/useGroups';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+    Plus, 
+    Users, 
+    Crown, 
+    Trash2, 
+    UserPlus, 
+    UserMinus,
+    Copy,
+    Check,
+    AlertTriangle,
+    Wallet,
+    ArrowUpRight,
+    ArrowDownRight,
+    ExternalLink,
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+interface GroupFormData {
+    name: string;
+    description: string;
+}
+
+interface MemberFormData {
+    userId: string;
+    share: number;
+}
+
+export function GroupsPage() {
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const { groups, createGroup, updateGroup, deleteGroup, addMember, removeMember, updateAllShares, getGroupBalance } = useGroups();
+
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [editingGroup, setEditingGroup] = useState<GroupWithMembers | null>(null);
+    const [deletingGroup, setDeletingGroup] = useState<GroupWithMembers | null>(null);
+    const [deleteTransactions, setDeleteTransactions] = useState(false);
+    const [managingMembers, setManagingMembers] = useState<GroupWithMembers | null>(null);
+    const [viewingBalance, setViewingBalance] = useState<GroupWithMembers | null>(null);
+    const [balanceData, setBalanceData] = useState<Awaited<ReturnType<typeof getGroupBalance>> | null>(null);
+    const [copiedUserId, setCopiedUserId] = useState(false);
+
+    const [formData, setFormData] = useState<GroupFormData>({ name: '', description: '' });
+    const [newMemberData, setNewMemberData] = useState<MemberFormData>({ userId: '', share: 0 });
+    const [memberShares, setMemberShares] = useState<Record<string, number>>({});
+
+    // Calculate total share
+    const totalShare = useMemo(() => {
+        return Object.values(memberShares).reduce((sum, share) => sum + share, 0);
+    }, [memberShares]);
+
+    const isShareValid = Math.abs(totalShare - 100) < 0.01;
+
+    const handleCreateGroup = async () => {
+        if (!formData.name.trim()) {
+            toast.error(t('name_required'));
+            return;
+        }
+        await createGroup(formData.name.trim(), formData.description.trim() || undefined);
+        setFormData({ name: '', description: '' });
+        setIsCreateDialogOpen(false);
+        toast.success(t('group_created'));
+    };
+
+    const handleUpdateGroup = async () => {
+        if (!editingGroup || !formData.name.trim()) return;
+        await updateGroup(editingGroup.id, {
+            name: formData.name.trim(),
+            description: formData.description.trim() || undefined,
+        });
+        setEditingGroup(null);
+        setFormData({ name: '', description: '' });
+        toast.success(t('group_updated'));
+    };
+
+    const handleDeleteGroup = async () => {
+        if (!deletingGroup) return;
+        await deleteGroup(deletingGroup.id, deleteTransactions);
+        setDeletingGroup(null);
+        setDeleteTransactions(false);
+        toast.success(t('group_deleted'));
+    };
+
+    const handleAddMember = async () => {
+        if (!managingMembers || !newMemberData.userId.trim()) {
+            toast.error(t('user_id_required'));
+            return;
+        }
+
+        // Check if user is already a member
+        if (managingMembers.members.some(m => m.user_id === newMemberData.userId.trim())) {
+            toast.error(t('user_already_member'));
+            return;
+        }
+
+        await addMember(managingMembers.id, newMemberData.userId.trim(), newMemberData.share);
+        setNewMemberData({ userId: '', share: 0 });
+        toast.success(t('member_added'));
+    };
+
+    const handleRemoveMember = async (memberId: string) => {
+        await removeMember(memberId);
+        toast.success(t('member_removed'));
+    };
+
+    const handleSaveShares = async () => {
+        if (!managingMembers) return;
+        if (!isShareValid) {
+            toast.error(t('shares_must_equal_100'));
+            return;
+        }
+
+        const shares = Object.entries(memberShares).map(([memberId, share]) => ({
+            memberId,
+            share,
+        }));
+
+        await updateAllShares(managingMembers.id, shares);
+        setManagingMembers(null);
+        toast.success(t('shares_updated'));
+    };
+
+    const handleViewBalance = async (group: GroupWithMembers) => {
+        setViewingBalance(group);
+        const data = await getGroupBalance(group.id);
+        setBalanceData(data);
+    };
+
+    const copyUserId = async () => {
+        if (!user) return;
+        await navigator.clipboard.writeText(user.id);
+        setCopiedUserId(true);
+        setTimeout(() => setCopiedUserId(false), 2000);
+        toast.success(t('user_id_copied'));
+    };
+
+    const openEditGroup = (group: GroupWithMembers) => {
+        setFormData({ name: group.name, description: group.description || '' });
+        setEditingGroup(group);
+    };
+
+    const openManageMembers = (group: GroupWithMembers) => {
+        const shares: Record<string, number> = {};
+        group.members.forEach(m => {
+            shares[m.id] = m.share;
+        });
+        setMemberShares(shares);
+        setManagingMembers(group);
+    };
+
+    if (!groups) {
+        return (
+            <div className="space-y-6 pb-10">
+                <div className="flex items-center justify-between">
+                    <Skeleton className="h-8 w-32" />
+                    <Skeleton className="h-10 w-32" />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {[1, 2, 3].map(i => (
+                        <Skeleton key={i} className="h-48" />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6 pb-10">
+            {/* Header */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-0.5">
+                    <h2 className="text-2xl font-bold tracking-tight">{t('groups')}</h2>
+                    <p className="text-muted-foreground">{t('groups_desc')}</p>
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={copyUserId}>
+                        {copiedUserId ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                        {t('copy_my_id')}
+                    </Button>
+                    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" />
+                                {t('add_group')}
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{t('add_group')}</DialogTitle>
+                                <DialogDescription>{t('add_group_desc')}</DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="name">{t('name')}</Label>
+                                    <Input
+                                        id="name"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder={t('group_name_placeholder')}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="description">{t('description')}</Label>
+                                    <Input
+                                        id="description"
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder={t('group_description_placeholder')}
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                                    {t('cancel')}
+                                </Button>
+                                <Button onClick={handleCreateGroup}>{t('save')}</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+            </div>
+
+            {/* Groups Grid */}
+            {groups.length === 0 ? (
+                <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                        <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold">{t('no_groups')}</h3>
+                        <p className="text-muted-foreground text-sm">{t('no_groups_desc')}</p>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {groups.map((group) => (
+                        <Card key={group.id} className="flex flex-col">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-start justify-between">
+                                    <div className="space-y-1">
+                                        <CardTitle className="flex items-center gap-2">
+                                            {group.name}
+                                            {group.isCreator && (
+                                                <Crown className="h-4 w-4 text-yellow-500" />
+                                            )}
+                                        </CardTitle>
+                                        {group.description && (
+                                            <CardDescription>{group.description}</CardDescription>
+                                        )}
+                                    </div>
+                                    <Badge variant="secondary">
+                                        {group.members.length} {t('members')}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-1">
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">{t('your_share')}</span>
+                                        <span className="font-medium">{group.myShare}%</span>
+                                    </div>
+                                    <Separator />
+                                    <div className="flex flex-wrap gap-2 pt-2">
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            onClick={() => navigate(`/groups/${group.id}`)}
+                                        >
+                                            <ExternalLink className="mr-2 h-4 w-4" />
+                                            {t('view')}
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleViewBalance(group)}
+                                        >
+                                            <Wallet className="mr-2 h-4 w-4" />
+                                            {t('balance')}
+                                        </Button>
+                                        {group.isCreator && (
+                                            <>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => openManageMembers(group)}
+                                                >
+                                                    <Users className="mr-2 h-4 w-4" />
+                                                    {t('members')}
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => openEditGroup(group)}
+                                                >
+                                                    {t('edit')}
+                                                </Button>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    onClick={() => setDeletingGroup(group)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {/* Edit Group Dialog */}
+            <Dialog open={!!editingGroup} onOpenChange={(open) => !open && setEditingGroup(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('edit_group')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-name">{t('name')}</Label>
+                            <Input
+                                id="edit-name"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-description">{t('description')}</Label>
+                            <Input
+                                id="edit-description"
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingGroup(null)}>
+                            {t('cancel')}
+                        </Button>
+                        <Button onClick={handleUpdateGroup}>{t('save')}</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Group Dialog */}
+            <AlertDialog open={!!deletingGroup} onOpenChange={(open) => !open && setDeletingGroup(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-destructive" />
+                            {t('confirm_delete_group')}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-4">
+                            <p>{t('confirm_delete_group_description')}</p>
+                            <div className="bg-muted p-4 rounded-lg space-y-2">
+                                <p className="font-medium">{t('what_to_do_with_transactions')}</p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant={deleteTransactions ? 'outline' : 'default'}
+                                        size="sm"
+                                        onClick={() => setDeleteTransactions(false)}
+                                    >
+                                        {t('keep_transactions')}
+                                    </Button>
+                                    <Button
+                                        variant={deleteTransactions ? 'destructive' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setDeleteTransactions(true)}
+                                    >
+                                        {t('delete_transactions')}
+                                    </Button>
+                                </div>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteGroup} className="bg-destructive text-destructive-foreground">
+                            {t('delete')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Manage Members Dialog */}
+            <Dialog open={!!managingMembers} onOpenChange={(open) => !open && setManagingMembers(null)}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>{t('manage_members')}</DialogTitle>
+                        <DialogDescription>{t('manage_members_desc')}</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        {/* Add Member */}
+                        <div className="space-y-2">
+                            <Label>{t('add_member')}</Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder={t('enter_user_id')}
+                                    value={newMemberData.userId}
+                                    onChange={(e) => setNewMemberData({ ...newMemberData, userId: e.target.value })}
+                                    className="flex-1"
+                                />
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    placeholder="%"
+                                    value={newMemberData.share}
+                                    onChange={(e) => setNewMemberData({ ...newMemberData, share: Number(e.target.value) })}
+                                    className="w-20"
+                                />
+                                <Button onClick={handleAddMember} size="icon">
+                                    <UserPlus className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Members List with Shares */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label>{t('member_shares')}</Label>
+                                <Badge variant={isShareValid ? 'default' : 'destructive'}>
+                                    {t('total')}: {totalShare.toFixed(1)}%
+                                </Badge>
+                            </div>
+                            <ScrollArea className="h-[200px]">
+                                <div className="space-y-2">
+                                    {managingMembers?.members.map((member) => (
+                                        <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium truncate">
+                                                    {member.user_id === user?.id ? (
+                                                        <span className="flex items-center gap-1">
+                                                            {t('you')}
+                                                            <Crown className="h-3 w-3 text-yellow-500" />
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-mono text-xs">
+                                                            {member.user_id.slice(0, 8)}...
+                                                        </span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                max={100}
+                                                value={memberShares[member.id] ?? member.share}
+                                                onChange={(e) => setMemberShares({
+                                                    ...memberShares,
+                                                    [member.id]: Number(e.target.value),
+                                                })}
+                                                className="w-20"
+                                            />
+                                            <span className="text-sm text-muted-foreground">%</span>
+                                            {member.user_id !== user?.id && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleRemoveMember(member.id)}
+                                                    className="text-destructive"
+                                                >
+                                                    <UserMinus className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                            {!isShareValid && (
+                                <p className="text-sm text-destructive flex items-center gap-1">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    {t('shares_must_equal_100')}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setManagingMembers(null)}>
+                            {t('cancel')}
+                        </Button>
+                        <Button onClick={handleSaveShares} disabled={!isShareValid}>
+                            {t('save')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* View Balance Dialog */}
+            <Dialog open={!!viewingBalance} onOpenChange={(open) => !open && setViewingBalance(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('group_balance')}: {viewingBalance?.name}</DialogTitle>
+                        <DialogDescription>
+                            {t('total_expenses')}: €{balanceData?.totalExpenses.toFixed(2) || '0.00'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        {balanceData && Object.values(balanceData.balances).map((balance) => (
+                            <div key={balance.userId} className="p-4 rounded-lg bg-muted">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-medium">
+                                        {balance.userId === user?.id ? t('you') : (
+                                            <span className="font-mono text-xs">{balance.userId.slice(0, 8)}...</span>
+                                        )}
+                                    </span>
+                                    <Badge>{balance.share}%</Badge>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-sm">
+                                    <div>
+                                        <p className="text-muted-foreground">{t('should_pay')}</p>
+                                        <p className="font-medium">€{balance.shouldPay.toFixed(2)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground">{t('has_paid')}</p>
+                                        <p className="font-medium">€{balance.hasPaid.toFixed(2)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground">{t('balance')}</p>
+                                        <p className={`font-medium flex items-center gap-1 ${
+                                            balance.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                                        }`}>
+                                            {balance.balance >= 0 ? (
+                                                <ArrowUpRight className="h-4 w-4" />
+                                            ) : (
+                                                <ArrowDownRight className="h-4 w-4" />
+                                            )}
+                                            €{Math.abs(balance.balance).toFixed(2)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={() => setViewingBalance(null)}>{t('close')}</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}

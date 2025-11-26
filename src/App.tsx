@@ -10,6 +10,8 @@ import { TransactionsPage } from '@/pages/Transactions';
 import { RecurringTransactionsPage } from '@/pages/RecurringTransactions';
 import { CategoriesPage } from '@/pages/Categories';
 import { ContextsPage } from '@/pages/Contexts';
+import { GroupsPage } from '@/pages/Groups';
+import { GroupDetailPage } from '@/pages/GroupDetail';
 
 import { StatisticsPage } from '@/pages/Statistics';
 
@@ -71,6 +73,8 @@ function App() {
                     <Route path="/recurring" element={<RecurringTransactionsPage />} />
                     <Route path="/categories" element={<CategoriesPage />} />
                     <Route path="/contexts" element={<ContextsPage />} />
+                    <Route path="/groups" element={<GroupsPage />} />
+                    <Route path="/groups/:groupId" element={<GroupDetailPage />} />
                     <Route path="/statistics" element={<StatisticsPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />

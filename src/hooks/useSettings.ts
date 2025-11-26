@@ -24,6 +24,7 @@ export function useSettings() {
                         start_of_week: 'monday',
                         default_view: 'list',
                         include_investments_in_expense_totals: false,
+                        include_group_expenses: false,
                         updated_at: new Date().toISOString(),
                     });
                 }
@@ -50,6 +51,7 @@ export function useSettings() {
                 start_of_week: 'monday',
                 default_view: 'list',
                 include_investments_in_expense_totals: false,
+                include_group_expenses: false,
                 ...updates,
                 updated_at: new Date().toISOString(),
             } as Setting);
