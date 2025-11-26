@@ -47,7 +47,9 @@ import {
   Trash2,
   AlertTriangle,
   Upload,
+  Download,
   FileJson,
+  Wallet,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { THEME_COLORS } from "@/lib/theme-colors";
@@ -70,6 +72,7 @@ export function SettingsPage() {
   const [copiedUserId, setCopiedUserId] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
   const [importingData, setImportingData] = useState(false);
+  const [exportingData, setExportingData] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Avoid hydration mismatch
@@ -192,6 +195,60 @@ export function SettingsPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    }
+  };
+
+  const handleExportData = async () => {
+    if (!user) return;
+
+    setExportingData(true);
+    try {
+      // Fetch all data
+      const transactions = await db.transactions
+        .filter((t) => t.user_id === user.id && !t.deleted_at)
+        .toArray();
+      const categories = await db.categories
+        .filter((c) => c.user_id === user.id && !c.deleted_at)
+        .toArray();
+      const contexts = await db.contexts
+        .filter((c) => c.user_id === user.id && !c.deleted_at)
+        .toArray();
+
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        userId: user.id,
+        transactions: transactions.map(
+          ({ pendingSync, deleted_at, ...rest }) => rest
+        ),
+        categories: categories.map(
+          ({ pendingSync, deleted_at, ...rest }) => rest
+        ),
+        contexts: contexts.map(({ pendingSync, deleted_at, ...rest }) => rest),
+      };
+
+      // Create blob and download
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `expense-tracker-export-${
+        new Date().toISOString().split("T")[0]
+      }.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(
+        t("export_success") ||
+          `Exported ${transactions.length} transactions, ${categories.length} categories, ${contexts.length} contexts`
+      );
+    } catch (error: any) {
+      toast.error(t("export_error") || `Export failed: ${error.message}`);
+    } finally {
+      setExportingData(false);
     }
   };
 
@@ -455,6 +512,46 @@ export function SettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              {t("monthly_budget")}
+            </CardTitle>
+            <CardDescription>{t("monthly_budget_desc")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="monthly-budget">{t("monthly_budget")}</Label>
+              <div className="flex gap-2 items-center">
+                <span className="text-muted-foreground">€</span>
+                <Input
+                  id="monthly-budget"
+                  type="number"
+                  step="1"
+                  min="0"
+                  placeholder={t("budget_placeholder")}
+                  value={settings.monthly_budget ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateSettings({
+                      monthly_budget: value ? parseFloat(value) : null,
+                    });
+                  }}
+                  className="max-w-[200px]"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {settings.monthly_budget
+                  ? `€${settings.monthly_budget.toFixed(2)} / ${t(
+                      "monthly"
+                    ).toLowerCase()}`
+                  : t("budget_not_set")}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>{t("data_management")}</CardTitle>
             <CardDescription>{t("data_management_desc")}</CardDescription>
           </CardHeader>
@@ -505,6 +602,36 @@ export function SettingsPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+            </div>
+
+            <Separator />
+
+            {/* Export Data */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base flex items-center gap-2">
+                  <Download className="h-4 w-4 text-muted-foreground" />
+                  {t("export_data")}
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  {t("export_data_desc")}
+                </p>
+              </div>
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportData}
+                  disabled={exportingData}
+                >
+                  {exportingData ? (
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <FileJson className="h-4 w-4 mr-2" />
+                  )}
+                  {t("export_json")}
+                </Button>
+              </div>
             </div>
 
             <Separator />
