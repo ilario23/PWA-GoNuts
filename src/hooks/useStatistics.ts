@@ -407,6 +407,7 @@ export function useStatistics(params?: UseStatisticsParams) {
             daysElapsed: 0,
             daysRemaining: 0,
             onTrack: true,
+            noBudget: true,
         };
 
         if (transactions && allTimeTransactions) {
@@ -428,7 +429,8 @@ export function useStatistics(params?: UseStatisticsParams) {
                     .reduce((sum, t) => sum + Number(t.amount), 0) /
                 Math.max(new Set(allTimeTransactions.map(t => t.year_month)).size, 1) : 0;
 
-            rate.onTrack = historicalMonthlyAverage === 0 || rate.projectedMonthEnd <= historicalMonthlyAverage * 1.1;
+            rate.noBudget = historicalMonthlyAverage === 0;
+            rate.onTrack = rate.noBudget || rate.projectedMonthEnd <= historicalMonthlyAverage * 1.1;
         }
         return rate;
     }, [transactions, allTimeTransactions, currentMonth, monthlyStats]);
@@ -441,6 +443,7 @@ export function useStatistics(params?: UseStatisticsParams) {
             daysElapsed: 0,
             daysRemaining: 0,
             onTrack: true,
+            noBudget: true,
         };
 
         if (yearlyTransactions && allTimeTransactions) {
@@ -469,7 +472,8 @@ export function useStatistics(params?: UseStatisticsParams) {
                     .reduce((sum, t) => sum + Number(t.amount), 0) /
                 Math.max(new Set(allTimeTransactions.map(t => t.year_month.substring(0, 4))).size, 1) : 0;
 
-            rate.onTrack = historicalYearlyAverage === 0 || rate.projectedYearEnd <= historicalYearlyAverage * 1.1;
+            rate.noBudget = historicalYearlyAverage === 0;
+            rate.onTrack = rate.noBudget || rate.projectedYearEnd <= historicalYearlyAverage * 1.1;
         }
         return rate;
     }, [yearlyTransactions, allTimeTransactions, currentYear, yearlyStats]);

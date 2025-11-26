@@ -740,7 +740,9 @@ export function StatisticsPage() {
                             <CardTitle>{t('burn_rate')}</CardTitle>
                             <CardDescription>{t('burn_rate_desc')}</CardDescription>
                         </div>
-                        {(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? (
+                        {(activeTab === 'monthly' ? burnRate : yearlyBurnRate).noBudget ? (
+                            <Activity className="h-5 w-5 text-muted-foreground" />
+                        ) : (activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? (
                             <Activity className="h-5 w-5 text-green-500" />
                         ) : (
                             <AlertCircle className="h-5 w-5 text-red-500" />
@@ -754,7 +756,7 @@ export function StatisticsPage() {
                             </div>
                             <div>
                                 <div className="text-xs text-muted-foreground">{activeTab === 'monthly' ? t('projected_month_end') : t('projected_year_end')}</div>
-                                <div className={`text-2xl font-bold ${(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? 'text-green-500' : 'text-red-500'}`}>
+                                <div className={`text-2xl font-bold ${(activeTab === 'monthly' ? burnRate : yearlyBurnRate).noBudget ? 'text-foreground' : (activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? 'text-green-500' : 'text-red-500'}`}>
                                     €{(activeTab === 'monthly' ? burnRate.projectedMonthEnd : yearlyBurnRate.projectedYearEnd).toFixed(2)}
                                 </div>
                             </div>
@@ -766,14 +768,20 @@ export function StatisticsPage() {
                             </div>
                             <div className="h-2 bg-secondary rounded-full overflow-hidden">
                                 <div
-                                    className={`h-full ${(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? 'bg-green-500' : 'bg-red-500'}`}
+                                    className={`h-full ${(activeTab === 'monthly' ? burnRate : yearlyBurnRate).noBudget ? 'bg-muted-foreground' : (activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? 'bg-green-500' : 'bg-red-500'}`}
                                     style={{ width: `${((activeTab === 'monthly' ? burnRate : yearlyBurnRate).daysElapsed / ((activeTab === 'monthly' ? burnRate : yearlyBurnRate).daysElapsed + (activeTab === 'monthly' ? burnRate : yearlyBurnRate).daysRemaining)) * 100}%` }}
                                 />
                             </div>
                             <div className="text-center">
-                                <span className={`text-sm font-medium ${(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? 'text-green-500' : 'text-red-500'}`}>
-                                    {(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? t('on_track') : t('over_budget')}
-                                </span>
+                                {(activeTab === 'monthly' ? burnRate : yearlyBurnRate).noBudget ? (
+                                    <span className="text-sm text-muted-foreground">
+                                        {t('burn_rate_no_budget')}
+                                    </span>
+                                ) : (
+                                    <span className={`text-sm font-medium ${(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? 'text-green-500' : 'text-red-500'}`}>
+                                        {(activeTab === 'monthly' ? burnRate : yearlyBurnRate).onTrack ? t('on_track') : t('over_budget')}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </CardContent>

@@ -529,8 +529,8 @@ export function SettingsPage() {
                   step="1"
                   min="0"
                   placeholder={t("budget_placeholder")}
-                  value={settings.monthly_budget ?? ""}
-                  onChange={(e) => {
+                  defaultValue={settings.monthly_budget ?? ""}
+                  onBlur={(e) => {
                     const value = e.target.value;
                     updateSettings({
                       monthly_budget: value ? parseFloat(value) : null,

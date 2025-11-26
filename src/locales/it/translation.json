@@ -180,6 +180,7 @@
   "days_remaining": "Giorni Rimanenti",
   "on_track": "Nei Limiti",
   "over_budget": "Oltre Budget",
+  "burn_rate_no_budget": "Basato sulla media storica",
   "recurring_vs_onetime": "Ricorrenti vs Occasionali",
   "recurring_vs_onetime_desc": "Divisione tra transazioni ricorrenti e occasionali",
   "recurring_transactions": "Ricorrenti",

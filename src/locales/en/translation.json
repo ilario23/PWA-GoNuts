@@ -180,6 +180,7 @@
   "days_remaining": "Days Remaining",
   "on_track": "On Track",
   "over_budget": "Over Budget",
+  "burn_rate_no_budget": "Based on historical average",
   "recurring_vs_onetime": "Recurring vs One-Time",
   "recurring_vs_onetime_desc": "Split between recurring and occasional transactions",
   "recurring_transactions": "Recurring",
