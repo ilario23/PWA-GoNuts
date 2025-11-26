@@ -707,7 +707,13 @@ export function StatisticsPage() {
                             </CardHeader>
                             <CardContent className="flex-1 pb-0">
                                 <ChartContainer
-                                    config={{}}
+                                    config={contextStats.reduce((acc, item, index) => {
+                                        acc[item.name] = {
+                                            label: item.name,
+                                            color: `hsl(var(--chart-${(index % 5) + 1}))`,
+                                        };
+                                        return acc;
+                                    }, {} as ChartConfig)}
                                     className="mx-auto aspect-square max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
                                 >
                                     <PieChart>
