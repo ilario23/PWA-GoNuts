@@ -25,6 +25,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       className="toaster group"
       position={position}
+      style={{
+        // Respect iOS safe area for notch/Dynamic Island
+        top: "env(safe-area-inset-top, 0px)",
+      }}
       toastOptions={{
         classNames: {
           toast:
