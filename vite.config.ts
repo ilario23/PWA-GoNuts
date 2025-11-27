@@ -224,10 +224,10 @@ export default defineConfig({
           if (id.includes("node_modules/date-fns")) {
             return "date-utils";
           }
-          // Lucide icons - large but tree-shakeable
-          if (id.includes("node_modules/lucide-react")) {
-            return "icons";
-          }
+          // NOTE: Lucide icons are NOT chunked separately
+          // iOS Safari has issues with lazy-loaded icon chunks
+          // They will be included in the page chunks that use them
+          
           // Zod validation
           if (id.includes("node_modules/zod")) {
             return "validation";
