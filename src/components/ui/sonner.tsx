@@ -1,15 +1,28 @@
-import { useMobile } from "@/hooks/useMobile";
+import { useState, useEffect } from "react";
 import { Toaster as Sonner } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const isMobile = useMobile();
+  // Use local state instead of hook to avoid potential issues
+  const [position, setPosition] = useState<"top-center" | "top-right">("top-right");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const updatePosition = () => {
+      setPosition(window.innerWidth < 768 ? "top-center" : "top-right");
+    };
+    
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    return () => window.removeEventListener("resize", updatePosition);
+  }, []);
 
   return (
     <Sonner
       className="toaster group"
-      position={isMobile ? "top-center" : "top-right"}
+      position={position}
       toastOptions={{
         classNames: {
           toast:
