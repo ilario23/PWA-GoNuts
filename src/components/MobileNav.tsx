@@ -55,12 +55,12 @@ export function MobileNav({ navigation }: MobileNavProps) {
             <Menu className="h-5 w-5" aria-hidden="true" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0" hideClose={true}>
+        <SheetContent side="left" className="w-64 !p-0" hideClose={true}>
           <SheetTitle className="sr-only">{t("app_title")}</SheetTitle>
           <SheetDescription className="sr-only">
             {t("navigation_menu")}
           </SheetDescription>
-          <div className="flex h-full flex-col">
+          <div className="flex h-full flex-col pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)]">
             <div className="flex items-center gap-2 border-b p-4 font-bold text-xl">
               <Wallet
                 className={cn("h-6 w-6", !isOnline && "text-destructive")}
