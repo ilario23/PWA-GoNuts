@@ -176,4 +176,69 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // React core - rarely changes, cache well
+          if (id.includes("node_modules/react-dom")) {
+            return "react-dom";
+          }
+          if (id.includes("node_modules/react/")) {
+            return "react-core";
+          }
+          // Router
+          if (id.includes("node_modules/react-router")) {
+            return "router";
+          }
+          // Radix UI components
+          if (id.includes("node_modules/@radix-ui")) {
+            return "ui-radix";
+          }
+          // Recharts - split into core and components
+          if (id.includes("node_modules/recharts")) {
+            return "charts";
+          }
+          if (id.includes("node_modules/d3-") || id.includes("node_modules/victory-vendor")) {
+            return "charts-d3";
+          }
+          // Supabase
+          if (id.includes("node_modules/@supabase")) {
+            return "supabase";
+          }
+          // Database
+          if (id.includes("node_modules/dexie")) {
+            return "database";
+          }
+          // i18n
+          if (id.includes("node_modules/i18next") || id.includes("node_modules/react-i18next")) {
+            return "i18n";
+          }
+          // Date utilities
+          if (id.includes("node_modules/date-fns")) {
+            return "date-utils";
+          }
+          // Lucide icons - large but tree-shakeable
+          if (id.includes("node_modules/lucide-react")) {
+            return "icons";
+          }
+          // Zod validation
+          if (id.includes("node_modules/zod")) {
+            return "validation";
+          }
+          // Other utilities
+          if (
+            id.includes("node_modules/clsx") ||
+            id.includes("node_modules/tailwind-merge") ||
+            id.includes("node_modules/class-variance-authority") ||
+            id.includes("node_modules/uuid")
+          ) {
+            return "utils";
+          }
+        },
+      },
+    },
+    // Adjust warning limit
+    chunkSizeWarningLimit: 350,
+  },
 });
