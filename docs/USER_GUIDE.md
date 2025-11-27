@@ -151,9 +151,38 @@ Automate regular income or expenses:
    - Name
    - Type (Income/Expense/Investment)
    - Icon (choose from 40+ options)
-   - Color (choose from 7 themes)
-   - Parent category (optional)
+   - Color (choose from color picker)
+   - Parent category (optional, for hierarchy)
+   - Active status
 4. Click "Add Category"
+
+**Hierarchical Categories**:
+
+Categories support unlimited nesting depth. The UI displays them in a collapsible tree structure:
+
+- **Mobile**: Accordion-style cards that expand to show children
+- **Desktop**: Table rows with expand/collapse arrows
+
+**Example Structure**:
+
+```
+🏠 Home
+├── 💡 Utilities
+│   ├── ⚡ Electricity
+│   ├── 💧 Water
+│   └── 🔥 Gas
+└── 🛋️ Furniture
+🍽️ Food
+├── 🛒 Groceries
+└── 🍕 Restaurants
+```
+
+**Navigating Hierarchy**:
+
+1. Click the arrow (▶) next to a parent category to expand
+2. Child categories appear indented below
+3. Badge shows number of children (e.g., "3")
+4. Click again to collapse
 
 **Editing a Category**:
 
@@ -315,6 +344,35 @@ The app warns you automatically:
 
 Notifications appear once per session per threshold.
 
+## Category Budgets
+
+In addition to the overall monthly budget, you can set individual budgets per category.
+
+### Setting a Category Budget
+
+1. Go to **Categories** page
+2. Find an expense category
+3. Click the **target icon** (🎯) next to the category
+4. Enter the monthly limit amount
+5. Click **Save**
+
+### Category Budget Display
+
+On the Categories page, categories with budgets show:
+
+- **Progress bar**: Visual spending indicator
+- **Spent / Budget**: Current spending vs limit (e.g., "150 / 200")
+- **Percentage**: How much of budget used
+- **Color coding**:
+  - Green: < 80% used
+  - Yellow: 80-100% used
+  - Red: Over budget
+
+### Removing a Category Budget
+
+1. Click the target icon on a category with a budget
+2. Click **Remove Budget** (red button)
+
 ## Group Expenses
 
 ### What Are Groups?
@@ -361,6 +419,15 @@ The app is **offline-first**, meaning:
 2. You can use all features without internet
 3. Changes sync to cloud when you're back online
 
+### Realtime Sync
+
+When online, the app uses **Realtime sync** for instant cross-device updates:
+
+- Changes on one device appear immediately on others
+- Connection status shown in the app header
+- **Green indicator**: Connected to Realtime
+- **Gray indicator**: Disconnected (changes will sync when reconnected)
+
 ### Using the App Offline
 
 **What Works Offline**:
@@ -398,6 +465,31 @@ When you reconnect to internet:
 
 > [!TIP]
 > You can also manually sync by clicking "Sync Now" in Settings.
+
+## App Updates (PWA)
+
+The app automatically checks for updates and notifies you when a new version is available.
+
+### Update Notifications
+
+When an update is detected:
+
+1. A toast notification appears at the bottom of the screen
+2. You'll see "**Update available**" with a description
+3. Two options:
+   - **Reload**: Apply the update immediately
+   - **Later**: Dismiss and update on next visit
+
+### Offline Ready Notification
+
+When the app is first installed or updated, you'll see:
+
+- "**App ready for offline use**" toast
+- This confirms all assets are cached for offline functionality
+
+### Manual Update Check
+
+Updates are checked automatically every hour. The app will notify you when ready.
 
 ## Tips & Tricks
 
@@ -561,6 +653,9 @@ A: Yes! Go to Settings → Data Management → Export JSON to download all your 
 
 **Q: Can I set a monthly budget?**  
 A: Yes! Go to Settings → Monthly Budget and enter your spending limit. You'll see progress on the Dashboard and get notifications at 80% and when exceeded.
+
+**Q: Can I set budgets per category?**  
+A: Yes! On the Categories page, click the target icon (🎯) next to any expense category to set a specific budget for that category.
 
 **Q: How do recurring transactions work?**  
 A: Set them up in the Recurring page. When you open the app, any due transactions are automatically generated with a notification.

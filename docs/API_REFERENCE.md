@@ -112,6 +112,23 @@ interface Setting {
 }
 ```
 
+### CategoryBudget
+
+```typescript
+interface CategoryBudget {
+  id: string; // UUID
+  user_id: string; // User identifier
+  category_id: string; // Reference to category
+  amount: number; // Budget limit amount
+  period: "monthly" | "yearly"; // Budget period
+  deleted_at?: string | null; // Soft delete timestamp
+  pendingSync?: number; // 1 if needs sync
+  sync_token?: number; // Server sync token
+  updated_at?: string;
+  created_at?: string;
+}
+```
+
 ## Custom Hooks
 
 ### useAuth
@@ -535,6 +552,124 @@ function useBudgetNotifications(): void;
 
 ---
 
+### useCategoryBudgets
+
+Hook for managing per-category spending budgets with progress tracking.
+
+**Location**: [src/hooks/useCategoryBudgets.ts](file:///src/hooks/useCategoryBudgets.ts)
+
+```typescript
+interface CategoryBudgetWithSpent extends CategoryBudget {
+  spent: number;
+  percentage: number;
+  remaining: number;
+  isOverBudget: boolean;
+  categoryName?: string;
+  categoryColor?: string;
+  categoryIcon?: string;
+}
+
+function useCategoryBudgets(
+  selectedMonth?: string,
+  selectedYear?: string
+): {
+  categoryBudgets: CategoryBudgetWithSpent[];
+  budgetsWithSpent: CategoryBudgetWithSpent[]; // Alias
+  getBudgetForCategory: (
+    categoryId: string,
+    period?: "monthly" | "yearly"
+  ) => CategoryBudgetWithSpent | undefined;
+  setCategoryBudget: (
+    categoryId: string,
+    amount: number,
+    period?: "monthly" | "yearly"
+  ) => Promise<void>;
+  removeCategoryBudget: (budgetId: string) => Promise<void>;
+  overBudgetCategories: CategoryBudgetWithSpent[];
+  warningCategories: CategoryBudgetWithSpent[];
+};
+```
+
+**Parameters**:
+
+- `selectedMonth` (optional): Filter by month (YYYY-MM format)
+- `selectedYear` (optional): Filter by year (YYYY format)
+
+**Returns**:
+
+- `categoryBudgets`: All budgets with spent calculations
+- `getBudgetForCategory`: Get budget info for specific category
+- `setCategoryBudget`: Create or update a category budget
+- `removeCategoryBudget`: Soft delete a budget
+- `overBudgetCategories`: Categories exceeding their budget
+- `warningCategories`: Categories at 80%+ budget usage
+
+**Example**:
+
+```typescript
+const { budgetsWithSpent, setCategoryBudget, getBudgetForCategory } =
+  useCategoryBudgets("2024-11");
+
+// Set a monthly budget of €200 for groceries
+await setCategoryBudget("groceries-category-id", 200, "monthly");
+
+// Get budget info
+const groceriesBudget = getBudgetForCategory("groceries-category-id");
+// { amount: 200, spent: 150, percentage: 75, remaining: 50, isOverBudget: false, ... }
+```
+
+---
+
+### usePWAUpdate
+
+Hook for detecting and handling PWA service worker updates.
+
+**Location**: [src/hooks/usePWAUpdate.ts](file:///src/hooks/usePWAUpdate.ts)
+
+```typescript
+interface PWAUpdateState {
+  needRefresh: boolean;
+  offlineReady: boolean;
+  updateServiceWorker: () => Promise<void>;
+  close: () => void;
+}
+
+function usePWAUpdate(): PWAUpdateState;
+```
+
+**Returns**:
+
+- `needRefresh`: True when a new version is available
+- `offlineReady`: True when app is ready for offline use
+- `updateServiceWorker`: Function to apply the update and reload
+- `close`: Function to dismiss the notification
+
+**Features**:
+
+- Automatically checks for updates every hour
+- Uses `registerType: "prompt"` for user-controlled updates
+- Integrates with vite-plugin-pwa's React hooks
+
+**Example**:
+
+```typescript
+const { needRefresh, offlineReady, updateServiceWorker, close } =
+  usePWAUpdate();
+
+if (needRefresh) {
+  // Show update notification to user
+  return (
+    <div>
+      <p>New version available!</p>
+      <button onClick={() => updateServiceWorker()}>Reload</button>
+      <button onClick={close}>Later</button>
+    </div>
+  );
+}
+```
+
+---
+
 ### useGroups
 
 Hook for managing expense groups and members.
@@ -793,6 +928,40 @@ interface DeleteConfirmDialogProps {
 ```
 
 Reusable confirmation dialog for delete operations.
+
+---
+
+### PWAUpdateNotification
+
+**Location**: [src/components/PWAUpdateNotification.tsx](file:///src/components/PWAUpdateNotification.tsx)
+
+```typescript
+function PWAUpdateNotification(): null;
+```
+
+Toast-based notification component for PWA updates.
+
+**Features**:
+
+- Shows success toast when app is ready for offline use
+- Shows persistent toast with "Reload" / "Later" buttons when update available
+- Uses `usePWAUpdate` hook internally
+- Renders null (toast notifications via Sonner)
+
+**Usage**: Add once in App root or AppShell:
+
+```typescript
+import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
+
+function App() {
+  return (
+    <>
+      <PWAUpdateNotification />
+      {/* rest of app */}
+    </>
+  );
+}
+```
 
 ---
 

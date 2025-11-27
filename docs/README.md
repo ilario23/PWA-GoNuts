@@ -21,10 +21,11 @@ A modern, offline-first Progressive Web App for managing personal finances. Trac
 ### 💰 Financial Management
 
 - **Transaction tracking** - Record income, expenses, and investments
-- **Hierarchical categories** - Organize with unlimited nested subcategories
+- **Hierarchical categories** - Organize with unlimited nested subcategories (collapsible tree view)
 - **Contexts** - Tag transactions with custom contexts (e.g., "Work", "Personal")
 - **Recurring transactions** - Automate regular income/expenses with auto-generation
 - **Monthly budget** - Set spending limits and track progress
+- **Category budgets** - Set individual spending limits per category
 - **Budget notifications** - Warnings at 80% and alerts when exceeded
 - **Group expenses** - Share expenses with others and track who paid
 - **Multi-currency support** - Configure your preferred currency
@@ -65,6 +66,7 @@ A modern, offline-first Progressive Web App for managing personal finances. Trac
 - **Works offline** - Full functionality without internet
 - **Fast loading** - Optimized caching strategies
 - **Native-like experience** - Standalone display mode
+- **Update notifications** - User-controlled app updates with prompt
 
 ## 🛠️ Tech Stack
 
@@ -150,12 +152,17 @@ pwa-antigravity/
 │   │   ├── ui/           # shadcn/ui components
 │   │   ├── AppShell.tsx  # Main layout wrapper
 │   │   ├── CategorySelector.tsx
+│   │   ├── PWAUpdateNotification.tsx
+│   │   ├── SyncStatus.tsx
 │   │   ├── TransactionList.tsx
 │   │   └── ...
 │   ├── hooks/            # Custom React hooks
 │   │   ├── useAuth.ts
 │   │   ├── useTransactions.ts
 │   │   ├── useCategories.ts
+│   │   ├── useCategoryBudgets.ts
+│   │   ├── usePWAUpdate.ts
+│   │   ├── useRealtimeSync.ts
 │   │   ├── useStatistics.ts
 │   │   └── ...
 │   ├── lib/              # Utility libraries

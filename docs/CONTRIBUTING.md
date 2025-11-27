@@ -41,35 +41,39 @@ Thank you for your interest in contributing to the Personal Expense Tracker PWA!
 ### Initial Setup
 
 1. **Fork the repository**
-   
+
    Click the "Fork" button on GitHub to create your own copy.
 
 2. **Clone your fork**
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/pwa-antigravity.git
    cd pwa-antigravity
    ```
 
 3. **Add upstream remote**
+
    ```bash
    git remote add upstream https://github.com/ORIGINAL_OWNER/pwa-antigravity.git
    ```
 
 4. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 5. **Set up environment variables**
-   
+
    Create a `.env` file:
+
    ```env
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
 6. **Set up Supabase database**
-   
+
    Run the SQL in [supabase_schema.sql](file:///Users/ilariopc/Code/react/pwa-antigravity/supabase_schema.sql) in your Supabase project.
 
 7. **Start development server**
@@ -80,6 +84,7 @@ Thank you for your interest in contributing to the Personal Expense Tracker PWA!
 ### VS Code Setup (Recommended)
 
 Install recommended extensions:
+
 - **ESLint** - Code linting
 - **Prettier** - Code formatting
 - **Tailwind CSS IntelliSense** - Tailwind autocomplete
@@ -90,6 +95,7 @@ Install recommended extensions:
 ### Branch Naming
 
 Use descriptive branch names:
+
 - `feature/add-budget-tracking`
 - `fix/sync-error-handling`
 - `docs/update-readme`
@@ -108,6 +114,7 @@ footer (optional)
 ```
 
 **Types**:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -118,6 +125,7 @@ footer (optional)
 - `chore`: Maintenance tasks
 
 **Examples**:
+
 ```
 feat(transactions): add bulk delete functionality
 
@@ -152,22 +160,24 @@ git push origin main
 - **Use const** for variables that don't change
 
 **Good**:
+
 ```typescript
 interface Transaction {
-    id: string;
-    amount: number;
-    type: 'income' | 'expense' | 'investment';
+  id: string;
+  amount: number;
+  type: "income" | "expense" | "investment";
 }
 
 const addTransaction = async (transaction: Transaction): Promise<void> => {
-    // ...
+  // ...
 };
 ```
 
 **Bad**:
+
 ```typescript
 const addTransaction = async (transaction: any) => {
-    // ...
+  // ...
 };
 ```
 
@@ -179,17 +189,18 @@ const addTransaction = async (transaction: any) => {
 - **Use early returns** for conditional rendering
 
 **Good**:
+
 ```typescript
 interface ButtonProps {
-    label: string;
-    onClick: () => void;
-    disabled?: boolean;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
 }
 
 export function Button({ label, onClick, disabled = false }: ButtonProps) {
-    if (disabled) return null;
-    
-    return <button onClick={onClick}>{label}</button>;
+  if (disabled) return null;
+
+  return <button onClick={onClick}>{label}</button>;
 }
 ```
 
@@ -216,11 +227,10 @@ export function Button({ label, onClick, disabled = false }: ButtonProps) {
 - **Use CSS variables** for theme colors
 
 **Good**:
+
 ```tsx
 <div className="flex flex-col gap-4 md:flex-row md:gap-6">
-    <Card className="flex-1">
-        {/* ... */}
-    </Card>
+  <Card className="flex-1">{/* ... */}</Card>
 </div>
 ```
 
@@ -264,18 +274,33 @@ src/
 - **Pages**: `src/pages/MyPage.tsx`
 - **Utilities**: `src/lib/myUtil.ts`
 
+### Key Hooks to Know
+
+When contributing, familiarize yourself with these core hooks:
+
+- `useAuth` - Authentication state
+- `useTransactions` - Transaction CRUD
+- `useCategories` - Category management with hierarchy
+- `useCategoryBudgets` - Per-category budget tracking
+- `useSettings` - User preferences
+- `useSync` - Manual sync trigger
+- `useRealtimeSync` - WebSocket subscriptions
+- `usePWAUpdate` - PWA update detection
+
 ## Common Tasks
 
 ### Adding a New Page
 
 1. **Create page component** in `src/pages/MyPage.tsx`:
+
    ```typescript
    export function MyPage() {
-       return <div>My Page</div>;
+     return <div>My Page</div>;
    }
    ```
 
 2. **Add route** in `src/App.tsx`:
+
    ```typescript
    <Route path="/my-page" element={<MyPage />} />
    ```
@@ -287,24 +312,26 @@ src/
 ### Adding a New Language
 
 1. **Create translation file** in `src/locales/[lang]/translation.json`:
+
    ```json
    {
-       "dashboard": {
-           "title": "Dashboard"
-       }
+     "dashboard": {
+       "title": "Dashboard"
+     }
    }
    ```
 
 2. **Import in i18n.ts**:
+
    ```typescript
-   import frTranslation from './locales/fr/translation.json';
-   
+   import frTranslation from "./locales/fr/translation.json";
+
    i18n.init({
-       resources: {
-           en: { translation: enTranslation },
-           it: { translation: itTranslation },
-           fr: { translation: frTranslation }
-       }
+     resources: {
+       en: { translation: enTranslation },
+       it: { translation: itTranslation },
+       fr: { translation: frTranslation },
+     },
    });
    ```
 
@@ -313,38 +340,40 @@ src/
 ### Adding a New Icon
 
 1. **Import from Lucide** in `src/lib/icons.ts`:
+
    ```typescript
-   import { MyIcon } from 'lucide-react';
+   import { MyIcon } from "lucide-react";
    ```
 
 2. **Add to AVAILABLE_ICONS**:
    ```typescript
    export const AVAILABLE_ICONS: IconItem[] = [
-       // ...
-       { name: 'MyIcon', icon: MyIcon },
+     // ...
+     { name: "MyIcon", icon: MyIcon },
    ];
    ```
 
 ### Adding a New Theme Color
 
 1. **Define colors** in `src/lib/theme-colors.ts`:
+
    ```typescript
    export const THEME_COLORS: Record<string, ThemeColors> = {
-       // ...
-       purple: {
-           name: 'purple',
-           label: 'Purple',
-           light: {
-               primary: '270 80% 50%',
-               primaryForeground: '0 0% 100%',
-               ring: '270 80% 50%'
-           },
-           dark: {
-               primary: '270 70% 60%',
-               primaryForeground: '0 0% 100%',
-               ring: '270 70% 60%'
-           }
-       }
+     // ...
+     purple: {
+       name: "purple",
+       label: "Purple",
+       light: {
+         primary: "270 80% 50%",
+         primaryForeground: "0 0% 100%",
+         ring: "270 80% 50%",
+       },
+       dark: {
+         primary: "270 70% 60%",
+         primaryForeground: "0 0% 100%",
+         ring: "270 70% 60%",
+       },
+     },
    };
    ```
 
@@ -353,21 +382,24 @@ src/
 ### Adding a Database Field
 
 1. **Update interface** in `src/lib/db.ts`:
+
    ```typescript
    export interface Transaction {
-       // ...
-       newField: string;
+     // ...
+     newField: string;
    }
    ```
 
 2. **Update Dexie schema** (if indexed):
+
    ```typescript
    this.version(2).stores({
-       transactions: 'id, user_id, ..., newField'
+     transactions: "id, user_id, ..., newField",
    });
    ```
 
 3. **Update Supabase schema**:
+
    ```sql
    ALTER TABLE transactions ADD COLUMN new_field TEXT;
    ```
@@ -383,6 +415,7 @@ npx shadcn@latest add [component-name]
 ```
 
 Example:
+
 ```bash
 npx shadcn@latest add dropdown-menu
 ```
@@ -421,26 +454,31 @@ Before submitting a PR, test:
 ### Pull Request Process
 
 1. **Create a feature branch**
+
    ```bash
    git checkout -b feature/my-feature
    ```
 
 2. **Make your changes**
+
    - Write clean, documented code
    - Follow code style guidelines
    - Add translations if needed
 
 3. **Test thoroughly**
+
    - Run `npm run lint`
    - Test manually (see checklist above)
 
 4. **Commit your changes**
+
    ```bash
    git add .
    git commit -m "feat: add my feature"
    ```
 
 5. **Push to your fork**
+
    ```bash
    git push origin feature/my-feature
    ```
@@ -454,15 +492,18 @@ Before submitting a PR, test:
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation update
 
 ## Testing
+
 - [ ] Tested offline functionality
 - [ ] Tested sync
 - [ ] Tested on mobile
@@ -470,9 +511,11 @@ Brief description of changes
 - [ ] Ran ESLint
 
 ## Screenshots (if applicable)
+
 Add screenshots for UI changes
 
 ## Related Issues
+
 Closes #123
 ```
 
@@ -486,6 +529,7 @@ Closes #123
 ### After Merge
 
 1. **Delete your branch** (optional)
+
    ```bash
    git branch -d feature/my-feature
    git push origin --delete feature/my-feature

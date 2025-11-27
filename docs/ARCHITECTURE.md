@@ -247,6 +247,25 @@ interface Setting {
 // Primary key: user_id
 ```
 
+#### Category Budgets Table
+
+```typescript
+interface CategoryBudget {
+  id: string; // UUID
+  user_id: string; // User identifier
+  category_id: string; // Reference to category
+  amount: number; // Budget limit amount
+  period: "monthly" | "yearly"; // Budget period
+  deleted_at?: string | null; // Soft delete timestamp
+  pendingSync?: number; // 1 if needs sync
+  sync_token?: number; // Server sync token
+  updated_at?: string;
+  created_at?: string;
+}
+
+// Indexes: id, user_id, category_id, period, pendingSync, deleted_at
+```
+
 #### Groups Table
 
 ```typescript
@@ -379,6 +398,34 @@ class SyncManager {
 - **Rationale**: Single-user app, conflicts are rare
 - **Future**: Could implement CRDTs for multi-device scenarios
 
+### Realtime Sync
+
+The app subscribes to Supabase Realtime for instant cross-device updates:
+
+```typescript
+// useRealtimeSync hook
+function useRealtimeSync(): { isConnected: boolean };
+```
+
+**How It Works**:
+
+1. **Connection**: Establishes WebSocket connection to Supabase Realtime
+2. **Subscriptions**: Listens to all user data tables (transactions, categories, etc.)
+3. **Updates**: When remote change detected, updates local IndexedDB
+4. **UI Refresh**: Dexie's `useLiveQuery` automatically re-renders components
+5. **Error Handling**: Gracefully handles WebSocket disconnections during HMR/unmount
+
+**Tables Subscribed**:
+
+- `transactions`
+- `categories`
+- `contexts`
+- `recurring_transactions`
+- `user_settings`
+- `groups`
+- `group_members`
+- `category_budgets`
+
 ### Sync Triggers
 
 Synchronization happens in three scenarios:
@@ -423,6 +470,43 @@ App
 - Desktop: Breadcrumb navigation in popover
 - Mobile: Sheet with nested navigation
 - Filters by transaction type
+
+#### Categories Page - Hierarchical Display
+
+The Categories page displays unlimited nested categories using recursive components:
+
+```typescript
+// Mobile: Collapsible accordion with nested cards
+function MobileCategoryList({
+  categories,
+  depth,
+  getChildren,
+  ...props
+}: CategoryListProps) {
+  // Recursive rendering with Radix Collapsible
+  // Visual indentation based on depth
+  // maxDepth = 5 to prevent infinite recursion
+}
+
+// Desktop: Table with expandable rows
+function DesktopCategoryRows({
+  categories,
+  depth,
+  getChildren,
+  ...props
+}: CategoryListProps) {
+  // Recursive table rows
+  // React.Fragment for valid HTML (no div wrapper in tbody)
+  // Visual indentation with paddingLeft
+}
+```
+
+**Key Implementation Details**:
+
+- **childrenMap**: `Map<string | undefined, Category[]>` for O(1) parent→children lookup
+- **rootCategories**: Categories with `parent_id = undefined`
+- **expandedCategories**: `Set<string>` tracking which nodes are expanded
+- **maxDepth**: Prevents infinite recursion (default: 5 levels)
 
 #### TransactionList
 
@@ -481,7 +565,7 @@ Configured via [vite-plugin-pwa](file:///Users/ilariopc/Code/react/pwa-antigravi
 
 ```typescript
 VitePWA({
-  registerType: "autoUpdate",
+  registerType: "prompt", // User-controlled updates with notification
   workbox: {
     runtimeCaching: [
       {
@@ -508,6 +592,23 @@ VitePWA({
     ],
   },
 });
+```
+
+### PWA Update Strategy
+
+The app uses `registerType: "prompt"` for user-controlled updates:
+
+1. **Detection**: Service worker checks for updates every hour
+2. **Notification**: When update available, `usePWAUpdate` hook sets `needRefresh: true`
+3. **User Choice**: `PWAUpdateNotification` component shows toast with options:
+   - **Reload**: Apply update immediately
+   - **Later**: Dismiss notification (update applies on next visit)
+4. **Offline Ready**: Shows success toast when app is cached for offline use
+
+```typescript
+// usePWAUpdate hook provides:
+const { needRefresh, offlineReady, updateServiceWorker, close } =
+  usePWAUpdate();
 ```
 
 ### Caching Strategies
@@ -650,7 +751,6 @@ Potential architectural improvements:
 3. **Incremental Sync**: Sync only changed fields, not entire rows
 4. **Compression**: Compress sync payloads for large datasets
 5. **Encryption**: End-to-end encryption for sensitive data
-6. **Real-time Updates**: WebSocket for instant cross-device sync
 
 ---
 

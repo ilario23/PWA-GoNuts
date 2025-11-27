@@ -55,6 +55,7 @@ Run the SQL schema to create all necessary tables and policies:
 4. Paste into the SQL editor and click **Run**
 
 This will create:
+
 - `categories` table
 - `contexts` table
 - `transactions` table
@@ -91,8 +92,8 @@ The schema includes RLS policies that ensure users can only access their own dat
 
 ```sql
 -- Check RLS is enabled on all tables
-SELECT tablename, rowsecurity 
-FROM pg_tables 
+SELECT tablename, rowsecurity
+FROM pg_tables
 WHERE schemaname = 'public';
 ```
 
@@ -104,11 +105,11 @@ The schema includes necessary indexes. For large datasets, consider adding:
 
 ```sql
 -- Additional performance indexes (optional)
-CREATE INDEX idx_transactions_user_date 
+CREATE INDEX idx_transactions_user_date
 ON transactions(user_id, date DESC);
 
-CREATE INDEX idx_categories_user_type 
-ON categories(user_id, type) 
+CREATE INDEX idx_categories_user_type
+ON categories(user_id, type)
 WHERE deleted_at IS NULL;
 ```
 
@@ -141,6 +142,7 @@ Navigate to the URL shown (usually `http://localhost:4173`).
 ### 4. Build Output
 
 The build process generates:
+
 - Optimized JavaScript bundles (code splitting)
 - Minified CSS
 - PWA manifest and service worker
@@ -155,21 +157,25 @@ Vercel provides excellent support for Vite applications and automatic deployment
 #### Deploy via Vercel CLI
 
 1. **Install Vercel CLI**
+
    ```bash
    npm install -g vercel
    ```
 
 2. **Login to Vercel**
+
    ```bash
    vercel login
    ```
 
 3. **Deploy**
+
    ```bash
    vercel
    ```
 
 4. **Set Environment Variables**
+
    ```bash
    vercel env add VITE_SUPABASE_URL
    vercel env add VITE_SUPABASE_ANON_KEY
@@ -195,6 +201,7 @@ Vercel provides excellent support for Vite applications and automatic deployment
 #### Automatic Deployments
 
 Connect your Git repository for automatic deployments:
+
 - **Production**: Deploys on push to `main` branch
 - **Preview**: Deploys on pull requests
 
@@ -205,16 +212,19 @@ Connect your Git repository for automatic deployments:
 #### Deploy via Netlify CLI
 
 1. **Install Netlify CLI**
+
    ```bash
    npm install -g netlify-cli
    ```
 
 2. **Login**
+
    ```bash
    netlify login
    ```
 
 3. **Initialize**
+
    ```bash
    netlify init
    ```
@@ -369,6 +379,7 @@ Use Lighthouse to audit your deployment:
    - PWA
 
 Target scores:
+
 - **Performance**: 90+
 - **Accessibility**: 90+
 - **Best Practices**: 90+
@@ -377,6 +388,7 @@ Target scores:
 ### 5. Mobile Testing
 
 Test on actual mobile devices:
+
 - iOS Safari
 - Android Chrome
 - Install as PWA on both platforms
@@ -399,6 +411,7 @@ Referrer-Policy: strict-origin-when-cross-origin
 **Issue**: Build fails with TypeScript errors
 
 **Solution**:
+
 ```bash
 # Clear cache and rebuild
 rm -rf node_modules dist
@@ -413,6 +426,7 @@ npm run build
 **Issue**: App can't connect to Supabase
 
 **Solution**:
+
 1. Verify environment variables are set in deployment platform
 2. Ensure variables are prefixed with `VITE_`
 3. Redeploy after adding variables
@@ -425,9 +439,11 @@ npm run build
 **Issue**: Changes don't appear after deployment
 
 **Solution**:
+
 1. Hard refresh: `Ctrl+Shift+R` (Windows) or `Cmd+Shift+R` (Mac)
 2. Clear service worker in DevTools → Application → Service Workers
-3. Verify `registerType: 'autoUpdate'` in vite.config.ts
+3. The app uses `registerType: 'prompt'` - users will see an update notification
+4. Click "Reload" in the update toast to apply changes
 
 ---
 
@@ -436,6 +452,7 @@ npm run build
 **Issue**: Install prompt doesn't appear
 
 **Solution**:
+
 1. Verify HTTPS is enabled (required for PWA)
 2. Check manifest.json is served correctly
 3. Verify service worker is registered
@@ -448,6 +465,7 @@ npm run build
 **Issue**: "Failed to fetch" or connection errors
 
 **Solution**:
+
 1. Verify Supabase URL and anon key are correct
 2. Check Supabase project is not paused (free tier)
 3. Verify RLS policies allow access
@@ -460,6 +478,7 @@ npm run build
 **Issue**: Changes don't sync to Supabase
 
 **Solution**:
+
 1. Check network tab for failed requests
 2. Verify user is authenticated
 3. Check RLS policies allow inserts/updates
@@ -494,6 +513,7 @@ Before going live, verify:
 ### Supabase Dashboard
 
 Monitor your database:
+
 - **Database** → **Tables**: View data
 - **Database** → **Logs**: Check query logs
 - **Auth** → **Users**: Manage users
@@ -502,6 +522,7 @@ Monitor your database:
 ### Application Monitoring
 
 Consider adding:
+
 - **Error tracking**: Sentry, Rollbar
 - **Analytics**: Google Analytics, Plausible
 - **Performance monitoring**: Vercel Analytics, Cloudflare Web Analytics
