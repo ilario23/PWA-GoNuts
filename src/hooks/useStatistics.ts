@@ -515,39 +515,119 @@ export function useStatistics(params?: UseStatisticsParams) {
     return data;
   }, [yearlyTransactions]);
 
-  // 3. CONTEXT ANALYTICS
+  // 3. CONTEXT ANALYTICS - Enhanced with detailed stats
   const contextStats = useMemo(() => {
-    const stats: { name: string; value: number; fill: string }[] = [];
+    interface ContextStat {
+      id: string;
+      name: string;
+      total: number;
+      transactionCount: number;
+      avgPerTransaction: number;
+      topCategory: string | null;
+      topCategoryAmount: number;
+      categoryBreakdown: { name: string; amount: number; percentage: number }[];
+      fill: string;
+    }
 
-    if (transactions && contexts) {
+    const stats: ContextStat[] = [];
+
+    if (transactions && contexts && categories) {
       const contextMap = new Map(
         contexts.filter((c) => !c.deleted_at).map((c) => [c.id, c])
       );
-      const contextExpenses = new Map<string, number>();
+      const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+      // Aggregate data per context
+      const contextData = new Map<
+        string,
+        {
+          total: number;
+          count: number;
+          categories: Map<string, number>;
+        }
+      >();
 
       transactions.forEach((t) => {
         if (t.deleted_at || t.type !== "expense" || !t.context_id) return;
+
         const amount = Number(t.amount);
-        contextExpenses.set(
-          t.context_id,
-          (contextExpenses.get(t.context_id) || 0) + amount
-        );
+        const existing = contextData.get(t.context_id) || {
+          total: 0,
+          count: 0,
+          categories: new Map<string, number>(),
+        };
+
+        existing.total += amount;
+        existing.count += 1;
+
+        if (t.category_id) {
+          existing.categories.set(
+            t.category_id,
+            (existing.categories.get(t.category_id) || 0) + amount
+          );
+        }
+
+        contextData.set(t.context_id, existing);
       });
 
       let colorIdx = 0;
-      contextExpenses.forEach((value, contextId) => {
+      contextData.forEach((data, contextId) => {
         const ctx = contextMap.get(contextId);
-        if (ctx) {
-          stats.push({
-            name: ctx.name,
-            value: Math.round(value * 100) / 100,
-            fill: `hsl(var(--chart-${(colorIdx++ % 5) + 1}))`,
-          });
-        }
+        if (!ctx) return;
+
+        // Find top category
+        let topCategoryId: string | null = null;
+        let topCategoryAmount = 0;
+        data.categories.forEach((amount, catId) => {
+          if (amount > topCategoryAmount) {
+            topCategoryAmount = amount;
+            topCategoryId = catId;
+          }
+        });
+
+        const topCategory = topCategoryId
+          ? categoryMap.get(topCategoryId)?.name || null
+          : null;
+
+        // Build category breakdown
+        const categoryBreakdown: {
+          name: string;
+          amount: number;
+          percentage: number;
+        }[] = [];
+        data.categories.forEach((amount, catId) => {
+          const cat = categoryMap.get(catId);
+          if (cat) {
+            categoryBreakdown.push({
+              name: cat.name,
+              amount: Math.round(amount * 100) / 100,
+              percentage: data.total > 0 ? (amount / data.total) * 100 : 0,
+            });
+          }
+        });
+        categoryBreakdown.sort((a, b) => b.amount - a.amount);
+
+        stats.push({
+          id: contextId,
+          name: ctx.name,
+          total: Math.round(data.total * 100) / 100,
+          transactionCount: data.count,
+          avgPerTransaction:
+            data.count > 0
+              ? Math.round((data.total / data.count) * 100) / 100
+              : 0,
+          topCategory,
+          topCategoryAmount: Math.round(topCategoryAmount * 100) / 100,
+          categoryBreakdown,
+          fill: `hsl(var(--chart-${(colorIdx++ % 5) + 1}))`,
+        });
       });
+
+      // Sort by total descending
+      stats.sort((a, b) => b.total - a.total);
     }
     return stats;
-  }, [transactions, contexts]);
+  }, [transactions, contexts, categories]);
 
   // Get all-time data for historical average (used in Burn Rate)
   const allTimeTransactions = useLiveQuery(() => db.transactions.toArray());
