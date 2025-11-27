@@ -2,6 +2,11 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, Category } from "../lib/db";
 import { syncManager } from "../lib/sync";
 import { v4 as uuidv4 } from "uuid";
+import {
+  CategoryInputSchema,
+  CategoryUpdateSchema,
+  validate,
+} from "../lib/validation";
 
 export function useCategories(groupId?: string | null) {
   const categories = useLiveQuery(() => db.categories.toArray());
@@ -26,11 +31,16 @@ export function useCategories(groupId?: string | null) {
   const addCategory = async (
     category: Omit<Category, "id" | "sync_token" | "pendingSync" | "deleted_at">
   ) => {
+    // Validate input data
+    const validatedData = validate(CategoryInputSchema, {
+      ...category,
+      active: category.active ?? 1,
+    });
+    
     const id = uuidv4();
     await db.categories.add({
-      ...category,
+      ...validatedData,
       id,
-      active: category.active ?? 1,
       pendingSync: 1,
       deleted_at: null,
     });
@@ -41,10 +51,14 @@ export function useCategories(groupId?: string | null) {
     id: string,
     updates: Partial<Omit<Category, "id" | "sync_token" | "pendingSync">>
   ) => {
+    // Validate update data
+    const validatedUpdates = validate(CategoryUpdateSchema, updates);
+    
     await db.categories.update(id, {
-      ...updates,
+      ...validatedUpdates,
       pendingSync: 1,
     });
+    syncManager.sync();
   };
 
   const deleteCategory = async (id: string) => {

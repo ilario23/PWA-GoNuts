@@ -10,6 +10,11 @@ import {
   isBefore,
   parseISO,
 } from "date-fns";
+import {
+  RecurringTransactionInputSchema,
+  RecurringTransactionUpdateSchema,
+  validate,
+} from "../lib/validation";
 
 export function useRecurringTransactions(groupId?: string | null) {
   const recurringTransactions = useLiveQuery(() =>
@@ -44,11 +49,16 @@ export function useRecurringTransactions(groupId?: string | null) {
       | "last_generated"
     >
   ) => {
+    // Validate input data
+    const validatedData = validate(RecurringTransactionInputSchema, {
+      ...transaction,
+      active: 1,
+    });
+    
     const id = uuidv4();
     await db.recurring_transactions.add({
-      ...transaction,
+      ...validatedData,
       id,
-      active: 1,
       pendingSync: 1,
       deleted_at: null,
       last_generated: undefined,
@@ -62,10 +72,14 @@ export function useRecurringTransactions(groupId?: string | null) {
       Omit<RecurringTransaction, "id" | "sync_token" | "pendingSync">
     >
   ) => {
+    // Validate update data
+    const validatedUpdates = validate(RecurringTransactionUpdateSchema, updates);
+    
     await db.recurring_transactions.update(id, {
-      ...updates,
+      ...validatedUpdates,
       pendingSync: 1,
     });
+    syncManager.sync();
   };
 
   const deleteRecurringTransaction = async (id: string) => {

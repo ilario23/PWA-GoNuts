@@ -3,6 +3,13 @@ import { db, Group, GroupMember } from "../lib/db";
 import { syncManager } from "../lib/sync";
 import { useAuth } from "./useAuth";
 import { v4 as uuidv4 } from "uuid";
+import {
+  GroupInputSchema,
+  GroupUpdateSchema,
+  GroupMemberInputSchema,
+  GroupMemberUpdateSchema,
+  validate,
+} from "../lib/validation";
 
 export interface GroupWithMembers extends Group {
   members: GroupMember[];
@@ -48,15 +55,20 @@ export function useGroups() {
   const createGroup = async (name: string, description?: string) => {
     if (!user) return null;
 
+    // Validate input data
+    const validatedData = validate(GroupInputSchema, {
+      name,
+      description,
+      created_by: user.id,
+    });
+
     const groupId = uuidv4();
     const memberId = uuidv4();
 
     // Create group
     await db.groups.add({
       id: groupId,
-      name,
-      description,
-      created_by: user.id,
+      ...validatedData,
       deleted_at: null,
       pendingSync: 1,
       created_at: new Date().toISOString(),
@@ -83,8 +95,11 @@ export function useGroups() {
     id: string,
     updates: Partial<Pick<Group, "name" | "description">>
   ) => {
+    // Validate update data
+    const validatedUpdates = validate(GroupUpdateSchema, updates);
+    
     await db.groups.update(id, {
-      ...updates,
+      ...validatedUpdates,
       pendingSync: 1,
       updated_at: new Date().toISOString(),
     });
@@ -161,13 +176,18 @@ export function useGroups() {
     userId: string,
     share: number = 0
   ) => {
+    // Validate input data
+    const validatedData = validate(GroupMemberInputSchema, {
+      group_id: groupId,
+      user_id: userId,
+      share,
+    });
+    
     const memberId = uuidv4();
 
     await db.group_members.add({
       id: memberId,
-      group_id: groupId,
-      user_id: userId,
-      share,
+      ...validatedData,
       joined_at: new Date().toISOString(),
       removed_at: null,
       pendingSync: 1,
@@ -188,8 +208,11 @@ export function useGroups() {
   };
 
   const updateMemberShare = async (memberId: string, share: number) => {
+    // Validate share value
+    const validatedData = validate(GroupMemberUpdateSchema, { share });
+    
     await db.group_members.update(memberId, {
-      share,
+      share: validatedData.share,
       pendingSync: 1,
       updated_at: new Date().toISOString(),
     });

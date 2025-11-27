@@ -2,6 +2,12 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, Transaction } from "../lib/db";
 import { syncManager } from "../lib/sync";
 import { v4 as uuidv4 } from "uuid";
+import {
+  TransactionInputSchema,
+  TransactionUpdateSchema,
+  validate,
+  ValidationError,
+} from "../lib/validation";
 
 export function useTransactions(
   limit?: number,
@@ -55,9 +61,12 @@ export function useTransactions(
       "id" | "sync_token" | "pendingSync" | "deleted_at"
     >
   ) => {
+    // Validate input data
+    const validatedData = validate(TransactionInputSchema, transaction);
+    
     const id = uuidv4();
     await db.transactions.add({
-      ...transaction,
+      ...validatedData,
       id,
       pendingSync: 1,
       deleted_at: null,
@@ -69,10 +78,14 @@ export function useTransactions(
     id: string,
     updates: Partial<Omit<Transaction, "id" | "sync_token" | "pendingSync">>
   ) => {
+    // Validate update data (partial validation)
+    const validatedUpdates = validate(TransactionUpdateSchema, updates);
+    
     await db.transactions.update(id, {
-      ...updates,
+      ...validatedUpdates,
       pendingSync: 1,
     });
+    syncManager.sync();
   };
 
   const deleteTransaction = async (id: string) => {

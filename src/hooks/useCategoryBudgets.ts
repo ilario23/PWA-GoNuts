@@ -5,6 +5,10 @@ import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "./useAuth";
 import { useMemo } from "react";
 import { format } from "date-fns";
+import {
+  CategoryBudgetInputSchema,
+  validate,
+} from "../lib/validation";
 
 export interface CategoryBudgetWithSpent extends CategoryBudget {
   spent: number;
@@ -129,6 +133,14 @@ export function useCategoryBudgets(
   ) => {
     if (!user) return;
 
+    // Validate input data
+    const validatedData = validate(CategoryBudgetInputSchema, {
+      user_id: user.id,
+      category_id: categoryId,
+      amount,
+      period,
+    });
+
     // Check if budget already exists
     const existing = categoryBudgets?.find(
       (b) => b.category_id === categoryId && b.period === period
@@ -136,7 +148,7 @@ export function useCategoryBudgets(
 
     if (existing) {
       await db.category_budgets.update(existing.id, {
-        amount,
+        amount: validatedData.amount,
         pendingSync: 1,
         updated_at: new Date().toISOString(),
       });
@@ -144,10 +156,7 @@ export function useCategoryBudgets(
       const id = uuidv4();
       await db.category_budgets.add({
         id,
-        user_id: user.id,
-        category_id: categoryId,
-        amount,
-        period,
+        ...validatedData,
         pendingSync: 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

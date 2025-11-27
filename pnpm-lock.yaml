@@ -107,6 +107,9 @@ importers:
       workbox-window:
         specifier: ^7.4.0
         version: 7.4.0
+      zod:
+        specifier: ^4.1.13
+        version: 4.1.13
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.1
