@@ -1,66 +1,87 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { syncManager } from '../lib/sync';
 import { toast } from 'sonner';
-import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
+
+// Singleton to ensure only one instance shows toasts and triggers sync
+let globalHandlersRegistered = false;
+let onlineListeners: Set<(isOnline: boolean) => void> = new Set();
+let syncingListeners: Set<(isSyncing: boolean) => void> = new Set();
+
+/**
+ * Register global event handlers once (singleton pattern).
+ * This ensures toasts are shown only once regardless of how many
+ * components use the useOnlineSync hook.
+ */
+function ensureGlobalHandlers() {
+    if (globalHandlersRegistered) return;
+    globalHandlersRegistered = true;
+
+    const handleOnline = async () => {
+        // Notify all listeners
+        onlineListeners.forEach(cb => cb(true));
+        
+        // Show toast only once (globally)
+        toast.success(i18n.t('back_online'), {
+            description: i18n.t('back_online_description'),
+            duration: 3000,
+        });
+        
+        console.log('[OnlineSync] Back online, syncing...');
+        syncingListeners.forEach(cb => cb(true));
+        await syncManager.sync();
+        syncingListeners.forEach(cb => cb(false));
+    };
+
+    const handleOffline = () => {
+        // Notify all listeners
+        onlineListeners.forEach(cb => cb(false));
+        
+        // Show toast only once (globally)
+        toast.warning(i18n.t('gone_offline'), {
+            description: i18n.t('gone_offline_description'),
+            duration: 5000,
+        });
+        
+        console.log('[OnlineSync] Gone offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+}
 
 /**
  * Hook for managing online/offline state with automatic sync.
  * 
- * Shows toast notifications when connectivity changes and
- * automatically triggers sync when coming back online.
+ * Uses a singleton pattern to ensure:
+ * - Toast notifications are shown only once (not per component)
+ * - Sync is triggered only once when coming back online
+ * - All components using this hook stay in sync
  * 
  * @returns Object containing:
  *   - `isOnline`: Whether the browser is currently online
  *   - `isSyncing`: Whether a sync operation is in progress
  */
 export function useOnlineSync() {
-    const { t } = useTranslation();
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [isSyncing, setIsSyncing] = useState(false);
-    // Track if this is the first render to avoid toast on initial load
-    const isFirstRender = useRef(true);
 
     useEffect(() => {
-        const handleOnline = async () => {
-            setIsOnline(true);
-            
-            // Don't show toast on first render
-            if (!isFirstRender.current) {
-                toast.success(t('back_online'), {
-                    description: t('back_online_description'),
-                    duration: 3000,
-                });
-            }
-            
-            console.log('Back online, syncing...');
-            setIsSyncing(true);
-            await syncManager.sync();
-            setIsSyncing(false);
-        };
+        // Register global handlers (only happens once across all instances)
+        ensureGlobalHandlers();
 
-        const handleOffline = () => {
-            setIsOnline(false);
-            
-            // Don't show toast on first render
-            if (!isFirstRender.current) {
-                toast.warning(t('gone_offline'), {
-                    description: t('gone_offline_description'),
-                    duration: 5000,
-                });
-            }
-        };
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        // Mark first render complete after mount
-        isFirstRender.current = false;
+        // Subscribe this component to state changes
+        const onlineCallback = (online: boolean) => setIsOnline(online);
+        const syncingCallback = (syncing: boolean) => setIsSyncing(syncing);
+        
+        onlineListeners.add(onlineCallback);
+        syncingListeners.add(syncingCallback);
 
         return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
+            onlineListeners.delete(onlineCallback);
+            syncingListeners.delete(syncingCallback);
         };
-    }, [t]);
+    }, []);
 
     return { isOnline, isSyncing };
 }
