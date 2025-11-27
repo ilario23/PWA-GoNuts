@@ -55,13 +55,11 @@ export function useBudgetNotifications() {
             percentage: percentage.toFixed(0),
             remaining: `€${(budget - monthlyExpenses).toFixed(2)}`,
           }) ||
-            `⚠️ You've used ${percentage.toFixed(
-              0
-            )}% of your monthly budget. €${(budget - monthlyExpenses).toFixed(
-              2
-            )} remaining.`,
+            `You've used ${percentage.toFixed(0)}% of your monthly budget. €${(
+              budget - monthlyExpenses
+            ).toFixed(2)} remaining.`,
           {
-            duration: 6000,
+            duration: 4000,
           }
         );
       }
@@ -76,11 +74,11 @@ export function useBudgetNotifications() {
           t("budget_exceeded_notification", {
             amount: `€${(monthlyExpenses - budget).toFixed(2)}`,
           }) ||
-            `🚨 Budget exceeded! You're €${(monthlyExpenses - budget).toFixed(
+            `Budget exceeded! You're €${(monthlyExpenses - budget).toFixed(
               2
             )} over your monthly limit.`,
           {
-            duration: 8000,
+            duration: 4000,
           }
         );
       }

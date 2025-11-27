@@ -580,23 +580,38 @@ export function useStatistics(params?: UseStatisticsParams) {
 
     // Calculate cumulative totals
     let cumulative = 0;
-    let projectionValue = 0;
+    let cumulativeAtCurrentDay = 0;
 
+    // First pass: calculate cumulative up to current day
+    for (let day = 1; day <= currentDay; day++) {
+      cumulative += dailyTotals.get(day) || 0;
+    }
+    cumulativeAtCurrentDay = cumulative;
+
+    // Calculate daily average for projection
+    const dailyAverage =
+      currentDay > 0 ? cumulativeAtCurrentDay / currentDay : 0;
+
+    // Second pass: build result array with linear projection
+    cumulative = 0;
     for (let day = 1; day <= daysInMonth; day++) {
       cumulative += dailyTotals.get(day) || 0;
 
-      // Set projection value at current day
-      if (day === currentDay) {
-        projectionValue = cumulative;
-      }
+      // Linear projection: from current day, grows by dailyAverage each day
+      const projection =
+        day >= currentDay
+          ? cumulativeAtCurrentDay + dailyAverage * (day - currentDay)
+          : undefined;
+
+      const cumulativeValue: number =
+        day <= currentDay ? Math.round(cumulative * 100) / 100 : 0;
 
       result.push({
         day: day.toString(),
-        cumulative: Math.round(cumulative * 100) / 100,
-        // Projection starts from current day and maintains constant value
+        cumulative: cumulativeValue,
         projection:
-          day >= currentDay
-            ? Math.round(projectionValue * 100) / 100
+          projection !== undefined
+            ? Math.round(projection * 100) / 100
             : undefined,
       });
     }

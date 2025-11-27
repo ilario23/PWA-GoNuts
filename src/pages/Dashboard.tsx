@@ -96,6 +96,7 @@ export function Dashboard() {
 
   // Mobile stats carousel state
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isChartFlipped, setIsChartFlipped] = useState(false);
   const statsCount = monthlyBudget ? 4 : 3; // 4 stats if budget is set, otherwise 3
 
   // Track which card index is on which face
@@ -180,8 +181,8 @@ export function Dashboard() {
               <p className="text-3xl font-bold tracking-tight text-red-500">
                 -€{totalExpense.toFixed(2)}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("tap_to_see_more")}
+              <p className="text-xs text-muted-foreground mt-1 text-right">
+                {t("tap_to_flip")}
               </p>
               <div className="absolute -right-4 -bottom-4 opacity-[0.07] text-red-500">
                 <TrendingDown className="h-24 w-24" />
@@ -205,8 +206,8 @@ export function Dashboard() {
               <p className="text-3xl font-bold tracking-tight text-green-500">
                 +€{totalIncome.toFixed(2)}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("tap_to_see_more")}
+              <p className="text-xs text-muted-foreground mt-1 text-right">
+                {t("tap_to_flip")}
               </p>
               <div className="absolute -right-4 -bottom-4 opacity-[0.07] text-green-500">
                 <TrendingUp className="h-24 w-24" />
@@ -240,8 +241,8 @@ export function Dashboard() {
               >
                 {balance >= 0 ? "+" : "-"}€{Math.abs(balance).toFixed(2)}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("tap_to_see_more")}
+              <p className="text-xs text-muted-foreground mt-1 text-right">
+                {t("tap_to_flip")}
               </p>
               <div
                 className={`absolute -right-4 -bottom-4 opacity-[0.07] ${
@@ -426,100 +427,234 @@ export function Dashboard() {
       </div>
       {/* Chart and Summary Cards Layout */}
       <div className="grid gap-4 md:grid-cols-[1fr_auto]">
-        {/* Cumulative Expenses Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("monthly_expenses_trend")}</CardTitle>
-            <CardDescription>
-              {t("cumulative_daily_expenses")} - {format(now, "MMMM yyyy")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {dailyCumulativeExpenses.length > 0 ? (
-              <ChartContainer
-                config={chartConfig}
-                className="h-[180px] w-full md:h-[250px] min-h-[180px]"
-              >
-                <AreaChart
-                  accessibilityLayer
-                  data={dailyCumulativeExpenses}
-                  margin={{
-                    left: 12,
-                    right: 12,
-                  }}
-                >
-                  <defs>
-                    <linearGradient
-                      id="cumulativeGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
+        {/* Cumulative Expenses Chart - FlipCard */}
+        <FlipCard
+          className="h-auto"
+          isFlipped={isChartFlipped}
+          onFlip={
+            monthlyBudget ? () => setIsChartFlipped(!isChartFlipped) : undefined
+          }
+          direction="top"
+          frontContent={
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle>{t("monthly_expenses_trend")}</CardTitle>
+                <CardDescription>
+                  {t("cumulative_daily_expenses")} - {format(now, "MMMM yyyy")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dailyCumulativeExpenses.length > 0 ? (
+                  <ChartContainer
+                    config={chartConfig}
+                    className="h-[180px] w-full md:h-[250px] min-h-[180px]"
+                  >
+                    <AreaChart
+                      accessibilityLayer
+                      data={dailyCumulativeExpenses}
+                      margin={{
+                        left: 12,
+                        right: 12,
+                      }}
                     >
-                      <stop
-                        offset="5%"
-                        stopColor="var(--color-cumulative)"
-                        stopOpacity={0.8}
+                      <defs>
+                        <linearGradient
+                          id="cumulativeGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="var(--color-cumulative)"
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="var(--color-cumulative)"
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="projectionGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="var(--color-projection)"
+                            stopOpacity={0.6}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="var(--color-projection)"
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid vertical={false} />
+                      <XAxis
+                        dataKey="day"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        tickFormatter={(value) => `${value}`}
                       />
-                      <stop
-                        offset="95%"
-                        stopColor="var(--color-cumulative)"
-                        stopOpacity={0.1}
+                      <ChartTooltip
+                        cursor={false}
+                        content={<ChartTooltipContent indicator="line" />}
                       />
-                    </linearGradient>
-                    <linearGradient
-                      id="projectionGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor="var(--color-projection)"
-                        stopOpacity={0.6}
+                      <Area
+                        dataKey="cumulative"
+                        type="monotone"
+                        fill="url(#cumulativeGradient)"
+                        stroke="var(--color-cumulative)"
                       />
-                      <stop
-                        offset="95%"
-                        stopColor="var(--color-projection)"
-                        stopOpacity={0.1}
+                      <Area
+                        dataKey="projection"
+                        type="monotone"
+                        fill="url(#projectionGradient)"
+                        stroke="var(--color-projection)"
+                        strokeDasharray="5 5"
                       />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="day"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => `${value}`}
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="line" />}
-                  />
-                  <Area
-                    dataKey="cumulative"
-                    type="monotone"
-                    fill="url(#cumulativeGradient)"
-                    stroke="var(--color-cumulative)"
-                  />
-                  <Area
-                    dataKey="projection"
-                    type="monotone"
-                    fill="url(#projectionGradient)"
-                    stroke="var(--color-projection)"
-                    strokeDasharray="5 5"
-                  />
-                </AreaChart>
-              </ChartContainer>
-            ) : (
-              <div className="flex h-[200px] items-center justify-center text-muted-foreground">
-                {t("no_data")}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </AreaChart>
+                  </ChartContainer>
+                ) : (
+                  <div className="flex h-[200px] items-center justify-center text-muted-foreground">
+                    {t("no_data")}
+                  </div>
+                )}
+                {/* Chart Legend */}
+                <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className="w-3 h-3 rounded-sm"
+                      style={{ backgroundColor: "hsl(0 84.2% 60.2%)" }}
+                    />
+                    <span>{t("chart_legend_actual")}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className="w-3 h-0.5 border-t-2 border-dashed"
+                      style={{ borderColor: "#eb630fff", width: "12px" }}
+                    />
+                    <span>{t("chart_legend_projection")}</span>
+                  </div>
+                  {monthlyBudget && (
+                    <div className="ml-auto text-muted-foreground/70">
+                      {t("tap_to_flip")}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          }
+          backContent={
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  {t("monthly_budget")}
+                </CardTitle>
+                <CardDescription>{format(now, "MMMM yyyy")}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {monthlyBudget ? (
+                  <>
+                    {/* Budget Overview */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground text-sm">
+                        {t("spent")}
+                      </span>
+                      <span className="text-2xl font-bold text-red-600">
+                        €{totalExpense.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground text-sm">
+                        {t("budget")}
+                      </span>
+                      <span className="text-2xl font-bold">
+                        €{monthlyBudget.toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="h-4 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-500 rounded-full ${
+                            isOverBudget
+                              ? "bg-red-500"
+                              : budgetUsedPercentage > 80
+                              ? "bg-yellow-500"
+                              : "bg-green-500"
+                          }`}
+                          style={{
+                            width: `${Math.min(budgetUsedPercentage, 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span
+                          className={`font-medium ${
+                            isOverBudget
+                              ? "text-red-600"
+                              : budgetUsedPercentage > 80
+                              ? "text-yellow-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {budgetUsedPercentage.toFixed(0)}% {t("used")}
+                        </span>
+                        <span
+                          className={
+                            isOverBudget
+                              ? "text-red-600 font-medium"
+                              : "text-green-600 font-medium"
+                          }
+                        >
+                          {isOverBudget
+                            ? `+€${Math.abs(budgetRemaining).toFixed(2)} ${t(
+                                "over"
+                              )}`
+                            : `€${budgetRemaining.toFixed(2)} ${t(
+                                "remaining"
+                              )}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Daily Average Info */}
+                    <div className="pt-2 border-t">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{t("daily_average")}</span>
+                        <span>
+                          €
+                          {(
+                            totalExpense / Math.max(new Date().getDate(), 1)
+                          ).toFixed(2)}
+                          /{t("day")}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[200px] text-center text-muted-foreground">
+                    <Wallet className="h-12 w-12 mb-4 opacity-50" />
+                    <p>{t("no_budget_set")}</p>
+                    <p className="text-xs mt-1">
+                      {t("set_budget_in_settings")}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          }
+        />
 
         {/* Summary Cards - Hidden on mobile, stacked vertically on desktop */}
         <div className="hidden md:flex md:flex-col gap-4">
@@ -565,58 +700,6 @@ export function Dashboard() {
           </Card>
         </div>
       </div>
-
-      {/* Budget Progress Card */}
-      {monthlyBudget && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Wallet className="h-4 w-4" />
-              {t("monthly_budget")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                {t("budget_spent", {
-                  spent: `€${totalExpense.toFixed(2)}`,
-                  budget: `€${monthlyBudget.toFixed(2)}`,
-                })}
-              </span>
-              <span
-                className={
-                  isOverBudget
-                    ? "text-red-600 font-medium"
-                    : "text-green-600 font-medium"
-                }
-              >
-                {isOverBudget
-                  ? t("budget_exceeded", {
-                      amount: `€${Math.abs(budgetRemaining).toFixed(2)}`,
-                    })
-                  : t("budget_remaining", {
-                      remaining: `€${budgetRemaining.toFixed(2)}`,
-                    })}
-              </span>
-            </div>
-            <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-500 rounded-full ${
-                  isOverBudget
-                    ? "bg-red-500"
-                    : budgetUsedPercentage > 80
-                    ? "bg-yellow-500"
-                    : "bg-green-500"
-                }`}
-                style={{ width: `${Math.min(budgetUsedPercentage, 100)}%` }}
-              />
-            </div>
-            <div className="text-xs text-muted-foreground text-right">
-              {budgetUsedPercentage.toFixed(0)}%
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="grid gap-4">
         <Card>
