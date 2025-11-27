@@ -12,6 +12,7 @@ import { useOnlineSync } from "@/hooks/useOnlineSync";
 import { useAutoGenerate } from "@/hooks/useAutoGenerate";
 import { useBudgetNotifications } from "@/hooks/useBudgetNotifications";
 import { Toaster } from "@/components/ui/sonner";
+import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
 
 import { TransactionsPage } from "@/pages/Transactions";
 import { RecurringTransactionsPage } from "@/pages/RecurringTransactions";
@@ -76,6 +77,7 @@ function App() {
     <Router>
       <ThemeProvider>
         <Toaster />
+        <PWAUpdateNotification />
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
           <Route

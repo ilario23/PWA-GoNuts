@@ -328,5 +328,10 @@
   "previous_month": "Mese precedente",
   "previous_year": "Anno precedente",
   "remove_budget": "Rimuovi Budget",
-  "monthly_limit": "Limite Mensile"
+  "monthly_limit": "Limite Mensile",
+  "app_ready_offline": "App pronta per l'uso offline",
+  "update_available": "Aggiornamento disponibile",
+  "update_available_description": "È disponibile una nuova versione. Ricarica per aggiornare.",
+  "reload": "Ricarica",
+  "later": "Dopo"
 }

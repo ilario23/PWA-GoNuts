@@ -328,5 +328,10 @@
   "previous_month": "Previous month",
   "previous_year": "Previous year",
   "remove_budget": "Remove Budget",
-  "monthly_limit": "Monthly Limit"
+  "monthly_limit": "Monthly Limit",
+  "app_ready_offline": "App ready for offline use",
+  "update_available": "Update available",
+  "update_available_description": "A new version is available. Reload to update.",
+  "reload": "Reload",
+  "later": "Later"
 }
