@@ -1,23 +1,64 @@
-import { useState, useEffect } from 'react';
-import { syncManager } from '../lib/sync';
+import { useState, useEffect, useCallback } from 'react';
+import { syncManager, SyncStatus, SyncError } from '../lib/sync';
 
-export function useSync() {
-    const [isSyncing, setIsSyncing] = useState(false);
+export interface UseSyncResult {
+  /** Whether a sync operation is currently in progress */
+  isSyncing: boolean;
+  /** ISO timestamp of last successful sync */
+  lastSyncAt: string | null;
+  /** Number of items pending sync */
+  pendingCount: number;
+  /** Number of sync errors */
+  errorCount: number;
+  /** List of sync errors */
+  errors: SyncError[];
+  /** Trigger a manual sync */
+  sync: () => Promise<void>;
+  /** Retry a specific failed item */
+  retryError: (errorKey: string) => Promise<void>;
+  /** Retry all failed items */
+  retryAllErrors: () => Promise<void>;
+}
 
-    const sync = async () => {
-        setIsSyncing(true);
-        await syncManager.sync();
-        setIsSyncing(false);
+export function useSync(): UseSyncResult {
+  const [status, setStatus] = useState<SyncStatus>(() => syncManager.getStatus());
+
+  const sync = useCallback(async () => {
+    await syncManager.sync();
+  }, []);
+
+  const retryError = useCallback(async (errorKey: string) => {
+    await syncManager.retryError(errorKey);
+  }, []);
+
+  const retryAllErrors = useCallback(async () => {
+    await syncManager.retryAllErrors();
+  }, []);
+
+  useEffect(() => {
+    // Subscribe to sync status changes
+    const unsubscribe = syncManager.onSyncChange(setStatus);
+
+    // Initial sync on mount
+    sync();
+
+    // Optional: Sync every 5 minutes
+    const interval = setInterval(sync, 5 * 60 * 1000);
+    
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
     };
+  }, [sync]);
 
-    // Auto sync on mount (or use a more sophisticated interval/event listener)
-    useEffect(() => {
-        sync();
-
-        // Optional: Sync every 5 minutes
-        const interval = setInterval(sync, 5 * 60 * 1000);
-        return () => clearInterval(interval);
-    }, []);
-
-    return { isSyncing, sync };
+  return {
+    isSyncing: status.isSyncing,
+    lastSyncAt: status.lastSyncAt,
+    pendingCount: status.pendingCount,
+    errorCount: status.errorCount,
+    errors: status.errors,
+    sync,
+    retryError,
+    retryAllErrors,
+  };
 }
