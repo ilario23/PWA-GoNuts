@@ -362,6 +362,7 @@
   "sync_error": "Sync failed",
   "monthly_average": "Monthly Average",
   "tap_for_average": "Tap for monthly avg",
+  "tap_to_see_more": "Tap to see more",
   "per_month": "/mo",
   "months_with_data": "months with data"
 }

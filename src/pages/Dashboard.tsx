@@ -40,6 +40,7 @@ import { CategorySelector } from "@/components/CategorySelector";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCategories } from "@/hooks/useCategories";
+import { FlipCard } from "@/components/ui/flip-card";
 
 export function Dashboard() {
   const { transactions, addTransaction } = useTransactions();
@@ -91,6 +92,246 @@ export function Dashboard() {
   const recentTransactions = useMemo(
     () => transactions?.filter((t) => !t.deleted_at).slice(0, 5),
     [transactions]
+  );
+
+  // Mobile stats carousel state
+  const [isFlipped, setIsFlipped] = useState(false);
+  const statsCount = monthlyBudget ? 4 : 3; // 4 stats if budget is set, otherwise 3
+
+  // Track which card index is on which face
+  // faceA starts with card 0, faceB starts with card 1
+  const [faceAIndex, setFaceAIndex] = useState(0);
+  const [faceBIndex, setFaceBIndex] = useState(1);
+
+  // Current visible index (for dot indicators)
+  const currentVisibleIndex = isFlipped ? faceBIndex : faceAIndex;
+
+  // Handle flip - swap to the other face, then update the hidden face
+  const handleStatFlip = useCallback(() => {
+    const nextIndex = (currentVisibleIndex + 1) % statsCount;
+    const afterNextIndex = (nextIndex + 1) % statsCount;
+
+    if (isFlipped) {
+      // Currently showing faceB, will flip to faceA
+      // faceA should already have nextIndex from last flip
+      // After flip, update faceB (now hidden) with afterNextIndex
+      setFaceAIndex(nextIndex);
+      setTimeout(() => {
+        setFaceBIndex(afterNextIndex);
+      }, 350);
+    } else {
+      // Currently showing faceA, will flip to faceB
+      // faceB should already have nextIndex from last flip
+      // After flip, update faceA (now hidden) with afterNextIndex
+      setFaceBIndex(nextIndex);
+      setTimeout(() => {
+        setFaceAIndex(afterNextIndex);
+      }, 350);
+    }
+
+    setIsFlipped(!isFlipped);
+  }, [currentVisibleIndex, isFlipped, statsCount]);
+
+  // Render a stat card by index
+  const renderStatCard = useCallback(
+    (index: number) => {
+      const dotIndicators = (
+        <div className="flex gap-1.5">
+          {Array.from({ length: statsCount }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                i === index
+                  ? index === 0
+                    ? "bg-red-500"
+                    : index === 1
+                    ? "bg-green-500"
+                    : index === 2
+                    ? balance >= 0
+                      ? "bg-emerald-500"
+                      : "bg-red-500"
+                    : isOverBudget
+                    ? "bg-red-500"
+                    : budgetUsedPercentage > 80
+                    ? "bg-amber-500"
+                    : "bg-blue-500"
+                  : "bg-muted-foreground/30"
+              }`}
+            />
+          ))}
+        </div>
+      );
+
+      switch (index) {
+        case 0: // Expenses
+          return (
+            <div className="relative overflow-hidden rounded-xl p-4 h-full border">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-red-500/15 text-red-500">
+                    <ArrowDownRight className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("expenses")}
+                  </span>
+                </div>
+                {dotIndicators}
+              </div>
+              <p className="text-3xl font-bold tracking-tight text-red-500">
+                -€{totalExpense.toFixed(2)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t("tap_to_see_more")}
+              </p>
+              <div className="absolute -right-4 -bottom-4 opacity-[0.07] text-red-500">
+                <TrendingDown className="h-24 w-24" />
+              </div>
+            </div>
+          );
+        case 1: // Income
+          return (
+            <div className="relative overflow-hidden rounded-xl p-4 h-full border">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-green-500/15 text-green-500">
+                    <ArrowUpRight className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("income")}
+                  </span>
+                </div>
+                {dotIndicators}
+              </div>
+              <p className="text-3xl font-bold tracking-tight text-green-500">
+                +€{totalIncome.toFixed(2)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t("tap_to_see_more")}
+              </p>
+              <div className="absolute -right-4 -bottom-4 opacity-[0.07] text-green-500">
+                <TrendingUp className="h-24 w-24" />
+              </div>
+            </div>
+          );
+        case 2: // Balance
+          return (
+            <div className="relative overflow-hidden rounded-xl p-4 h-full border">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`p-1.5 rounded-md ${
+                      balance >= 0
+                        ? "bg-emerald-500/15 text-green-500"
+                        : "bg-red-500/15 text-red-500"
+                    }`}
+                  >
+                    <PiggyBank className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("balance")}
+                  </span>
+                </div>
+                {dotIndicators}
+              </div>
+              <p
+                className={`text-3xl font-bold tracking-tight ${
+                  balance >= 0 ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                {balance >= 0 ? "+" : "-"}€{Math.abs(balance).toFixed(2)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t("tap_to_see_more")}
+              </p>
+              <div
+                className={`absolute -right-4 -bottom-4 opacity-[0.07] ${
+                  balance >= 0 ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                <PiggyBank className="h-24 w-24" />
+              </div>
+            </div>
+          );
+        case 3: // Budget (only if monthlyBudget exists)
+          if (!monthlyBudget) return null;
+          return (
+            <div className="relative overflow-hidden rounded-xl p-4 h-full border">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`p-1.5 rounded-md ${
+                      isOverBudget
+                        ? "bg-red-500/20 text-red-600"
+                        : budgetUsedPercentage > 80
+                        ? "bg-amber-500/20 text-amber-600"
+                        : "bg-blue-500/20 text-blue-600"
+                    }`}
+                  >
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("budget")}
+                  </span>
+                </div>
+                {dotIndicators}
+              </div>
+              <div className="flex items-baseline gap-2">
+                <p
+                  className={`text-3xl font-bold tracking-tight ${
+                    isOverBudget
+                      ? "text-red-600"
+                      : budgetUsedPercentage > 80
+                      ? "text-amber-600"
+                      : "text-blue-600"
+                  }`}
+                >
+                  {budgetUsedPercentage.toFixed(0)}%
+                </p>
+                <span className="text-sm text-muted-foreground">
+                  / €{monthlyBudget.toFixed(0)}
+                </span>
+              </div>
+              <div className="mt-2 h-2 w-full bg-muted/50 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 rounded-full ${
+                    isOverBudget
+                      ? "bg-red-500"
+                      : budgetUsedPercentage > 80
+                      ? "bg-amber-500"
+                      : "bg-blue-500"
+                  }`}
+                  style={{
+                    width: `${Math.min(budgetUsedPercentage, 100)}%`,
+                  }}
+                />
+              </div>
+              <div
+                className={`absolute -right-4 -bottom-4 opacity-[0.07] ${
+                  isOverBudget
+                    ? "text-red-500"
+                    : budgetUsedPercentage > 80
+                    ? "text-amber-500"
+                    : "text-blue-500"
+                }`}
+              >
+                <Wallet className="h-24 w-24" />
+              </div>
+            </div>
+          );
+        default:
+          return null;
+      }
+    },
+    [
+      t,
+      totalExpense,
+      totalIncome,
+      balance,
+      monthlyBudget,
+      isOverBudget,
+      budgetUsedPercentage,
+      statsCount,
+    ]
   );
 
   // Transaction dialog state
@@ -172,163 +413,16 @@ export function Dashboard() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t("dashboard")}</h1>
 
-      {/* Mobile Summary Stats - Horizontal scroll with compact cards */}
-      <div className="md:hidden -mx-4 px-4">
-        <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
-          {/* Expense Card - First */}
-          <div className="snap-start shrink-0 w-[140px]">
-            <div className="relative overflow-hidden rounded-xl p-3 h-[90px] bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent border border-red-500/20">
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className="p-1 rounded-md bg-red-500/20 text-red-600">
-                  <ArrowDownRight className="h-3.5 w-3.5" />
-                </div>
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("expenses")}
-                </span>
-              </div>
-              <p className="text-xl font-bold tracking-tight text-red-600">
-                -€{totalExpense.toFixed(0)}
-              </p>
-              <div className="absolute -right-3 -bottom-3 opacity-[0.07] text-red-500">
-                <TrendingDown className="h-16 w-16" />
-              </div>
-            </div>
-          </div>
-
-          {/* Budget Card (if set) - Second */}
-          {monthlyBudget && (
-            <div className="snap-start shrink-0 w-[160px]">
-              <div
-                className={`relative overflow-hidden rounded-xl p-3 h-[90px] ${
-                  isOverBudget
-                    ? "bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent border border-red-500/20"
-                    : budgetUsedPercentage > 80
-                    ? "bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20"
-                    : "bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20"
-                }`}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div
-                    className={`p-1 rounded-md ${
-                      isOverBudget
-                        ? "bg-red-500/20 text-red-600"
-                        : budgetUsedPercentage > 80
-                        ? "bg-amber-500/20 text-amber-600"
-                        : "bg-blue-500/20 text-blue-600"
-                    }`}
-                  >
-                    <Wallet className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                    {t("budget")}
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <p
-                    className={`text-xl font-bold tracking-tight ${
-                      isOverBudget
-                        ? "text-red-600"
-                        : budgetUsedPercentage > 80
-                        ? "text-amber-600"
-                        : "text-blue-600"
-                    }`}
-                  >
-                    {budgetUsedPercentage.toFixed(0)}%
-                  </p>
-                  <span className="text-[10px] text-muted-foreground">
-                    / €{monthlyBudget.toFixed(0)}
-                  </span>
-                </div>
-                {/* Mini progress bar */}
-                <div className="mt-1.5 h-1.5 w-full bg-muted/50 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-500 rounded-full ${
-                      isOverBudget
-                        ? "bg-red-500"
-                        : budgetUsedPercentage > 80
-                        ? "bg-amber-500"
-                        : "bg-blue-500"
-                    }`}
-                    style={{
-                      width: `${Math.min(budgetUsedPercentage, 100)}%`,
-                    }}
-                  />
-                </div>
-                <div
-                  className={`absolute -right-3 -bottom-3 opacity-[0.07] ${
-                    isOverBudget
-                      ? "text-red-500"
-                      : budgetUsedPercentage > 80
-                      ? "text-amber-500"
-                      : "text-blue-500"
-                  }`}
-                >
-                  <Wallet className="h-16 w-16" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Income Card - Third */}
-          <div className="snap-start shrink-0 w-[140px]">
-            <div className="relative overflow-hidden rounded-xl p-3 h-[90px] bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-green-500/20">
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className="p-1 rounded-md bg-green-500/20 text-green-600">
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </div>
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("income")}
-                </span>
-              </div>
-              <p className="text-xl font-bold tracking-tight text-green-600">
-                +€{totalIncome.toFixed(0)}
-              </p>
-              <div className="absolute -right-3 -bottom-3 opacity-[0.07] text-green-500">
-                <TrendingUp className="h-16 w-16" />
-              </div>
-            </div>
-          </div>
-
-          {/* Balance Card - Fourth */}
-          <div className="snap-start shrink-0 w-[140px]">
-            <div
-              className={`relative overflow-hidden rounded-xl p-3 h-[90px] ${
-                balance >= 0
-                  ? "bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20"
-                  : "bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent border border-red-500/20"
-              }`}
-            >
-              <div className="flex items-center gap-1.5 mb-1">
-                <div
-                  className={`p-1 rounded-md ${
-                    balance >= 0
-                      ? "bg-emerald-500/20 text-emerald-600"
-                      : "bg-red-500/20 text-red-600"
-                  }`}
-                >
-                  <PiggyBank className="h-3.5 w-3.5" />
-                </div>
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("total_balance")}
-                </span>
-              </div>
-              <p
-                className={`text-xl font-bold tracking-tight ${
-                  balance >= 0 ? "text-emerald-600" : "text-red-600"
-                }`}
-              >
-                €{Math.abs(balance).toFixed(0)}
-              </p>
-              <div
-                className={`absolute -right-3 -bottom-3 opacity-[0.07] ${
-                  balance >= 0 ? "text-emerald-500" : "text-red-500"
-                }`}
-              >
-                <PiggyBank className="h-16 w-16" />
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Mobile Summary Stats - Smart FlipCard Carousel */}
+      <div className="md:hidden">
+        <FlipCard
+          className="h-[120px]"
+          isFlipped={isFlipped}
+          onFlip={handleStatFlip}
+          direction="top"
+          frontContent={renderStatCard(faceAIndex)}
+          backContent={renderStatCard(faceBIndex)}
+        />
       </div>
       {/* Chart and Summary Cards Layout */}
       <div className="grid gap-4 md:grid-cols-[1fr_auto]">
@@ -530,7 +624,7 @@ export function Dashboard() {
             <CardTitle>{t("recent_transactions")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[250px] pr-4 md:h-[300px]">
+            <ScrollArea className="h-[350px] pr-4 sm:h-[400px] lg:h-[300px]">
               <TransactionList
                 transactions={recentTransactions}
                 categories={categories}
