@@ -12,6 +12,7 @@ import {
   format,
 } from "date-fns";
 import { handleError, notifySuccess } from "@/lib/error-handler";
+import { TIMING } from "@/lib/constants";
 import i18n from "@/i18n";
 
 /**
@@ -113,7 +114,7 @@ export function useAutoGenerate() {
     };
 
     // Small delay to ensure DB is ready
-    const timeout = setTimeout(generate, 1000);
+    const timeout = setTimeout(generate, TIMING.AUTO_GENERATE_DELAY);
     return () => clearTimeout(timeout);
   }, []);
 }

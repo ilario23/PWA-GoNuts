@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { handleError } from "@/lib/error-handler";
+import { TIMING } from "@/lib/constants";
 
 interface PWAUpdateState {
   needRefresh: boolean;
@@ -26,7 +27,7 @@ export function usePWAUpdate(): PWAUpdateState {
         setInterval(() => {
           console.log("[PWA] Checking for updates...");
           registration.update();
-        }, 60 * 60 * 1000);
+        }, TIMING.PWA_UPDATE_CHECK_INTERVAL);
       }
     },
     onRegisterError(error) {

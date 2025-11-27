@@ -7,17 +7,10 @@ import { supabase } from "../lib/supabase";
 import { db } from "../lib/db";
 import { useAuth } from "./useAuth";
 import { handleError } from "@/lib/error-handler";
+import { REALTIME_CONFIG, TIMING } from "@/lib/constants";
 
 // Tables we want to subscribe to
-const REALTIME_TABLES = [
-  "groups",
-  "group_members",
-  "transactions",
-  "categories",
-  "contexts",
-  "recurring_transactions",
-  "category_budgets",
-] as const;
+const REALTIME_TABLES = REALTIME_CONFIG.TABLES;
 
 type RealtimeTable = (typeof REALTIME_TABLES)[number];
 
@@ -29,8 +22,8 @@ interface RealtimeEvent {
 }
 
 // Retry configuration
-const MAX_RETRY_ATTEMPTS = 5;
-const INITIAL_RETRY_DELAY = 1000; // 1 second
+const MAX_RETRY_ATTEMPTS = REALTIME_CONFIG.MAX_RETRY_ATTEMPTS;
+const INITIAL_RETRY_DELAY = REALTIME_CONFIG.INITIAL_RETRY_DELAY;
 
 /**
  * Hook that manages Supabase Realtime subscriptions.
@@ -261,7 +254,7 @@ export function useRealtimeSync() {
     // Debounced delay before reconnecting
     reconnectTimeoutRef.current = setTimeout(() => {
       subscribe();
-    }, 1000);
+    }, TIMING.REALTIME_RECONNECT_DELAY);
   }, [subscribe, unsubscribe]);
 
   // Subscribe when user logs in, unsubscribe on logout

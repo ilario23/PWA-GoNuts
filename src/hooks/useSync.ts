@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { syncManager, SyncStatus, SyncError } from "../lib/sync";
+import { useState, useEffect, useCallback } from 'react';
+import { syncManager, SyncStatus, SyncError } from '../lib/sync';
+import { TIMING } from '../lib/constants';
 
 export interface UseSyncResult {
   /** Whether a sync operation is currently in progress */
@@ -45,7 +46,7 @@ export function useSync(): UseSyncResult {
     sync();
 
     // Optional: Sync every 5 minutes
-    const interval = setInterval(sync, 5 * 60 * 1000);
+    const interval = setInterval(sync, TIMING.SYNC_INTERVAL);
 
     return () => {
       unsubscribe();
