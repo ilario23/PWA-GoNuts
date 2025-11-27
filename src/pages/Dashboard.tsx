@@ -27,7 +27,7 @@ import {
   ArrowDownRight,
   PiggyBank,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -55,17 +55,39 @@ export function Dashboard() {
     selectedMonth: currentMonth,
   });
 
-  const totalIncome = monthlyStats.income;
-  const totalExpense = monthlyStats.expense;
-  const balance = totalIncome - totalExpense;
+  // Memoize expensive calculations
+  const { totalIncome, totalExpense, balance } = useMemo(() => ({
+    totalIncome: monthlyStats.income,
+    totalExpense: monthlyStats.expense,
+    balance: monthlyStats.income - monthlyStats.expense,
+  }), [monthlyStats.income, monthlyStats.expense]);
 
-  // Budget calculations
-  const monthlyBudget = settings?.monthly_budget;
-  const budgetUsedPercentage = monthlyBudget
-    ? Math.min((totalExpense / monthlyBudget) * 100, 100)
-    : 0;
-  const budgetRemaining = monthlyBudget ? monthlyBudget - totalExpense : 0;
-  const isOverBudget = monthlyBudget ? totalExpense > monthlyBudget : false;
+  // Budget calculations - memoized
+  const budgetData = useMemo(() => {
+    const monthlyBudget = settings?.monthly_budget;
+    if (!monthlyBudget) {
+      return {
+        monthlyBudget: null,
+        budgetUsedPercentage: 0,
+        budgetRemaining: 0,
+        isOverBudget: false,
+      };
+    }
+    return {
+      monthlyBudget,
+      budgetUsedPercentage: Math.min((totalExpense / monthlyBudget) * 100, 100),
+      budgetRemaining: monthlyBudget - totalExpense,
+      isOverBudget: totalExpense > monthlyBudget,
+    };
+  }, [settings?.monthly_budget, totalExpense]);
+
+  const { monthlyBudget, budgetUsedPercentage, budgetRemaining, isOverBudget } = budgetData;
+
+  // Recent transactions - memoized to avoid filtering on every render
+  const recentTransactions = useMemo(() => 
+    transactions?.filter((t) => !t.deleted_at).slice(0, 5),
+    [transactions]
+  );
 
   // Transaction dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -82,7 +104,7 @@ export function Dashboard() {
     setFormData((prev) => ({ ...prev, category_id: "" }));
   }, [formData.type]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     if (!formData.category_id) {
@@ -108,9 +130,9 @@ export function Dashboard() {
       type: "expense",
       date: new Date().toISOString().split("T")[0],
     });
-  };
+  }, [user, formData, addTransaction, t]);
 
-  const getTypeColor = (type: string) => {
+  const getTypeColor = useCallback((type: string) => {
     switch (type) {
       case "expense":
         return "bg-red-500 hover:bg-red-600 text-white";
@@ -121,9 +143,10 @@ export function Dashboard() {
       default:
         return "";
     }
-  };
+  }, []);
 
-  const chartConfig = {
+  // Chart config - memoized since it depends on translation
+  const chartConfig = useMemo(() => ({
     cumulative: {
       label: t("cumulative_expenses"),
       color: "hsl(0 84.2% 60.2%)",
@@ -132,7 +155,7 @@ export function Dashboard() {
       label: t("projection"),
       color: "#eb630fff",
     },
-  } satisfies ChartConfig;
+  } satisfies ChartConfig), [t]);
 
   return (
     <div className="space-y-4">
@@ -462,9 +485,7 @@ export function Dashboard() {
           <CardContent>
             <ScrollArea className="h-[250px] pr-4 md:h-[300px]">
               <TransactionList
-                transactions={transactions
-                  ?.filter((t) => !t.deleted_at)
-                  .slice(0, 5)}
+                transactions={recentTransactions}
                 categories={categories}
                 showActions={false}
                 isLoading={transactions === undefined}
