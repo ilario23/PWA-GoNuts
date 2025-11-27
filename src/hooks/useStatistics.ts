@@ -1,11 +1,13 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../lib/db";
-import { format } from "date-fns";
+import { format, subMonths } from "date-fns";
 import { useMemo } from "react";
 
 interface UseStatisticsParams {
   selectedMonth?: string; // Format: 'yyyy-MM'
   selectedYear?: string; // Format: 'yyyy'
+  comparisonMonth?: string; // Format: 'yyyy-MM' - optional custom month for comparison
+  comparisonYear?: string; // Format: 'yyyy' - optional custom year for comparison
 }
 
 export function useStatistics(params?: UseStatisticsParams) {
@@ -13,10 +15,25 @@ export function useStatistics(params?: UseStatisticsParams) {
   const currentMonth = params?.selectedMonth || format(now, "yyyy-MM");
   const currentYear = params?.selectedYear || format(now, "yyyy");
 
+  // Calculate previous periods for comparison
+  const defaultPreviousMonth = format(
+    subMonths(new Date(`${currentMonth}-01`), 1),
+    "yyyy-MM"
+  );
+  const previousMonth = params?.comparisonMonth || defaultPreviousMonth;
+  const defaultPreviousYear = (parseInt(currentYear) - 1).toString();
+  const previousYear = params?.comparisonYear || defaultPreviousYear;
+
   // Get selected month transactions
   const transactions = useLiveQuery(
     () => db.transactions.where("year_month").equals(currentMonth).toArray(),
     [currentMonth]
+  );
+
+  // Get previous month transactions for comparison
+  const previousMonthTransactions = useLiveQuery(
+    () => db.transactions.where("year_month").equals(previousMonth).toArray(),
+    [previousMonth]
   );
 
   // Get all transactions for the selected year
@@ -27,6 +44,16 @@ export function useStatistics(params?: UseStatisticsParams) {
         .between(`${currentYear}-01`, `${currentYear}-12`, true, true)
         .toArray(),
     [currentYear]
+  );
+
+  // Get previous year transactions for comparison
+  const previousYearTransactions = useLiveQuery(
+    () =>
+      db.transactions
+        .where("year_month")
+        .between(`${previousYear}-01`, `${previousYear}-12`, true, true)
+        .toArray(),
+    [previousYear]
   );
 
   const categories = useLiveQuery(() => db.categories.toArray());
@@ -583,6 +610,374 @@ export function useStatistics(params?: UseStatisticsParams) {
     return rate;
   }, [yearlyTransactions, allTimeTransactions, currentYear, yearlyStats]);
 
+  // ============================================
+  // PERIOD COMPARISON DATA
+  // ============================================
+
+  // Calculate daily cumulative expenses for comparison month
+  const previousMonthCumulativeExpenses = useMemo(() => {
+    const result: { day: string; cumulative: number }[] = [];
+
+    if (previousMonthTransactions) {
+      // Get the number of days in the previous month
+      const [year, month] = previousMonth.split("-");
+      const daysInMonth = new Date(
+        parseInt(year),
+        parseInt(month),
+        0
+      ).getDate();
+
+      // Initialize daily totals
+      const dailyTotals = new Map<number, number>();
+      for (let day = 1; day <= daysInMonth; day++) {
+        dailyTotals.set(day, 0);
+      }
+
+      // Aggregate expenses by day
+      previousMonthTransactions.forEach((t) => {
+        if (t.deleted_at || t.type !== "expense") return;
+        const day = new Date(t.date).getDate();
+        dailyTotals.set(day, (dailyTotals.get(day) || 0) + Number(t.amount));
+      });
+
+      // Calculate cumulative totals
+      let cumulative = 0;
+      for (let day = 1; day <= daysInMonth; day++) {
+        cumulative += dailyTotals.get(day) || 0;
+        result.push({
+          day: day.toString(),
+          cumulative: Math.round(cumulative * 100) / 100,
+        });
+      }
+    }
+    return result;
+  }, [previousMonthTransactions, previousMonth]);
+
+  // Calculate monthly cumulative expenses for current year
+  const yearlyCumulativeExpenses = useMemo(() => {
+    const result: { month: string; cumulative: number }[] = [];
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    if (yearlyTransactions) {
+      // Initialize monthly totals
+      const monthlyTotals = new Array(12).fill(0);
+
+      // Aggregate expenses by month
+      yearlyTransactions.forEach((t) => {
+        if (t.deleted_at || t.type !== "expense") return;
+        const monthIdx = new Date(t.date).getMonth();
+        monthlyTotals[monthIdx] += Number(t.amount);
+      });
+
+      // Calculate cumulative totals
+      let cumulative = 0;
+      for (let i = 0; i < 12; i++) {
+        cumulative += monthlyTotals[i];
+        result.push({
+          month: monthNames[i],
+          cumulative: Math.round(cumulative * 100) / 100,
+        });
+      }
+    }
+    return result;
+  }, [yearlyTransactions]);
+
+  // Calculate monthly cumulative expenses for comparison year
+  const previousYearCumulativeExpenses = useMemo(() => {
+    const result: { month: string; cumulative: number }[] = [];
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    if (previousYearTransactions) {
+      // Initialize monthly totals
+      const monthlyTotals = new Array(12).fill(0);
+
+      // Aggregate expenses by month
+      previousYearTransactions.forEach((t) => {
+        if (t.deleted_at || t.type !== "expense") return;
+        const monthIdx = new Date(t.date).getMonth();
+        monthlyTotals[monthIdx] += Number(t.amount);
+      });
+
+      // Calculate cumulative totals
+      let cumulative = 0;
+      for (let i = 0; i < 12; i++) {
+        cumulative += monthlyTotals[i];
+        result.push({
+          month: monthNames[i],
+          cumulative: Math.round(cumulative * 100) / 100,
+        });
+      }
+    }
+    return result;
+  }, [previousYearTransactions]);
+
+  // Previous month statistics
+  const previousMonthStats = useMemo(() => {
+    const stats = {
+      income: 0,
+      expense: 0,
+      investment: 0,
+      byCategory: [] as { name: string; value: number; color: string }[],
+    };
+
+    if (previousMonthTransactions && categories) {
+      const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+      previousMonthTransactions.forEach((t) => {
+        if (t.deleted_at) return;
+
+        const amount = Number(t.amount);
+        if (t.type === "income") stats.income += amount;
+        else if (t.type === "expense") stats.expense += amount;
+        else if (t.type === "investment") stats.investment += amount;
+
+        if (t.type === "expense" && t.category_id) {
+          const cat = categoryMap.get(t.category_id);
+          if (cat) {
+            const existing = stats.byCategory.find((c) => c.name === cat.name);
+            if (existing) {
+              existing.value += amount;
+            } else {
+              stats.byCategory.push({
+                name: cat.name,
+                value: amount,
+                color: cat.color,
+              });
+            }
+          }
+        }
+      });
+    }
+    return stats;
+  }, [previousMonthTransactions, categories]);
+
+  // Previous year statistics
+  const previousYearStats = useMemo(() => {
+    const stats = {
+      income: 0,
+      expense: 0,
+      investment: 0,
+      byCategory: [] as { name: string; value: number; color: string }[],
+    };
+
+    if (previousYearTransactions && categories) {
+      const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+      previousYearTransactions.forEach((t) => {
+        if (t.deleted_at) return;
+
+        const amount = Number(t.amount);
+        if (t.type === "income") stats.income += amount;
+        else if (t.type === "expense") stats.expense += amount;
+        else if (t.type === "investment") stats.investment += amount;
+
+        if (t.type === "expense" && t.category_id) {
+          const cat = categoryMap.get(t.category_id);
+          if (cat) {
+            const existing = stats.byCategory.find((c) => c.name === cat.name);
+            if (existing) {
+              existing.value += amount;
+            } else {
+              stats.byCategory.push({
+                name: cat.name,
+                value: amount,
+                color: cat.color,
+              });
+            }
+          }
+        }
+      });
+    }
+    return stats;
+  }, [previousYearTransactions, categories]);
+
+  // Monthly comparison (current vs previous month)
+  const monthlyComparison = useMemo(() => {
+    const calcChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    return {
+      income: {
+        current: monthlyStats.income,
+        previous: previousMonthStats.income,
+        change: calcChange(monthlyStats.income, previousMonthStats.income),
+        trend: monthlyStats.income >= previousMonthStats.income ? "up" : "down",
+      },
+      expense: {
+        current: monthlyStats.expense,
+        previous: previousMonthStats.expense,
+        change: calcChange(monthlyStats.expense, previousMonthStats.expense),
+        trend:
+          monthlyStats.expense <= previousMonthStats.expense ? "up" : "down",
+      },
+      investment: {
+        current: monthlyStats.investment,
+        previous: previousMonthStats.investment,
+        change: calcChange(
+          monthlyStats.investment,
+          previousMonthStats.investment
+        ),
+        trend:
+          monthlyStats.investment >= previousMonthStats.investment
+            ? "up"
+            : "down",
+      },
+      balance: {
+        current: monthlyNetBalance,
+        previous: previousMonthStats.income - previousMonthStats.expense,
+        change: calcChange(
+          monthlyNetBalance,
+          previousMonthStats.income - previousMonthStats.expense
+        ),
+        trend:
+          monthlyNetBalance >=
+          previousMonthStats.income - previousMonthStats.expense
+            ? "up"
+            : "down",
+      },
+      savingRate: {
+        current:
+          monthlyStats.income > 0
+            ? ((monthlyStats.income - monthlyStats.expense) /
+                monthlyStats.income) *
+              100
+            : 0,
+        previous:
+          previousMonthStats.income > 0
+            ? ((previousMonthStats.income - previousMonthStats.expense) /
+                previousMonthStats.income) *
+              100
+            : 0,
+      },
+    };
+  }, [monthlyStats, previousMonthStats, monthlyNetBalance]);
+
+  // Yearly comparison (current vs previous year)
+  const yearlyComparison = useMemo(() => {
+    const calcChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    return {
+      income: {
+        current: yearlyStats.income,
+        previous: previousYearStats.income,
+        change: calcChange(yearlyStats.income, previousYearStats.income),
+        trend: yearlyStats.income >= previousYearStats.income ? "up" : "down",
+      },
+      expense: {
+        current: yearlyStats.expense,
+        previous: previousYearStats.expense,
+        change: calcChange(yearlyStats.expense, previousYearStats.expense),
+        trend: yearlyStats.expense <= previousYearStats.expense ? "up" : "down",
+      },
+      investment: {
+        current: yearlyStats.investment,
+        previous: previousYearStats.investment,
+        change: calcChange(
+          yearlyStats.investment,
+          previousYearStats.investment
+        ),
+        trend:
+          yearlyStats.investment >= previousYearStats.investment
+            ? "up"
+            : "down",
+      },
+      balance: {
+        current: yearlyNetBalance,
+        previous: previousYearStats.income - previousYearStats.expense,
+        change: calcChange(
+          yearlyNetBalance,
+          previousYearStats.income - previousYearStats.expense
+        ),
+        trend:
+          yearlyNetBalance >=
+          previousYearStats.income - previousYearStats.expense
+            ? "up"
+            : "down",
+      },
+      savingRate: {
+        current:
+          yearlyStats.income > 0
+            ? ((yearlyStats.income - yearlyStats.expense) /
+                yearlyStats.income) *
+              100
+            : 0,
+        previous:
+          previousYearStats.income > 0
+            ? ((previousYearStats.income - previousYearStats.expense) /
+                previousYearStats.income) *
+              100
+            : 0,
+      },
+    };
+  }, [yearlyStats, previousYearStats, yearlyNetBalance]);
+
+  // Category comparison (which categories increased/decreased)
+  const categoryComparison = useMemo(() => {
+    const currentCats = new Map(
+      monthlyStats.byCategory.map((c) => [c.name, c.value])
+    );
+    const prevCats = new Map(
+      previousMonthStats.byCategory.map((c) => [c.name, c.value])
+    );
+
+    const allCategoryNames = new Set([
+      ...currentCats.keys(),
+      ...prevCats.keys(),
+    ]);
+
+    return Array.from(allCategoryNames)
+      .map((name) => {
+        const current = currentCats.get(name) || 0;
+        const previous = prevCats.get(name) || 0;
+        const change =
+          previous > 0
+            ? ((current - previous) / previous) * 100
+            : current > 0
+            ? 100
+            : 0;
+
+        return {
+          name,
+          current,
+          previous,
+          change,
+          trend: current <= previous ? "improved" : "worsened",
+        };
+      })
+      .sort((a, b) => b.change - a.change);
+  }, [monthlyStats.byCategory, previousMonthStats.byCategory]);
+
   // 6. RECURRING VS ONE-TIME
   // (Not currently returned or used in the original code, but was calculated.
   // If it's not used in the return object, we can skip it, but I'll memoize it just in case it's added later or I missed it)
@@ -636,5 +1031,16 @@ export function useStatistics(params?: UseStatisticsParams) {
     contextStats,
     burnRate,
     yearlyBurnRate,
+    // Period comparison data
+    previousMonth,
+    previousYear,
+    previousMonthCumulativeExpenses,
+    yearlyCumulativeExpenses,
+    previousYearCumulativeExpenses,
+    previousMonthStats,
+    previousYearStats,
+    monthlyComparison,
+    yearlyComparison,
+    categoryComparison,
   };
 }
