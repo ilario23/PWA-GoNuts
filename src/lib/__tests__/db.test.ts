@@ -14,9 +14,10 @@ describe("db", () => {
     expect(db.user_settings).toBeDefined();
     expect(db.groups).toBeDefined();
     expect(db.group_members).toBeDefined();
+    expect(db.category_budgets).toBeDefined();
   });
 
   it("should have correct version", () => {
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(3);
   });
 });
