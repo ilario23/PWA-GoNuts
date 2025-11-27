@@ -340,5 +340,10 @@
   "actions": "Azioni",
   "transaction": "Transazione",
   "show_subcategories": "Mostra sottocategorie",
-  "back": "Indietro"
+  "back": "Indietro",
+  "back_online": "Di nuovo online!",
+  "back_online_description": "Le tue modifiche vengono sincronizzate ora.",
+  "gone_offline": "Sei offline",
+  "gone_offline_description": "Le modifiche saranno salvate localmente e sincronizzate quando tornerai online.",
+  "offline_banner_message": "Offline - le modifiche saranno sincronizzate alla riconnessione"
 }

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { syncManager, SyncStatus, SyncError } from '../lib/sync';
-import { TIMING } from '../lib/constants';
+import { useState, useEffect, useCallback } from "react";
+import { syncManager, SyncStatus, SyncError } from "../lib/sync";
+import { TIMING } from "../lib/constants";
 
 export interface UseSyncResult {
   /** Whether a sync operation is currently in progress */

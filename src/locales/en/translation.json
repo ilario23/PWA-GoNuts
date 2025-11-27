@@ -340,5 +340,10 @@
   "actions": "Actions",
   "transaction": "Transaction",
   "show_subcategories": "Show subcategories",
-  "back": "Back"
+  "back": "Back",
+  "back_online": "Back online!",
+  "back_online_description": "Your changes are being synced now.",
+  "gone_offline": "You're offline",
+  "gone_offline_description": "Changes will be saved locally and synced when you're back online.",
+  "offline_banner_message": "Offline - changes will sync when connected"
 }

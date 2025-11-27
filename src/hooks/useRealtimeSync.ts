@@ -130,11 +130,16 @@ export function useRealtimeSync() {
           }
         }
       } catch (error) {
-        handleError(error, 'warning', {
-          source: 'useRealtimeSync',
-          operation: `handle-${eventType}`,
-          meta: { table },
-        }, { showToast: false });
+        handleError(
+          error,
+          "warning",
+          {
+            source: "useRealtimeSync",
+            operation: `handle-${eventType}`,
+            meta: { table },
+          },
+          { showToast: false }
+        );
       }
     },
     []

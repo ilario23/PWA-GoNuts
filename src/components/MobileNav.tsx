@@ -45,7 +45,7 @@ export function MobileNav({ navigation }: MobileNavProps) {
   };
 
   return (
-    <header 
+    <header
       className="flex items-center justify-between border-b p-2 pt-[max(0.5rem,env(safe-area-inset-top))] px-[max(0.5rem,env(safe-area-inset-left))] md:hidden bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 fixed top-0 left-0 right-0 z-50"
       role="banner"
     >
@@ -71,7 +71,10 @@ export function MobileNav({ navigation }: MobileNavProps) {
                 <span className="sr-only">{t("offline_mode")}</span>
               )}
             </div>
-            <nav className="flex-1 space-y-1 p-2 overflow-y-auto" aria-label={t("main_menu")}>
+            <nav
+              className="flex-1 space-y-1 p-2 overflow-y-auto"
+              aria-label={t("main_menu")}
+            >
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 return (
@@ -110,14 +113,12 @@ export function MobileNav({ navigation }: MobileNavProps) {
         </SheetContent>
       </Sheet>
       <div className="flex items-center gap-2 font-bold text-lg">
-        <Wallet 
-          className={cn("h-5 w-5", !isOnline && "text-destructive")} 
-          aria-hidden="true" 
+        <Wallet
+          className={cn("h-5 w-5", !isOnline && "text-destructive")}
+          aria-hidden="true"
         />
         <span className="text-primary">{t("app_title")}</span>
-        {!isOnline && (
-          <span className="sr-only">{t("offline_mode")}</span>
-        )}
+        {!isOnline && <span className="sr-only">{t("offline_mode")}</span>}
       </div>
       {/* Placeholder for right side actions if needed, e.g. profile or add */}
       <div className="w-9" aria-hidden="true" />

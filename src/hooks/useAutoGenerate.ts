@@ -106,10 +106,15 @@ export function useAutoGenerate() {
           syncManager.sync();
         }
       } catch (error) {
-        handleError(error, 'error', {
-          source: 'useAutoGenerate',
-          operation: 'generate',
-        }, { showToast: false });
+        handleError(
+          error,
+          "error",
+          {
+            source: "useAutoGenerate",
+            operation: "generate",
+          },
+          { showToast: false }
+        );
       }
     };
 

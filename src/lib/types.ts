@@ -12,7 +12,7 @@ import type {
   GroupMember,
   CategoryBudget,
   Setting,
-} from './db';
+} from "./db";
 
 // Re-export database types for convenience
 export type {
@@ -33,32 +33,32 @@ export type {
 /**
  * Transaction type - shared across transactions, categories, and recurring transactions
  */
-export type TransactionType = 'income' | 'expense' | 'investment';
+export type TransactionType = "income" | "expense" | "investment";
 
 /**
  * Recurring transaction frequency
  */
-export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type Frequency = "daily" | "weekly" | "monthly" | "yearly";
 
 /**
  * Budget period
  */
-export type BudgetPeriod = 'monthly' | 'yearly';
+export type BudgetPeriod = "monthly" | "yearly";
 
 /**
  * Theme options
  */
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = "light" | "dark" | "system";
 
 /**
  * Start of week options
  */
-export type StartOfWeek = 'monday' | 'sunday';
+export type StartOfWeek = "monday" | "sunday";
 
 /**
  * Default view options
  */
-export type DefaultView = 'list' | 'grid';
+export type DefaultView = "list" | "grid";
 
 // ============================================================================
 // INPUT TYPES (for creating/updating entities)
@@ -84,7 +84,7 @@ export interface TransactionInput {
 /**
  * Input for updating an existing transaction
  */
-export type TransactionUpdate = Partial<Omit<TransactionInput, 'user_id'>>;
+export type TransactionUpdate = Partial<Omit<TransactionInput, "user_id">>;
 
 /**
  * Input for creating a new category
@@ -103,7 +103,7 @@ export interface CategoryInput {
 /**
  * Input for updating an existing category
  */
-export type CategoryUpdate = Partial<Omit<CategoryInput, 'user_id'>>;
+export type CategoryUpdate = Partial<Omit<CategoryInput, "user_id">>;
 
 /**
  * Input for creating a new context
@@ -118,7 +118,7 @@ export interface ContextInput {
 /**
  * Input for updating an existing context
  */
-export type ContextUpdate = Partial<Omit<ContextInput, 'user_id'>>;
+export type ContextUpdate = Partial<Omit<ContextInput, "user_id">>;
 
 /**
  * Input for creating a new recurring transaction
@@ -141,7 +141,9 @@ export interface RecurringTransactionInput {
 /**
  * Input for updating an existing recurring transaction
  */
-export type RecurringTransactionUpdate = Partial<Omit<RecurringTransactionInput, 'user_id'>>;
+export type RecurringTransactionUpdate = Partial<
+  Omit<RecurringTransactionInput, "user_id">
+>;
 
 /**
  * Input for creating a new group
@@ -155,7 +157,7 @@ export interface GroupInput {
 /**
  * Input for updating an existing group
  */
-export type GroupUpdate = Partial<Omit<GroupInput, 'created_by'>>;
+export type GroupUpdate = Partial<Omit<GroupInput, "created_by">>;
 
 /**
  * Input for adding a member to a group
@@ -186,7 +188,9 @@ export interface CategoryBudgetInput {
 /**
  * Input for updating a category budget
  */
-export type CategoryBudgetUpdate = Partial<Omit<CategoryBudgetInput, 'user_id'>>;
+export type CategoryBudgetUpdate = Partial<
+  Omit<CategoryBudgetInput, "user_id">
+>;
 
 /**
  * User settings input
@@ -207,7 +211,7 @@ export interface UserSettingsInput {
 /**
  * User settings update
  */
-export type UserSettingsUpdate = Partial<Omit<UserSettingsInput, 'user_id'>>;
+export type UserSettingsUpdate = Partial<Omit<UserSettingsInput, "user_id">>;
 
 // ============================================================================
 // ENRICHED TYPES (with joined data)

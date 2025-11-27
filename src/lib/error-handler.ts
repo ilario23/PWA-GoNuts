@@ -1,9 +1,9 @@
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
 /**
  * Error severity levels for categorizing errors
  */
-export type ErrorSeverity = 'info' | 'warning' | 'error' | 'critical';
+export type ErrorSeverity = "info" | "warning" | "error" | "critical";
 
 /**
  * Error context for better debugging
@@ -28,12 +28,12 @@ export class AppError extends Error {
 
   constructor(
     message: string,
-    severity: ErrorSeverity = 'error',
+    severity: ErrorSeverity = "error",
     context: ErrorContext,
     originalError?: unknown
   ) {
     super(message);
-    this.name = 'AppError';
+    this.name = "AppError";
     this.severity = severity;
     this.context = context;
     this.originalError = originalError;
@@ -63,7 +63,7 @@ const defaultOptions: HandleErrorOptions = {
 
 /**
  * Centralized error handler for consistent error management across the app.
- * 
+ *
  * @example
  * // In a hook
  * try {
@@ -71,7 +71,7 @@ const defaultOptions: HandleErrorOptions = {
  * } catch (error) {
  *   handleError(error, 'error', { source: 'useTransactions', operation: 'create' });
  * }
- * 
+ *
  * @example
  * // Silent logging (no toast)
  * handleError(error, 'warning', { source: 'sync' }, { showToast: false });
@@ -83,7 +83,7 @@ export function handleError(
   options: HandleErrorOptions = {}
 ): AppError {
   const opts = { ...defaultOptions, ...options };
-  
+
   // Normalize error to AppError
   const appError = normalizeError(error, severity, context);
 
@@ -98,7 +98,7 @@ export function handleError(
   }
 
   // Send to error tracking service in production
-  if (import.meta.env.PROD && severity === 'critical') {
+  if (import.meta.env.PROD && severity === "critical") {
     // TODO: Send to Sentry, LogRocket, etc.
     // sendToErrorTracking(appError);
   }
@@ -126,10 +126,10 @@ function normalizeError(
 
   if (error instanceof Error) {
     message = error.message;
-  } else if (typeof error === 'string') {
+  } else if (typeof error === "string") {
     message = error;
   } else {
-    message = 'An unexpected error occurred';
+    message = "An unexpected error occurred";
   }
 
   return new AppError(message, severity, context, error);
@@ -149,17 +149,19 @@ function logError(error: AppError): void {
     stack: error.stack,
   };
 
-  const prefix = `[${error.context.source}${error.context.operation ? `:${error.context.operation}` : ''}]`;
+  const prefix = `[${error.context.source}${
+    error.context.operation ? `:${error.context.operation}` : ""
+  }]`;
 
   switch (error.severity) {
-    case 'info':
+    case "info":
       console.info(prefix, error.message, logData);
       break;
-    case 'warning':
+    case "warning":
       console.warn(prefix, error.message, logData);
       break;
-    case 'error':
-    case 'critical':
+    case "error":
+    case "critical":
       console.error(prefix, error.message, logData);
       break;
   }
@@ -172,14 +174,14 @@ function showErrorToast(error: AppError, customMessage?: string): void {
   const message = customMessage || error.message;
 
   switch (error.severity) {
-    case 'info':
+    case "info":
       toast.info(message);
       break;
-    case 'warning':
+    case "warning":
       toast.warning(message);
       break;
-    case 'error':
-    case 'critical':
+    case "error":
+    case "critical":
       toast.error(message);
       break;
   }
@@ -188,7 +190,7 @@ function showErrorToast(error: AppError, customMessage?: string): void {
 /**
  * Helper to create error handler with preset context.
  * Useful for hooks/components to avoid repetitive context.
- * 
+ *
  * @example
  * const handleErr = createErrorHandler('useTransactions');
  * handleErr(error, 'error', { operation: 'create' });
@@ -196,8 +198,8 @@ function showErrorToast(error: AppError, customMessage?: string): void {
 export function createErrorHandler(source: string) {
   return (
     error: unknown,
-    severity: ErrorSeverity = 'error',
-    context: Omit<ErrorContext, 'source'> = {},
+    severity: ErrorSeverity = "error",
+    context: Omit<ErrorContext, "source"> = {},
     options: HandleErrorOptions = {}
   ): AppError => {
     return handleError(error, severity, { ...context, source }, options);
@@ -206,7 +208,7 @@ export function createErrorHandler(source: string) {
 
 /**
  * Wrapper for async functions with automatic error handling.
- * 
+ *
  * @example
  * const safeDelete = withErrorHandling(
  *   deleteTransaction,
@@ -219,11 +221,13 @@ export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
   context: ErrorContext,
   options: HandleErrorOptions = {}
 ): T {
-  return (async (...args: Parameters<T>): Promise<ReturnType<T> | undefined> => {
+  return (async (
+    ...args: Parameters<T>
+  ): Promise<ReturnType<T> | undefined> => {
     try {
       return await fn(...args);
     } catch (error) {
-      handleError(error, 'error', context, options);
+      handleError(error, "error", context, options);
       return undefined;
     }
   }) as T;

@@ -56,11 +56,14 @@ export function Dashboard() {
   });
 
   // Memoize expensive calculations
-  const { totalIncome, totalExpense, balance } = useMemo(() => ({
-    totalIncome: monthlyStats.income,
-    totalExpense: monthlyStats.expense,
-    balance: monthlyStats.income - monthlyStats.expense,
-  }), [monthlyStats.income, monthlyStats.expense]);
+  const { totalIncome, totalExpense, balance } = useMemo(
+    () => ({
+      totalIncome: monthlyStats.income,
+      totalExpense: monthlyStats.expense,
+      balance: monthlyStats.income - monthlyStats.expense,
+    }),
+    [monthlyStats.income, monthlyStats.expense]
+  );
 
   // Budget calculations - memoized
   const budgetData = useMemo(() => {
@@ -81,11 +84,12 @@ export function Dashboard() {
     };
   }, [settings?.monthly_budget, totalExpense]);
 
-  const { monthlyBudget, budgetUsedPercentage, budgetRemaining, isOverBudget } = budgetData;
+  const { monthlyBudget, budgetUsedPercentage, budgetRemaining, isOverBudget } =
+    budgetData;
 
   // Recent transactions - memoized to avoid filtering on every render
-  const recentTransactions = useMemo(() => 
-    transactions?.filter((t) => !t.deleted_at).slice(0, 5),
+  const recentTransactions = useMemo(
+    () => transactions?.filter((t) => !t.deleted_at).slice(0, 5),
     [transactions]
   );
 
@@ -104,33 +108,36 @@ export function Dashboard() {
     setFormData((prev) => ({ ...prev, category_id: "" }));
   }, [formData.type]);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    if (!formData.category_id) {
-      alert(t("select_category_required"));
-      return;
-    }
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!user) return;
+      if (!formData.category_id) {
+        alert(t("select_category_required"));
+        return;
+      }
 
-    await addTransaction({
-      user_id: user.id,
-      amount: parseFloat(formData.amount),
-      description: formData.description,
-      type: formData.type,
-      category_id: formData.category_id,
-      date: formData.date,
-      year_month: formData.date.substring(0, 7),
-    });
+      await addTransaction({
+        user_id: user.id,
+        amount: parseFloat(formData.amount),
+        description: formData.description,
+        type: formData.type,
+        category_id: formData.category_id,
+        date: formData.date,
+        year_month: formData.date.substring(0, 7),
+      });
 
-    setIsDialogOpen(false);
-    setFormData({
-      amount: "",
-      description: "",
-      category_id: "",
-      type: "expense",
-      date: new Date().toISOString().split("T")[0],
-    });
-  }, [user, formData, addTransaction, t]);
+      setIsDialogOpen(false);
+      setFormData({
+        amount: "",
+        description: "",
+        category_id: "",
+        type: "expense",
+        date: new Date().toISOString().split("T")[0],
+      });
+    },
+    [user, formData, addTransaction, t]
+  );
 
   const getTypeColor = useCallback((type: string) => {
     switch (type) {
@@ -146,16 +153,20 @@ export function Dashboard() {
   }, []);
 
   // Chart config - memoized since it depends on translation
-  const chartConfig = useMemo(() => ({
-    cumulative: {
-      label: t("cumulative_expenses"),
-      color: "hsl(0 84.2% 60.2%)",
-    },
-    projection: {
-      label: t("projection"),
-      color: "#eb630fff",
-    },
-  } satisfies ChartConfig), [t]);
+  const chartConfig = useMemo(
+    () =>
+      ({
+        cumulative: {
+          label: t("cumulative_expenses"),
+          color: "hsl(0 84.2% 60.2%)",
+        },
+        projection: {
+          label: t("projection"),
+          color: "#eb630fff",
+        },
+      } satisfies ChartConfig),
+    [t]
+  );
 
   return (
     <div className="space-y-4">

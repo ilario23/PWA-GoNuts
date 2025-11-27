@@ -49,7 +49,8 @@ export function TransactionList({
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Determine if we should virtualize based on item count
-  const shouldVirtualize = (transactions?.length ?? 0) > UI_DEFAULTS.VIRTUALIZATION_THRESHOLD;
+  const shouldVirtualize =
+    (transactions?.length ?? 0) > UI_DEFAULTS.VIRTUALIZATION_THRESHOLD;
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, Category>();
@@ -94,162 +95,203 @@ export function TransactionList({
   const rowVirtualizer = useVirtualizer({
     count: transactions?.length ?? 0,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => isMobile ? MOBILE_ROW_HEIGHT : DESKTOP_ROW_HEIGHT,
+    estimateSize: () => (isMobile ? MOBILE_ROW_HEIGHT : DESKTOP_ROW_HEIGHT),
     overscan: 5,
   });
 
   // Memoized row renderer for mobile
-  const renderMobileRow = useCallback((t_item: Transaction, index: number, isVirtual: boolean) => {
-    const category = getCategory(t_item.category_id);
-    const context = getContext(t_item.context_id);
-    const IconComp = category?.icon ? getIconComponent(category.icon) : null;
-    
-    const animationProps = !isVirtual && index < 20
-      ? {
-          className: "rounded-lg border bg-card p-4 shadow-sm animate-slide-in-up opacity-0 fill-mode-forwards",
-          style: { animationDelay: `${index * 0.05}s` }
-        }
-      : {
-          className: "rounded-lg border bg-card p-4 shadow-sm"
-        };
+  const renderMobileRow = useCallback(
+    (t_item: Transaction, index: number, isVirtual: boolean) => {
+      const category = getCategory(t_item.category_id);
+      const context = getContext(t_item.context_id);
+      const IconComp = category?.icon ? getIconComponent(category.icon) : null;
 
-    return (
-      <article 
-        key={t_item.id} 
-        {...animationProps}
-        aria-label={`${t_item.description || t("transaction")}: €${t_item.amount.toFixed(2)} ${t(t_item.type)}`}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <time className="font-medium text-sm text-muted-foreground" dateTime={t_item.date}>
-            {t_item.date}
-          </time>
-          <div className={`font-bold ${getTypeTextColor(t_item.type)}`} aria-label={`${t("amount")}: €${t_item.amount.toFixed(2)}`}>
-            {t_item.type === "expense" ? "-" : t_item.type === "investment" ? "" : "+"}
-            €{t_item.amount.toFixed(2)}
-          </div>
-        </div>
-        <div className="flex items-center justify-between mb-2">
-          <div className="font-medium">{t_item.description || "-"}</div>
-          <SyncStatusBadge isPending={t_item.pendingSync === 1} />
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md flex items-center gap-1">
-              {IconComp && <IconComp className="h-3 w-3" aria-hidden="true" />}
-              <span>{category?.name || "-"}</span>
+      const animationProps =
+        !isVirtual && index < 20
+          ? {
+              className:
+                "rounded-lg border bg-card p-4 shadow-sm animate-slide-in-up opacity-0 fill-mode-forwards",
+              style: { animationDelay: `${index * 0.05}s` },
+            }
+          : {
+              className: "rounded-lg border bg-card p-4 shadow-sm",
+            };
+
+      return (
+        <article
+          key={t_item.id}
+          {...animationProps}
+          aria-label={`${
+            t_item.description || t("transaction")
+          }: €${t_item.amount.toFixed(2)} ${t(t_item.type)}`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <time
+              className="font-medium text-sm text-muted-foreground"
+              dateTime={t_item.date}
+            >
+              {t_item.date}
+            </time>
+            <div
+              className={`font-bold ${getTypeTextColor(t_item.type)}`}
+              aria-label={`${t("amount")}: €${t_item.amount.toFixed(2)}`}
+            >
+              {t_item.type === "expense"
+                ? "-"
+                : t_item.type === "investment"
+                ? ""
+                : "+"}
+              €{t_item.amount.toFixed(2)}
             </div>
-            {context && (
-              <div className="text-xs text-muted-foreground bg-primary/10 text-primary px-2 py-1 rounded-md flex items-center gap-1">
-                <Tag className="h-3 w-3" aria-hidden="true" />
-                <span>{context.name}</span>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-medium">{t_item.description || "-"}</div>
+            <SyncStatusBadge isPending={t_item.pendingSync === 1} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md flex items-center gap-1">
+                {IconComp && (
+                  <IconComp className="h-3 w-3" aria-hidden="true" />
+                )}
+                <span>{category?.name || "-"}</span>
+              </div>
+              {context && (
+                <div className="text-xs text-muted-foreground bg-primary/10 text-primary px-2 py-1 rounded-md flex items-center gap-1">
+                  <Tag className="h-3 w-3" aria-hidden="true" />
+                  <span>{context.name}</span>
+                </div>
+              )}
+            </div>
+            {showActions && (
+              <div
+                className="flex gap-2"
+                role="group"
+                aria-label={t("actions")}
+              >
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onEdit(t_item)}
+                    aria-label={t("edit")}
+                  >
+                    <Edit className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onDelete(t_item.id)}
+                    aria-label={t("delete")}
+                  >
+                    <Trash2
+                      className="h-4 w-4 text-destructive"
+                      aria-hidden="true"
+                    />
+                  </Button>
+                )}
               </div>
             )}
           </div>
-          {showActions && (
-            <div className="flex gap-2" role="group" aria-label={t("actions")}>
-              {onEdit && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8" 
-                  onClick={() => onEdit(t_item)}
-                  aria-label={t("edit")}
-                >
-                  <Edit className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              )}
-              {onDelete && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8" 
-                  onClick={() => onDelete(t_item.id)}
-                  aria-label={t("delete")}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </article>
-    );
-  }, [getCategory, getContext, onEdit, onDelete, showActions, t]);
+        </article>
+      );
+    },
+    [getCategory, getContext, onEdit, onDelete, showActions, t]
+  );
 
   // Memoized row renderer for desktop
-  const renderDesktopRow = useCallback((t_item: Transaction, index: number, isVirtual: boolean) => {
-    const category = getCategory(t_item.category_id);
-    const context = getContext(t_item.context_id);
-    const IconComp = category?.icon ? getIconComponent(category.icon) : null;
+  const renderDesktopRow = useCallback(
+    (t_item: Transaction, index: number, isVirtual: boolean) => {
+      const category = getCategory(t_item.category_id);
+      const context = getContext(t_item.context_id);
+      const IconComp = category?.icon ? getIconComponent(category.icon) : null;
 
-    const animationProps = !isVirtual && index < 20
-      ? {
-          className: "animate-slide-in-up opacity-0 fill-mode-forwards",
-          style: { animationDelay: `${index * 0.03}s` }
-        }
-      : {};
+      const animationProps =
+        !isVirtual && index < 20
+          ? {
+              className: "animate-slide-in-up opacity-0 fill-mode-forwards",
+              style: { animationDelay: `${index * 0.03}s` },
+            }
+          : {};
 
-    return (
-      <TableRow key={t_item.id} {...animationProps}>
-        <TableCell>
-          <time dateTime={t_item.date}>{t_item.date}</time>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            {t_item.description}
-            <SyncStatusBadge isPending={t_item.pendingSync === 1} />
-          </div>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            {IconComp && <IconComp className="h-4 w-4" aria-hidden="true" />}
-            <span>{category?.name || "-"}</span>
-          </div>
-        </TableCell>
-        <TableCell>
-          {context ? (
-            <div className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-md">
-              <Tag className="h-3 w-3" aria-hidden="true" />
-              {context.name}
-            </div>
-          ) : (
-            <span className="text-muted-foreground">-</span>
-          )}
-        </TableCell>
-        <TableCell className="capitalize">{t(t_item.type)}</TableCell>
-        <TableCell className={`text-right ${getTypeTextColor(t_item.type)}`}>
-          {t_item.type === "expense" ? "-" : t_item.type === "investment" ? "" : "+"}
-          €{t_item.amount.toFixed(2)}
-        </TableCell>
-        {showActions && (
+      return (
+        <TableRow key={t_item.id} {...animationProps}>
           <TableCell>
-            <div className="flex items-center justify-end gap-2" role="group" aria-label={t("actions")}>
-              {onEdit && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => onEdit(t_item)}
-                  aria-label={t("edit")}
-                >
-                  <Edit className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              )}
-              {onDelete && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => onDelete(t_item.id)}
-                  aria-label={t("delete")}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
-                </Button>
-              )}
+            <time dateTime={t_item.date}>{t_item.date}</time>
+          </TableCell>
+          <TableCell>
+            <div className="flex items-center gap-2">
+              {t_item.description}
+              <SyncStatusBadge isPending={t_item.pendingSync === 1} />
             </div>
           </TableCell>
-        )}
-      </TableRow>
-    );
-  }, [getCategory, getContext, onEdit, onDelete, showActions, t]);
+          <TableCell>
+            <div className="flex items-center gap-2">
+              {IconComp && <IconComp className="h-4 w-4" aria-hidden="true" />}
+              <span>{category?.name || "-"}</span>
+            </div>
+          </TableCell>
+          <TableCell>
+            {context ? (
+              <div className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-md">
+                <Tag className="h-3 w-3" aria-hidden="true" />
+                {context.name}
+              </div>
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+          </TableCell>
+          <TableCell className="capitalize">{t(t_item.type)}</TableCell>
+          <TableCell className={`text-right ${getTypeTextColor(t_item.type)}`}>
+            {t_item.type === "expense"
+              ? "-"
+              : t_item.type === "investment"
+              ? ""
+              : "+"}
+            €{t_item.amount.toFixed(2)}
+          </TableCell>
+          {showActions && (
+            <TableCell>
+              <div
+                className="flex items-center justify-end gap-2"
+                role="group"
+                aria-label={t("actions")}
+              >
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit(t_item)}
+                    aria-label={t("edit")}
+                  >
+                    <Edit className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDelete(t_item.id)}
+                    aria-label={t("delete")}
+                  >
+                    <Trash2
+                      className="h-4 w-4 text-destructive"
+                      aria-hidden="true"
+                    />
+                  </Button>
+                )}
+              </div>
+            </TableCell>
+          )}
+        </TableRow>
+      );
+    },
+    [getCategory, getContext, onEdit, onDelete, showActions, t]
+  );
 
   if (isLoading) {
     return (
@@ -295,8 +337,8 @@ export function TransactionList({
           <div
             style={{
               height: `${rowVirtualizer.getTotalSize()}px`,
-              width: '100%',
-              position: 'relative',
+              width: "100%",
+              position: "relative",
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
@@ -305,13 +347,13 @@ export function TransactionList({
                 <div
                   key={virtualRow.key}
                   style={{
-                    position: 'absolute',
+                    position: "absolute",
                     top: 0,
                     left: 0,
-                    width: '100%',
+                    width: "100%",
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
-                    padding: '8px 0',
+                    padding: "8px 0",
                   }}
                 >
                   {renderMobileRow(t_item, virtualRow.index, true)}
@@ -326,7 +368,9 @@ export function TransactionList({
     // Non-virtualized mobile list for small datasets
     return (
       <div className="space-y-4">
-        {transactions.map((t_item, index) => renderMobileRow(t_item, index, false))}
+        {transactions.map((t_item, index) =>
+          renderMobileRow(t_item, index, false)
+        )}
       </div>
     );
   }
@@ -356,18 +400,23 @@ export function TransactionList({
         >
           <Table>
             <TableBody>
-              <tr style={{ height: `${rowVirtualizer.getTotalSize()}px`, display: 'block' }}>
-                <td style={{ display: 'block', position: 'relative' }}>
+              <tr
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  display: "block",
+                }}
+              >
+                <td style={{ display: "block", position: "relative" }}>
                   {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                     const t_item = transactions[virtualRow.index];
                     return (
                       <div
                         key={virtualRow.key}
                         style={{
-                          position: 'absolute',
+                          position: "absolute",
                           top: 0,
                           left: 0,
-                          width: '100%',
+                          width: "100%",
                           transform: `translateY(${virtualRow.start}px)`,
                         }}
                       >
@@ -404,7 +453,9 @@ export function TransactionList({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {transactions.map((t_item, index) => renderDesktopRow(t_item, index, false))}
+          {transactions.map((t_item, index) =>
+            renderDesktopRow(t_item, index, false)
+          )}
         </TableBody>
       </Table>
     </div>

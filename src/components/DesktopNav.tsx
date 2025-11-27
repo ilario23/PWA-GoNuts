@@ -30,7 +30,7 @@ export function DesktopNav({ navigation }: DesktopNavProps) {
   };
 
   return (
-    <aside 
+    <aside
       className="hidden w-64 flex-col border-r bg-muted/10 md:flex h-full shrink-0"
       role="navigation"
       aria-label={t("main_navigation")}
@@ -41,11 +41,12 @@ export function DesktopNav({ navigation }: DesktopNavProps) {
           aria-hidden="true"
         />
         <span className="text-primary">{t("app_title")}</span>
-        {!isOnline && (
-          <span className="sr-only">{t("offline_mode")}</span>
-        )}
+        {!isOnline && <span className="sr-only">{t("offline_mode")}</span>}
       </div>
-      <nav className="flex-1 space-y-1 p-2 overflow-y-auto" aria-label={t("main_menu")}>
+      <nav
+        className="flex-1 space-y-1 p-2 overflow-y-auto"
+        aria-label={t("main_menu")}
+      >
         {navigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (

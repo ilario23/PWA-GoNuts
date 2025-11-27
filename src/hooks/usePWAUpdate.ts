@@ -31,10 +31,15 @@ export function usePWAUpdate(): PWAUpdateState {
       }
     },
     onRegisterError(error) {
-      handleError(error, 'warning', {
-        source: 'usePWAUpdate',
-        operation: 'register',
-      }, { showToast: false });
+      handleError(
+        error,
+        "warning",
+        {
+          source: "usePWAUpdate",
+          operation: "register",
+        },
+        { showToast: false }
+      );
     },
   });
 
