@@ -64,9 +64,9 @@ export default defineConfig({
       },
       workbox: {
         // Precache all static assets
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         // Don't precache source maps
-        globIgnores: ['**/*.map'],
+        globIgnores: ["**/*.map"],
         runtimeCaching: [
           // HTML pages - Network First with fast fallback
           {
@@ -133,7 +133,7 @@ export default defineConfig({
           },
           // Supabase API calls - Network First with offline fallback
           {
-            urlPattern: ({ url }) => url.hostname.includes('supabase'),
+            urlPattern: ({ url }) => url.hostname.includes("supabase"),
             handler: "NetworkFirst",
             options: {
               cacheName: "supabase-api",

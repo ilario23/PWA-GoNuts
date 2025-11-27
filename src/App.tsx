@@ -18,15 +18,35 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 // Lazy-loaded pages for better initial bundle size
-const Dashboard = lazy(() => import("@/pages/Dashboard").then(m => ({ default: m.Dashboard })));
-const TransactionsPage = lazy(() => import("@/pages/Transactions").then(m => ({ default: m.TransactionsPage })));
-const RecurringTransactionsPage = lazy(() => import("@/pages/RecurringTransactions").then(m => ({ default: m.RecurringTransactionsPage })));
-const CategoriesPage = lazy(() => import("@/pages/Categories").then(m => ({ default: m.CategoriesPage })));
-const ContextsPage = lazy(() => import("@/pages/Contexts").then(m => ({ default: m.ContextsPage })));
-const GroupsPage = lazy(() => import("@/pages/Groups").then(m => ({ default: m.GroupsPage })));
-const GroupDetailPage = lazy(() => import("@/pages/GroupDetail").then(m => ({ default: m.GroupDetailPage })));
-const StatisticsPage = lazy(() => import("@/pages/Statistics").then(m => ({ default: m.StatisticsPage })));
-const SettingsPage = lazy(() => import("@/pages/Settings").then(m => ({ default: m.SettingsPage })));
+const Dashboard = lazy(() =>
+  import("@/pages/Dashboard").then((m) => ({ default: m.Dashboard }))
+);
+const TransactionsPage = lazy(() =>
+  import("@/pages/Transactions").then((m) => ({ default: m.TransactionsPage }))
+);
+const RecurringTransactionsPage = lazy(() =>
+  import("@/pages/RecurringTransactions").then((m) => ({
+    default: m.RecurringTransactionsPage,
+  }))
+);
+const CategoriesPage = lazy(() =>
+  import("@/pages/Categories").then((m) => ({ default: m.CategoriesPage }))
+);
+const ContextsPage = lazy(() =>
+  import("@/pages/Contexts").then((m) => ({ default: m.ContextsPage }))
+);
+const GroupsPage = lazy(() =>
+  import("@/pages/Groups").then((m) => ({ default: m.GroupsPage }))
+);
+const GroupDetailPage = lazy(() =>
+  import("@/pages/GroupDetail").then((m) => ({ default: m.GroupDetailPage }))
+);
+const StatisticsPage = lazy(() =>
+  import("@/pages/Statistics").then((m) => ({ default: m.StatisticsPage }))
+);
+const SettingsPage = lazy(() =>
+  import("@/pages/Settings").then((m) => ({ default: m.SettingsPage }))
+);
 
 /**
  * Loading fallback for lazy-loaded pages
