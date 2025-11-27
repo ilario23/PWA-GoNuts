@@ -296,7 +296,7 @@ export function CategoriesPage() {
 
   // Helper function to get budget info for a category
   const getCategoryBudgetInfo = (categoryId: string) => {
-    return budgetsWithSpent.find((b) => b.category_id === categoryId);
+    return budgetsWithSpent?.find((b) => b.category_id === categoryId);
   };
 
   return (

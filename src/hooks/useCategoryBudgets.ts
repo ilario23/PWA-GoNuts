@@ -179,6 +179,7 @@ export function useCategoryBudgets(
 
   return {
     categoryBudgets: budgetsWithSpent,
+    budgetsWithSpent, // Alias for backwards compatibility
     getBudgetForCategory,
     setCategoryBudget,
     removeCategoryBudget,
