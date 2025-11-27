@@ -63,21 +63,45 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Precache all static assets
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // Don't precache source maps
+        globIgnores: ['**/*.map'],
         runtimeCaching: [
+          // HTML pages - Network First with fast fallback
           {
-            urlPattern: ({ request }) =>
-              request.destination === "document" ||
-              request.destination === "script" ||
-              request.destination === "style",
+            urlPattern: ({ request }) => request.destination === "document",
             handler: "NetworkFirst",
             options: {
-              cacheName: "static-resources",
+              cacheName: "html-pages",
+              networkTimeoutSeconds: 3, // Fallback to cache after 3s
               expiration: {
-                maxEntries: 50,
+                maxEntries: 20,
                 maxAgeSeconds: 7 * 24 * 60 * 60, // 1 week
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
               },
             },
           },
+          // JS and CSS - Stale While Revalidate for fast loads
+          {
+            urlPattern: ({ request }) =>
+              request.destination === "script" ||
+              request.destination === "style",
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "static-resources",
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Images - Cache First (they rarely change)
           {
             urlPattern: ({ request }) => request.destination === "image",
             handler: "CacheFirst",
@@ -85,7 +109,41 @@ export default defineConfig({
               cacheName: "images",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+                maxAgeSeconds: 60 * 24 * 60 * 60, // 60 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Fonts - Cache First (they never change)
+          {
+            urlPattern: ({ request }) => request.destination === "font",
+            handler: "CacheFirst",
+            options: {
+              cacheName: "fonts",
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Supabase API calls - Network First with offline fallback
+          {
+            urlPattern: ({ url }) => url.hostname.includes('supabase'),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "supabase-api",
+              networkTimeoutSeconds: 5,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 24 * 60 * 60, // 1 day
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
               },
             },
           },
