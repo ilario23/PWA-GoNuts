@@ -50,7 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-background overscroll-none">
+    <div className="flex h-screen flex-col md:flex-row bg-background overscroll-none overflow-hidden">
       <MobileNav navigation={navigation} />
       <DesktopNav navigation={navigation} />
 
