@@ -376,5 +376,7 @@
   "months_with_data": "months with data",
   "install_app": "Install App",
   "install_app_desc": "Install this app on your device for a better experience.",
-  "install": "Install"
+  "install": "Install",
+  "more_options": "More",
+  "expense_breakdown_desc": "Detailed spending by category hierarchy"
 }

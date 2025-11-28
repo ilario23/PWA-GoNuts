@@ -597,11 +597,10 @@ export function TransactionsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${
-                        formData.type === "expense"
-                          ? getTypeColor("expense")
-                          : ""
-                      }`}
+                      className={`w-full ${formData.type === "expense"
+                        ? getTypeColor("expense")
+                        : ""
+                        }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "expense" })
                       }
@@ -611,9 +610,8 @@ export function TransactionsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${
-                        formData.type === "income" ? getTypeColor("income") : ""
-                      }`}
+                      className={`w-full ${formData.type === "income" ? getTypeColor("income") : ""
+                        }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "income" })
                       }
@@ -623,11 +621,10 @@ export function TransactionsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${
-                        formData.type === "investment"
-                          ? getTypeColor("investment")
-                          : ""
-                      }`}
+                      className={`w-full ${formData.type === "investment"
+                        ? getTypeColor("investment")
+                        : ""
+                        }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "investment" })
                       }
@@ -641,6 +638,7 @@ export function TransactionsPage() {
                   <label className="text-sm font-medium">{t("amount")}</label>
                   <Input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     value={formData.amount}
                     onChange={(e) => {
@@ -704,7 +702,7 @@ export function TransactionsPage() {
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <MoreHorizontal className="h-4 w-4" />
                           <span className="text-sm font-medium">
-                            {t("more") || "More"}
+                            {t("more_options") || "More"}
                           </span>
                           {(formData.group_id || formData.context_id) && (
                             <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
@@ -717,9 +715,8 @@ export function TransactionsPage() {
                           )}
                         </div>
                         <ChevronDown
-                          className={`h-4 w-4 text-muted-foreground transition-transform ${
-                            moreSectionOpen ? "rotate-180" : ""
-                          }`}
+                          className={`h-4 w-4 text-muted-foreground transition-transform ${moreSectionOpen ? "rotate-180" : ""
+                            }`}
                         />
                       </Button>
                     </CollapsibleTrigger>
@@ -741,8 +738,8 @@ export function TransactionsPage() {
                                     value === "none"
                                       ? ""
                                       : formData.paid_by_user_id ||
-                                        user?.id ||
-                                        "",
+                                      user?.id ||
+                                      "",
                                 })
                               }
                             >
@@ -794,7 +791,7 @@ export function TransactionsPage() {
                                         {member.user_id === user?.id
                                           ? t("me")
                                           : member.user_id.substring(0, 8) +
-                                            "..."}
+                                          "..."}
                                       </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -889,47 +886,47 @@ export function TransactionsPage() {
         filters.type !== "all" ||
         filters.groupFilter !== "all" ||
         filters.contextFilter !== "all") && (
-        <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
-          <span>{t("active_filters")}:</span>
-          {filters.text && (
-            <span className="bg-muted px-2 py-1 rounded-md">
-              "{filters.text}"
-            </span>
-          )}
-          {filters.type !== "all" && (
-            <span className="bg-muted px-2 py-1 rounded-md capitalize">
-              {t(filters.type)}
-            </span>
-          )}
-          {filters.groupFilter !== "all" && (
-            <span className="bg-muted px-2 py-1 rounded-md">
-              {filters.groupFilter === "personal"
-                ? t("personal")
-                : filters.groupFilter === "group"
-                ? t("all_groups")
-                : groups.find((g) => g.id === filters.groupFilter)?.name ||
-                  filters.groupFilter}
-            </span>
-          )}
-          {filters.contextFilter !== "all" && (
-            <span className="bg-muted px-2 py-1 rounded-md">
-              {filters.contextFilter === "none"
-                ? t("no_context")
-                : contexts.find((c) => c.id === filters.contextFilter)?.name ||
+          <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
+            <span>{t("active_filters")}:</span>
+            {filters.text && (
+              <span className="bg-muted px-2 py-1 rounded-md">
+                "{filters.text}"
+              </span>
+            )}
+            {filters.type !== "all" && (
+              <span className="bg-muted px-2 py-1 rounded-md capitalize">
+                {t(filters.type)}
+              </span>
+            )}
+            {filters.groupFilter !== "all" && (
+              <span className="bg-muted px-2 py-1 rounded-md">
+                {filters.groupFilter === "personal"
+                  ? t("personal")
+                  : filters.groupFilter === "group"
+                    ? t("all_groups")
+                    : groups.find((g) => g.id === filters.groupFilter)?.name ||
+                    filters.groupFilter}
+              </span>
+            )}
+            {filters.contextFilter !== "all" && (
+              <span className="bg-muted px-2 py-1 rounded-md">
+                {filters.contextFilter === "none"
+                  ? t("no_context")
+                  : contexts.find((c) => c.id === filters.contextFilter)?.name ||
                   filters.contextFilter}
-            </span>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetFilters}
-            className="h-auto p-0 text-destructive hover:text-destructive"
-          >
-            <X className="h-3 w-3 mr-1" />
-            {t("clear")}
-          </Button>
-        </div>
-      )}
+              </span>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetFilters}
+              className="h-auto p-0 text-destructive hover:text-destructive"
+            >
+              <X className="h-3 w-3 mr-1" />
+              {t("clear")}
+            </Button>
+          </div>
+        )}
 
       {/* Mobile View: Card Stack */}
       <TransactionList

@@ -57,6 +57,7 @@ import {
 } from "date-fns";
 import { CategorySelector } from "@/components/CategorySelector";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { MobileRecurringTransactionRow } from "@/components/MobileRecurringTransactionRow";
 
 export function RecurringTransactionsPage() {
   const {
@@ -289,11 +290,10 @@ export function RecurringTransactionsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${
-                        formData.type === "expense"
-                          ? getTypeColor("expense")
-                          : ""
-                      }`}
+                      className={`w-full ${formData.type === "expense"
+                        ? getTypeColor("expense")
+                        : ""
+                        }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "expense" })
                       }
@@ -303,9 +303,8 @@ export function RecurringTransactionsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${
-                        formData.type === "income" ? getTypeColor("income") : ""
-                      }`}
+                      className={`w-full ${formData.type === "income" ? getTypeColor("income") : ""
+                        }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "income" })
                       }
@@ -315,11 +314,10 @@ export function RecurringTransactionsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${
-                        formData.type === "investment"
-                          ? getTypeColor("investment")
-                          : ""
-                      }`}
+                      className={`w-full ${formData.type === "investment"
+                        ? getTypeColor("investment")
+                        : ""
+                        }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "investment" })
                       }
@@ -352,6 +350,7 @@ export function RecurringTransactionsPage() {
                   <label className="text-sm font-medium">{t("amount")}</label>
                   <Input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     value={formData.amount}
                     onChange={(e) => {
@@ -417,7 +416,7 @@ export function RecurringTransactionsPage() {
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <MoreHorizontal className="h-4 w-4" />
                           <span className="text-sm font-medium">
-                            {t("more") || "More"}
+                            {t("more_options") || "More"}
                           </span>
                           {(formData.group_id || formData.context_id) && (
                             <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
@@ -430,9 +429,8 @@ export function RecurringTransactionsPage() {
                           )}
                         </div>
                         <ChevronDown
-                          className={`h-4 w-4 text-muted-foreground transition-transform ${
-                            moreSectionOpen ? "rotate-180" : ""
-                          }`}
+                          className={`h-4 w-4 text-muted-foreground transition-transform ${moreSectionOpen ? "rotate-180" : ""
+                            }`}
                         />
                       </Button>
                     </CollapsibleTrigger>
@@ -454,8 +452,8 @@ export function RecurringTransactionsPage() {
                                     value === "none"
                                       ? ""
                                       : formData.paid_by_user_id ||
-                                        user?.id ||
-                                        "",
+                                      user?.id ||
+                                      "",
                                 })
                               }
                             >
@@ -507,7 +505,7 @@ export function RecurringTransactionsPage() {
                                         {member.user_id === user?.id
                                           ? t("me")
                                           : member.user_id.substring(0, 8) +
-                                            "..."}
+                                          "..."}
                                       </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -562,48 +560,17 @@ export function RecurringTransactionsPage() {
       </div>
 
       {/* Mobile View: Card Stack */}
-      <div className="space-y-4 md:hidden">
+      <div className="space-y-2 md:hidden">
         {recurringTransactions?.map((t_item) => (
-          <div
+          <MobileRecurringTransactionRow
             key={t_item.id}
-            className="rounded-lg border bg-card p-4 shadow-sm"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-sm text-muted-foreground">
-                {t("next")}:{" "}
-                {getNextOccurrence(t_item.start_date, t_item.frequency)}
-              </div>
-              <div className="font-bold">€{t_item.amount.toFixed(2)}</div>
-            </div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                {getCategoryDisplay(t_item.category_id)}
-                <SyncStatusBadge isPending={t_item.pendingSync === 1} />
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-              <div className="capitalize">{t(t_item.frequency)}</div>
-              <div className="capitalize">{t(t_item.type)}</div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => handleEdit(t_item)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => handleDeleteClick(t_item.id)}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          </div>
+            transaction={t_item}
+            category={categories?.find((c) => c.id === t_item.category_id)}
+            context={contexts?.find((c) => c.id === t_item.context_id)}
+            group={groups?.find((g) => g.id === t_item.group_id)}
+            onEdit={handleEdit}
+            onDelete={handleDeleteClick}
+          />
         ))}
       </div>
 

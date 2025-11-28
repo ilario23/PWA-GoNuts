@@ -761,6 +761,7 @@ export function StatisticsPage() {
             <Card className="md:col-span-2 min-w-0">
               <CardHeader>
                 <CardTitle>{t("expense_breakdown")}</CardTitle>
+                <CardDescription>{t("expense_breakdown_desc")}</CardDescription>
               </CardHeader>
               <CardContent className="min-w-0">
                 <LazyChart
@@ -1009,12 +1010,14 @@ export function StatisticsPage() {
                       className="h-[250px] w-full"
                     >
                       <AreaChart
-                        data={dailyCumulativeExpenses.map((d, i) => ({
-                          day: d.day,
-                          current: d.cumulative,
-                          previous:
-                            previousMonthCumulativeExpenses[i]?.cumulative || 0,
-                        }))}
+                        data={dailyCumulativeExpenses.map((d, i) => {
+                          const prevMonthData = previousMonthCumulativeExpenses[i];
+                          return {
+                            day: d.day,
+                            current: d.cumulative,
+                            previous: prevMonthData?.cumulative,
+                          };
+                        })}
                         margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
                       >
                         <defs>
@@ -1099,24 +1102,17 @@ export function StatisticsPage() {
                     </label>
                     <div className="flex gap-2">
                       <Select
-                        value={comparisonMonth?.split("-")[1] || "auto"}
+                        value={comparisonMonth?.split("-")[1] || previousMonth.split("-")[1]}
                         onValueChange={(value) => {
-                          if (value === "auto") {
-                            setComparisonMonth(undefined);
-                          } else {
-                            const year =
-                              comparisonMonth?.split("-")[0] || selectedYear;
-                            setComparisonMonth(`${year}-${value}`);
-                          }
+                          const year =
+                            comparisonMonth?.split("-")[0] || previousMonth.split("-")[0];
+                          setComparisonMonth(`${year}-${value}`);
                         }}
                       >
                         <SelectTrigger className="w-[140px]">
                           <SelectValue placeholder={t("previous_month")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="auto">
-                            {format(new Date(previousMonth), "MMMM yyyy")}
-                          </SelectItem>
                           {months.map((month) => (
                             <SelectItem key={month.value} value={month.value}>
                               {month.label}
@@ -1124,30 +1120,24 @@ export function StatisticsPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                      {comparisonMonth ? (
-                        <Select
-                          value={comparisonMonth.split("-")[0]}
-                          onValueChange={(year) => {
-                            const month = comparisonMonth.split("-")[1];
-                            setComparisonMonth(`${year}-${month}`);
-                          }}
-                        >
-                          <SelectTrigger className="w-[100px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {years.map((year) => (
-                              <SelectItem key={year} value={year}>
-                                {year}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <div className="flex items-center justify-center px-3 h-10 w-[100px] rounded-md border bg-muted text-sm font-medium text-muted-foreground">
-                          {selectedYear}
-                        </div>
-                      )}
+                      <Select
+                        value={comparisonMonth?.split("-")[0] || previousMonth.split("-")[0]}
+                        onValueChange={(year) => {
+                          const month = comparisonMonth?.split("-")[1] || previousMonth.split("-")[1];
+                          setComparisonMonth(`${year}-${month}`);
+                        }}
+                      >
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {years.map((year) => (
+                            <SelectItem key={year} value={year}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -1385,6 +1375,7 @@ export function StatisticsPage() {
             <Card className="flex flex-col min-w-0">
               <CardHeader>
                 <CardTitle>{t("expense_breakdown")}</CardTitle>
+                <CardDescription>{t("expense_breakdown_desc")}</CardDescription>
               </CardHeader>
               <CardContent className="min-w-0">
                 {currentExpensesByHierarchy.length > 0 ? (
@@ -1604,12 +1595,14 @@ export function StatisticsPage() {
                       className="h-[250px] w-full"
                     >
                       <AreaChart
-                        data={yearlyCumulativeExpenses.map((d, i) => ({
-                          month: d.month,
-                          current: d.cumulative,
-                          previous:
-                            previousYearCumulativeExpenses[i]?.cumulative || 0,
-                        }))}
+                        data={yearlyCumulativeExpenses.map((d, i) => {
+                          const prevYearData = previousYearCumulativeExpenses[i];
+                          return {
+                            month: d.month,
+                            current: d.cumulative,
+                            previous: prevYearData?.cumulative,
+                          };
+                        })}
                         margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" />

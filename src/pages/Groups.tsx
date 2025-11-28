@@ -9,9 +9,6 @@ import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -40,18 +37,16 @@ import {
   Plus,
   Users,
   Crown,
-  Trash2,
   UserPlus,
   UserMinus,
-  Copy,
   Check,
   AlertTriangle,
   ArrowUpRight,
   ArrowDownRight,
-  ExternalLink,
-  Edit,
+  IdCard,
 } from "lucide-react";
 import { toast } from "sonner";
+import { GroupCard } from "@/components/GroupCard";
 
 interface GroupFormData {
   name: string;
@@ -240,28 +235,25 @@ export function GroupsPage() {
   return (
     <div className="space-y-6 pb-10">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-0.5">
-          <h2 className="text-2xl font-bold tracking-tight">{t("groups")}</h2>
-          <p className="text-muted-foreground">{t("groups_desc")}</p>
-        </div>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold tracking-tight">{t("groups")}</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={copyUserId}>
+          <Button variant="outline" size="icon" onClick={copyUserId} className="md:w-auto md:px-4 md:h-10">
             {copiedUserId ? (
-              <Check className="h-4 w-4 sm:mr-2" />
+              <Check className="h-4 w-4 md:mr-2" />
             ) : (
-              <Copy className="h-4 w-4 sm:mr-2" />
+              <IdCard className="h-4 w-4 md:mr-2" />
             )}
-            <span className="hidden sm:inline">{t("copy_my_id")}</span>
+            <span className="hidden md:inline">{t("copy_my_id")}</span>
           </Button>
           <Dialog
             open={isCreateDialogOpen}
             onOpenChange={setIsCreateDialogOpen}
           >
             <DialogTrigger asChild>
-              <Button className="hidden sm:flex">
-                <Plus className="mr-2 h-4 w-4" />
-                {t("add_group")}
+              <Button size="icon" className="md:w-auto md:px-4 md:h-10">
+                <Plus className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">{t("add_group")}</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -321,142 +313,15 @@ export function GroupsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
-            <Card key={group.id} className="flex flex-col">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <CardTitle className="flex items-center gap-2">
-                      {group.name}
-                      {group.isCreator && (
-                        <Crown className="h-4 w-4 text-yellow-500 flex-shrink-0" />
-                      )}
-                    </CardTitle>
-                    {group.description && (
-                      <CardDescription className="truncate">
-                        {group.description}
-                      </CardDescription>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Edit/Delete buttons - Desktop: visible, Mobile: hidden (moved to actions) */}
-                    {group.isCreator && (
-                      <div className="hidden sm:flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => openEditGroup(group)}
-                          title={t("edit")}
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => setDeletingGroup(group)}
-                          title={t("delete")}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    )}
-                    <Badge variant="secondary">
-                      {group.members.length} {t("members")}
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {t("your_share")}
-                    </span>
-                    <span className="font-medium">{group.myShare}%</span>
-                  </div>
-                  <Separator />
-                  {/* Desktop: Buttons with text */}
-                  <div className="hidden sm:flex flex-wrap items-center gap-2 pt-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => navigate(`/groups/${group.id}`)}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      {t("view")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewBalance(group)}
-                    >
-                      {t("balance")}
-                    </Button>
-                    {group.isCreator && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openManageMembers(group)}
-                      >
-                        <Users className="h-4 w-4 mr-2" />
-                        {t("members")}
-                      </Button>
-                    )}
-                  </div>
-                  {/* Mobile: Compact icon buttons */}
-                  <div className="flex sm:hidden items-center justify-end gap-1 pt-2">
-                    <Button
-                      variant="default"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => navigate(`/groups/${group.id}`)}
-                      title={t("view")}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleViewBalance(group)}
-                      title={t("balance")}
-                    ></Button>
-                    {group.isCreator && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openManageMembers(group)}
-                          title={t("members")}
-                        >
-                          <Users className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openEditGroup(group)}
-                          title={t("edit")}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => setDeletingGroup(group)}
-                          title={t("delete")}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <GroupCard
+              key={group.id}
+              group={group}
+              onEdit={openEditGroup}
+              onDelete={(g) => setDeletingGroup(g)}
+              onView={(g) => navigate(`/groups/${g.id}`)}
+              onBalance={handleViewBalance}
+              onMembers={openManageMembers}
+            />
           ))}
         </div>
       )}
@@ -720,11 +585,10 @@ export function GroupsPage() {
                     <div>
                       <p className="text-muted-foreground">{t("balance")}</p>
                       <p
-                        className={`font-medium flex items-center gap-1 ${
-                          balance.balance >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
+                        className={`font-medium flex items-center gap-1 ${balance.balance >= 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                          }`}
                       >
                         {balance.balance >= 0 ? (
                           <ArrowUpRight className="h-4 w-4" />

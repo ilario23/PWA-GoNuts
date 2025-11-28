@@ -47,7 +47,7 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
       isFlipped = false,
       onFlip,
       direction = "top",
-      transition = { type: "spring", stiffness: 280, damping: 20 },
+      transition = { type: "spring", stiffness: 260, damping: 20 },
       className,
       frontClassName,
       backClassName,
@@ -73,11 +73,11 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
         onKeyDown={
           isClickable
             ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onFlip?.();
-                }
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onFlip?.();
               }
+            }
             : undefined
         }
         tabIndex={isClickable ? 0 : -1}
@@ -101,6 +101,7 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
           style={{
             backfaceVisibility: "hidden",
             transformStyle: "preserve-3d",
+            pointerEvents: isFlipped ? "none" : "auto",
           }}
         >
           {frontContent}
@@ -118,6 +119,7 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
           style={{
             backfaceVisibility: "hidden",
             transformStyle: "preserve-3d",
+            pointerEvents: isFlipped ? "auto" : "none",
           }}
         >
           {backContent}
