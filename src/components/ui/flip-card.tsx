@@ -60,6 +60,22 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
     const rotation = isFlipped ? dir * 180 : 0;
     const isClickable = !disabled && !disableGlobalClick;
 
+    // Swipe handling
+    const handlePanEnd = (
+      _event: MouseEvent | TouchEvent | PointerEvent,
+      info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
+    ) => {
+      const swipeThreshold = 50;
+      // Only flip if horizontal movement is greater than vertical movement (to avoid flipping on scroll)
+      // and if the horizontal movement exceeds the threshold
+      if (
+        Math.abs(info.offset.x) > Math.abs(info.offset.y) &&
+        Math.abs(info.offset.x) > swipeThreshold
+      ) {
+        onFlip?.();
+      }
+    };
+
     return (
       <motion.div
         ref={ref}
@@ -86,8 +102,10 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
         style={{
           perspective: 1000,
           transformStyle: "preserve-3d",
+          touchAction: "pan-y", // Allow vertical scrolling, capture horizontal swipes
         }}
         whileTap={isClickable ? { scale: 0.98 } : undefined}
+        onPanEnd={handlePanEnd}
       >
         {/* Front Face */}
         <motion.div
