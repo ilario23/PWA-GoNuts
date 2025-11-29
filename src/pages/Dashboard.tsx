@@ -32,6 +32,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -807,6 +808,9 @@ export function Dashboard() {
         <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-lg">
           <DialogHeader>
             <DialogTitle>{t("add_transaction")}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {t("add_transaction_desc") || "Enter transaction details"}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
