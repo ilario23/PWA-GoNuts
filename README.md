@@ -2,18 +2,20 @@
 
 A modern, offline-first Progressive Web App for managing personal finances. Track your income, expenses, and investments with a beautiful, responsive interface that works seamlessly online and offline.
 
-![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.5.3-blue.svg)
 ![React](https://img.shields.io/badge/React-19.2-61dafb.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)
 
 ## ✨ Key Features
 
 - 🔄 **Offline-First** - Full functionality without internet connection
+- ⚡ **Cache-First Auth** - Instant app startup with cached credentials
 - 💰 **Financial Management** - Track income, expenses, and investments
 - 📊 **Analytics** - Detailed charts and statistics
 - 💵 **Monthly Budget** - Set limits with progress tracking and notifications
 - 👥 **Group Expenses** - Share expenses with others
 - 🔁 **Recurring Transactions** - Auto-generated on app load
+- 🔄 **Smart Sync** - Background sync with debouncing and race condition prevention
 - 🎨 **Modern UI** - Responsive design with dark/light themes
 - 🌍 **Multi-language** - English and Italian support
 - 📱 **PWA** - Installable on mobile and desktop
