@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
 import { useSettings } from "@/hooks/useSettings";
-import { useSync } from "@/hooks/useSync";
 import { useOnlineSync } from "@/hooks/useOnlineSync";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useAuth } from "@/hooks/useAuth";
@@ -57,8 +56,7 @@ import { v4 as uuidv4 } from "uuid";
 
 export function SettingsPage() {
   const { settings, updateSettings } = useSettings();
-  const { isSyncing: autoSyncing, sync } = useSync();
-  const { isOnline, isSyncing: onlineSyncing } = useOnlineSync();
+  const { isOnline } = useOnlineSync();
   const { isConnected: isRealtimeConnected } = useRealtimeSync();
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -77,12 +75,11 @@ export function SettingsPage() {
     setMounted(true);
   }, []);
 
-  const isSyncing =
-    autoSyncing || onlineSyncing || manualSyncing || fullSyncing;
+  const isSyncing = manualSyncing || fullSyncing;
 
   const handleManualSync = async () => {
     setManualSyncing(true);
-    await sync();
+    await syncManager.sync();
     setLastSyncTime(new Date());
     setManualSyncing(false);
   };
@@ -106,7 +103,7 @@ export function SettingsPage() {
       await db.clearLocalCache();
       toast.success(t("cache_cleared"));
       // Trigger a sync to repopulate from server
-      await sync();
+      await syncManager.sync();
     } catch (error) {
       toast.error(t("cache_clear_error") || "Failed to clear cache");
     } finally {
@@ -185,7 +182,7 @@ export function SettingsPage() {
           transactions: importedTransactions,
           categories: importedCategories,
         }) ||
-          `Imported ${importedTransactions} transactions and ${importedCategories} categories`
+        `Imported ${importedTransactions} transactions and ${importedCategories} categories`
       );
 
       // Sync to server
@@ -236,9 +233,8 @@ export function SettingsPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `expense-tracker-export-${
-        new Date().toISOString().split("T")[0]
-      }.json`;
+      link.download = `expense-tracker-export-${new Date().toISOString().split("T")[0]
+        }.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -246,7 +242,7 @@ export function SettingsPage() {
 
       toast.success(
         t("export_success") ||
-          `Exported ${transactions.length} transactions, ${categories.length} categories, ${contexts.length} contexts`
+        `Exported ${transactions.length} transactions, ${categories.length} categories, ${contexts.length} contexts`
       );
     } catch (error: any) {
       toast.error(t("export_error") || `Export failed: ${error.message}`);
@@ -432,8 +428,8 @@ export function SettingsPage() {
               <p className="text-xs text-muted-foreground">
                 {settings.monthly_budget
                   ? `€${settings.monthly_budget.toFixed(2)} / ${t(
-                      "monthly"
-                    ).toLowerCase()}`
+                    "monthly"
+                  ).toLowerCase()}`
                   : t("budget_not_set")}
               </p>
             </div>
@@ -463,9 +459,8 @@ export function SettingsPage() {
                   className="flex-1 sm:flex-none"
                 >
                   <RefreshCw
-                    className={`mr-2 h-4 w-4 ${
-                      manualSyncing ? "animate-spin" : ""
-                    }`}
+                    className={`mr-2 h-4 w-4 ${manualSyncing ? "animate-spin" : ""
+                      }`}
                   />
                   {t("sync_now")}
                 </Button>
@@ -480,9 +475,8 @@ export function SettingsPage() {
                   }
                 >
                   <RefreshCw
-                    className={`mr-2 h-4 w-4 ${
-                      fullSyncing ? "animate-spin" : ""
-                    }`}
+                    className={`mr-2 h-4 w-4 ${fullSyncing ? "animate-spin" : ""
+                      }`}
                   />
                   {t("full_sync") || "Full Sync"}
                 </Button>

@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -289,6 +290,9 @@ export function RecurringTransactionsPage() {
                 <DialogTitle>
                   {editingId ? t("edit_recurring") : t("add_recurring")}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {editingId ? t("edit_recurring_description") || "Edit recurring transaction details" : t("add_recurring_description") || "Add a new recurring transaction"}
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -558,7 +562,7 @@ export function RecurringTransactionsPage() {
                   </Collapsible>
                 )}
 
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" autoFocus>
                   {t("save")}
                 </Button>
               </form>

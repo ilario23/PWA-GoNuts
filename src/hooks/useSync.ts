@@ -42,13 +42,18 @@ export function useSync(): UseSyncResult {
     // Subscribe to sync status changes
     const unsubscribe = syncManager.onSyncChange(setStatus);
 
-    // Initial sync on mount
-    sync();
+    // Delay initial sync by 2 seconds to avoid blocking app startup
+    // This allows the UI to render instantly with cached data
+    const initialSyncTimeout = setTimeout(() => {
+      console.log("[useSync] Starting background sync after 2s delay");
+      sync();
+    }, 2000);
 
-    // Optional: Sync every 5 minutes
+    // Periodic sync every 5 minutes
     const interval = setInterval(sync, TIMING.SYNC_INTERVAL);
 
     return () => {
+      clearTimeout(initialSyncTimeout);
       unsubscribe();
       clearInterval(interval);
     };

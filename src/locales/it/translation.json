@@ -388,5 +388,8 @@
   "filter_by": "Filtra per",
   "select_icon": "Seleziona Icona",
   "search_icons": "Cerca icone...",
-  "no_icons_found": "Nessuna icona trovata"
+  "no_icons_found": "Nessuna icona trovata",
+  "session_expired": "Sessione Scaduta",
+  "logging_out_in": "Logout tra",
+  "session_expired_description": "La tua sessione è scaduta. Verrai disconnesso automaticamente."
 }

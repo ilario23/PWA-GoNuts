@@ -388,5 +388,8 @@
   "filter_by": "Filter by",
   "select_icon": "Select Icon",
   "search_icons": "Search icons...",
-  "no_icons_found": "No icons found"
+  "no_icons_found": "No icons found",
+  "session_expired": "Session Expired",
+  "logging_out_in": "Logging out in",
+  "session_expired_description": "Your session has expired. You will be logged out automatically."
 }

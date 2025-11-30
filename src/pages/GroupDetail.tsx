@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -190,6 +191,9 @@ export function GroupDetailPage() {
           <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-lg">
             <DialogHeader>
               <DialogTitle>{t("add_transaction")}</DialogTitle>
+              <DialogDescription className="sr-only">
+                {t("add_transaction_description") || "Add a new transaction for this group"}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddTransaction} className="space-y-4">
               <div className="space-y-2">
@@ -198,9 +202,8 @@ export function GroupDetailPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className={`w-full ${
-                      formData.type === "expense" ? getTypeColor("expense") : ""
-                    }`}
+                    className={`w-full ${formData.type === "expense" ? getTypeColor("expense") : ""
+                      }`}
                     onClick={() =>
                       setFormData({ ...formData, type: "expense" })
                     }
@@ -210,9 +213,8 @@ export function GroupDetailPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className={`w-full ${
-                      formData.type === "income" ? getTypeColor("income") : ""
-                    }`}
+                    className={`w-full ${formData.type === "income" ? getTypeColor("income") : ""
+                      }`}
                     onClick={() => setFormData({ ...formData, type: "income" })}
                   >
                     {t("income")}
@@ -295,7 +297,7 @@ export function GroupDetailPage() {
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" autoFocus>
                 {t("save")}
               </Button>
             </form>
@@ -346,11 +348,10 @@ export function GroupDetailPage() {
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${
-                (myBalance?.balance || 0) >= 0
-                  ? "text-green-600"
-                  : "text-red-600"
-              }`}
+              className={`text-2xl font-bold ${(myBalance?.balance || 0) >= 0
+                ? "text-green-600"
+                : "text-red-600"
+                }`}
             >
               {(myBalance?.balance || 0) >= 0 ? "+" : ""}€
               {(myBalance?.balance || 0).toFixed(2)}
@@ -418,11 +419,10 @@ export function GroupDetailPage() {
                         {(memberBalance?.hasPaid || 0).toFixed(2)}
                       </div>
                       <div
-                        className={`font-medium ${
-                          (memberBalance?.balance || 0) >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
+                        className={`font-medium ${(memberBalance?.balance || 0) >= 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                          }`}
                       >
                         {(memberBalance?.balance || 0) >= 0 ? "+" : ""}€
                         {(memberBalance?.balance || 0).toFixed(2)}

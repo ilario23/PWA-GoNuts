@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, Tag } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -183,6 +184,9 @@ export function ContextsPage() {
               <DialogTitle>
                 {editingId ? t("edit_context") || t("edit") : t("add_context")}
               </DialogTitle>
+              <DialogDescription className="sr-only">
+                {editingId ? t("edit_context_description") || "Edit context details" : t("add_context_description") || "Add a new context"}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -206,7 +210,7 @@ export function ContextsPage() {
                   }
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" autoFocus>
                 {t("save")}
               </Button>
             </form>

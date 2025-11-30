@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -596,6 +597,9 @@ export function TransactionsPage() {
                 <DialogTitle>
                   {editingId ? t("edit_transaction") : t("add_transaction")}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {editingId ? t("edit_transaction_description") || "Edit transaction details" : t("add_transaction_description") || "Add a new transaction"}
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -844,7 +848,7 @@ export function TransactionsPage() {
                   </Collapsible>
                 )}
 
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" autoFocus>
                   {t("save")}
                 </Button>
               </form>

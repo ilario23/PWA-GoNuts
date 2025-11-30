@@ -894,7 +894,7 @@ export function Dashboard() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" autoFocus>
               {t("save")}
             </Button>
           </form>

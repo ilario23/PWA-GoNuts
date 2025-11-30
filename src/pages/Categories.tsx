@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -742,6 +743,9 @@ export function CategoriesPage() {
                 <DialogTitle>
                   {editingId ? t("edit_category") : t("add_category")}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {editingId ? t("edit_category_description") || "Edit category details" : t("add_category_description") || "Add a new category"}
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -939,7 +943,7 @@ export function CategoriesPage() {
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" autoFocus>
                   {t("save")}
                 </Button>
               </form>
@@ -1203,6 +1207,9 @@ export function CategoriesPage() {
         <DialogContent className="max-w-sm w-[95vw] rounded-lg">
           <DialogHeader>
             <DialogTitle>{t("set_budget")}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {t("set_budget_description") || "Set a monthly budget for this category"}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

@@ -9,6 +9,7 @@ import { AppShell } from "@/components/AppShell";
 import { AuthPage } from "@/pages/AuthPage";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnlineSync } from "@/hooks/useOnlineSync";
+import { useSync } from "@/hooks/useSync";
 import { useAutoGenerate } from "@/hooks/useAutoGenerate";
 import { useBudgetNotifications } from "@/hooks/useBudgetNotifications";
 import { Toaster } from "@/components/ui/sonner";
@@ -104,6 +105,7 @@ function AppLoadingState() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isOffline } = useAuth();
   useOnlineSync(); // Auto-sync when coming online
+  useSync(); // Background sync with 2s delay (non-blocking)
   useAutoGenerate(); // Generate recurring transactions on app load
   useBudgetNotifications(); // Monitor budget and show warnings
 
