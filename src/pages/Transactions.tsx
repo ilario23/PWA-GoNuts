@@ -1,19 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useContexts } from "@/hooks/useContexts";
 import { useGroups } from "@/hooks/useGroups";
-import { CategorySelector } from "@/components/CategorySelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -21,12 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Plus, Filter, X, ChevronDown, MoreHorizontal } from "lucide-react";
+import { Plus, Filter, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { TransactionList } from "@/components/TransactionList";
@@ -43,6 +29,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { TransactionDialog, TransactionFormData } from "@/components/TransactionDialog";
 
 import { format } from "date-fns";
 
@@ -109,17 +96,6 @@ export function TransactionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [moreSectionOpen, setMoreSectionOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    amount: "",
-    description: "",
-    type: "expense" as "income" | "expense" | "investment",
-    category_id: "",
-    date: new Date().toISOString().split("T")[0],
-    context_id: "" as string | null,
-    group_id: "" as string | null,
-    paid_by_user_id: "" as string | null,
-  });
 
   const [filters, setFilters] = useState({
     text: "",
@@ -133,42 +109,40 @@ export function TransactionsPage() {
     contextFilter: "all" as "all" | "none" | string, // 'all', 'none' (no context), or specific context id
   });
 
-  // Reset category when type changes (only when creating new transaction)
-  useEffect(() => {
-    if (!editingId && formData.category_id) {
-      setFormData((prev) => ({ ...prev, category_id: "" }));
-    }
-  }, [formData.type, editingId]);
+  const editingTransaction = useMemo(() => {
+    if (!editingId || !transactions) return null;
+    const tx = transactions.find((t) => t.id === editingId);
+    if (!tx) return null;
+    return {
+      id: tx.id,
+      amount: tx.amount,
+      description: tx.description,
+      type: tx.type,
+      category_id: tx.category_id,
+      date: tx.date,
+      context_id: tx.context_id,
+      group_id: tx.group_id,
+      paid_by_user_id: tx.paid_by_user_id,
+    };
+  }, [editingId, transactions]);
 
-  // Reset category when group changes
-  useEffect(() => {
-    if (editingId === null) { // Only for new transactions
-      setFormData((prev) => ({ ...prev, category_id: "" }));
-    }
-  }, [formData.group_id, editingId]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (data: TransactionFormData) => {
     if (!user) return;
-    if (!formData.category_id) {
-      alert(t("select_category_required"));
-      return;
-    }
 
-    const groupId = formData.group_id || undefined;
+    const groupId = data.group_id || undefined;
     const paidByUserId = groupId
-      ? formData.paid_by_user_id || user.id
+      ? data.paid_by_user_id || user.id
       : undefined;
-    const contextId = formData.context_id || undefined;
+    const contextId = data.context_id || undefined;
 
     if (editingId) {
       await updateTransaction(editingId, {
-        amount: parseFloat(formData.amount),
-        description: formData.description,
-        type: formData.type,
-        category_id: formData.category_id,
-        date: formData.date,
-        year_month: formData.date.substring(0, 7),
+        amount: parseFloat(data.amount),
+        description: data.description,
+        type: data.type,
+        category_id: data.category_id,
+        date: data.date,
+        year_month: data.date.substring(0, 7),
         context_id: contextId,
         group_id: groupId,
         paid_by_user_id: paidByUserId,
@@ -176,12 +150,12 @@ export function TransactionsPage() {
     } else {
       await addTransaction({
         user_id: user.id,
-        amount: parseFloat(formData.amount),
-        description: formData.description,
-        type: formData.type,
-        category_id: formData.category_id,
-        date: formData.date,
-        year_month: formData.date.substring(0, 7),
+        amount: parseFloat(data.amount),
+        description: data.description,
+        type: data.type,
+        category_id: data.category_id,
+        date: data.date,
+        year_month: data.date.substring(0, 7),
         context_id: contextId,
         group_id: groupId,
         paid_by_user_id: paidByUserId,
@@ -189,63 +163,16 @@ export function TransactionsPage() {
     }
     setIsOpen(false);
     setEditingId(null);
-    setMoreSectionOpen(false);
-    setFormData({
-      amount: "",
-      description: "",
-      category_id: "",
-      type: "expense",
-      date: new Date().toISOString().split("T")[0],
-      context_id: "",
-      group_id: "",
-      paid_by_user_id: "",
-    });
   };
 
   const handleEdit = (transaction: any) => {
     setEditingId(transaction.id);
-    setFormData({
-      amount: transaction.amount.toString(),
-      description: transaction.description || "",
-      type: transaction.type,
-      category_id: transaction.category_id || "",
-      date: transaction.date,
-      context_id: transaction.context_id || "",
-      group_id: transaction.group_id || "",
-      paid_by_user_id: transaction.paid_by_user_id || "",
-    });
-    // Open the section if transaction has group or context data
-    setMoreSectionOpen(!!transaction.group_id || !!transaction.context_id);
     setIsOpen(true);
   };
 
   const openNew = () => {
     setEditingId(null);
-    setFormData({
-      amount: "",
-      description: "",
-      category_id: "",
-      type: "expense",
-      date: new Date().toISOString().split("T")[0],
-      context_id: "",
-      group_id: "",
-      paid_by_user_id: "",
-    });
-    setMoreSectionOpen(false);
     setIsOpen(true);
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "expense":
-        return "bg-red-500 hover:bg-red-600 text-white";
-      case "income":
-        return "bg-green-500 hover:bg-green-600 text-white";
-      case "investment":
-        return "bg-blue-500 hover:bg-blue-600 text-white";
-      default:
-        return "";
-    }
   };
 
   const handleResetFilters = () => {
@@ -344,6 +271,46 @@ export function TransactionsPage() {
     );
   }, [transactions, filters]);
 
+  // Filter available categories based on selected type and group
+  const availableCategories = useMemo(() => {
+    if (!categories) return [];
+
+    return categories.filter((category) => {
+      // Filter by type
+      if (filters.type !== "all" && category.type !== filters.type) {
+        return false;
+      }
+
+      // Filter by group
+      if (filters.groupFilter !== "all") {
+        if (filters.groupFilter === "personal") {
+          // Personal categories have no group_id
+          if (category.group_id) return false;
+        } else if (filters.groupFilter === "group") {
+          // Any group category
+          if (!category.group_id) return false;
+        } else {
+          // Specific group id
+          if (category.group_id !== filters.groupFilter) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [categories, filters.type, filters.groupFilter]);
+
+  // Reset category filter when type or group filter changes and current category is not in available list
+  useEffect(() => {
+    if (filters.categoryId !== "all") {
+      const isCategoryAvailable = availableCategories.some(
+        (cat) => cat.id === filters.categoryId
+      );
+      if (!isCategoryAvailable) {
+        setFilters((prev) => ({ ...prev, categoryId: "all" }));
+      }
+    }
+  }, [filters.categoryId, availableCategories]);
+
   const FilterContent = () => (
     <div className="space-y-4 py-4 px-4">
       <div className="space-y-2">
@@ -440,7 +407,7 @@ export function TransactionsPage() {
             <SelectItem value="all">
               {t("all_categories") || "All Categories"}
             </SelectItem>
-            {categories?.map((category) => (
+            {availableCategories?.map((category) => (
               <SelectItem key={category.id} value={category.id}>
                 <div className="flex items-center gap-2">
                   <div
@@ -581,279 +548,21 @@ export function TransactionsPage() {
             </Popover>
           </div>
 
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={openNew}
-                size="icon"
-                className="md:w-auto md:px-4 md:h-10"
-              >
-                <Plus className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">{t("add_transaction")}</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-lg">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingId ? t("edit_transaction") : t("add_transaction")}
-                </DialogTitle>
-                <DialogDescription className="sr-only">
-                  {editingId ? t("edit_transaction_description") || "Edit transaction details" : t("add_transaction_description") || "Add a new transaction"}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t("type")}</label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className={`w-full ${formData.type === "expense"
-                        ? getTypeColor("expense")
-                        : ""
-                        }`}
-                      onClick={() =>
-                        setFormData({ ...formData, type: "expense" })
-                      }
-                    >
-                      {t("expense")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className={`w-full ${formData.type === "income" ? getTypeColor("income") : ""
-                        }`}
-                      onClick={() =>
-                        setFormData({ ...formData, type: "income" })
-                      }
-                    >
-                      {t("income")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className={`w-full ${formData.type === "investment"
-                        ? getTypeColor("investment")
-                        : ""
-                        }`}
-                      onClick={() =>
-                        setFormData({ ...formData, type: "investment" })
-                      }
-                    >
-                      {t("investment")}
-                    </Button>
-                  </div>
-                </div>
+          <Button
+            onClick={openNew}
+            size="icon"
+            className="md:w-auto md:px-4 md:h-10"
+          >
+            <Plus className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">{t("add_transaction")}</span>
+          </Button>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t("amount")}</label>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Limit to 2 decimal places
-                      const match = value.match(/^-?\d*\.?\d{0,2}$/);
-                      if (match || value === "") {
-                        setFormData({ ...formData, amount: value });
-                      }
-                    }}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t("category")}</label>
-                  <CategorySelector
-                    value={formData.category_id}
-                    onChange={(value) =>
-                      setFormData({ ...formData, category_id: value })
-                    }
-                    type={formData.type}
-                    groupId={formData.group_id || null}
-                    modal
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t("date")}</label>
-                  <Input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, date: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    {t("description")}
-                  </label>
-                  <Input
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-
-                {/* Collapsible More Section - Group & Context */}
-                {(groups.length > 0 || contexts.length > 0) && (
-                  <Collapsible
-                    open={moreSectionOpen}
-                    onOpenChange={setMoreSectionOpen}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="w-full flex items-center justify-between p-2 h-auto"
-                      >
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="text-sm font-medium">
-                            {t("more_options") || "More"}
-                          </span>
-                          {(formData.group_id || formData.context_id) && (
-                            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                              {
-                                [formData.group_id, formData.context_id].filter(
-                                  Boolean
-                                ).length
-                              }
-                            </span>
-                          )}
-                        </div>
-                        <ChevronDown
-                          className={`h-4 w-4 text-muted-foreground transition-transform ${moreSectionOpen ? "rotate-180" : ""
-                            }`}
-                        />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-3 pt-2">
-                      {/* Group Selection */}
-                      {groups.length > 0 && (
-                        <>
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">
-                              {t("group")}
-                            </label>
-                            <Select
-                              value={formData.group_id || "none"}
-                              onValueChange={(value) =>
-                                setFormData({
-                                  ...formData,
-                                  group_id: value === "none" ? "" : value,
-                                  paid_by_user_id:
-                                    value === "none"
-                                      ? ""
-                                      : formData.paid_by_user_id ||
-                                      user?.id ||
-                                      "",
-                                })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={t("select_group")} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">
-                                  {t("personal_expense")}
-                                </SelectItem>
-                                {groups.map((group) => (
-                                  <SelectItem key={group.id} value={group.id}>
-                                    {group.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {formData.group_id && (
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium">
-                                {t("paid_by")}
-                              </label>
-                              <Select
-                                value={
-                                  formData.paid_by_user_id || user?.id || ""
-                                }
-                                onValueChange={(value) =>
-                                  setFormData({
-                                    ...formData,
-                                    paid_by_user_id: value,
-                                  })
-                                }
-                              >
-                                <SelectTrigger>
-                                  <SelectValue
-                                    placeholder={t("select_payer")}
-                                  />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {groups
-                                    .find((g) => g.id === formData.group_id)
-                                    ?.members.map((member) => (
-                                      <SelectItem
-                                        key={member.id}
-                                        value={member.user_id}
-                                      >
-                                        {member.user_id === user?.id
-                                          ? t("me")
-                                          : member.user_id.substring(0, 8) +
-                                          "..."}
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* Context Selection */}
-                      {contexts.length > 0 && (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            {t("context")}
-                          </label>
-                          <Select
-                            value={formData.context_id || "none"}
-                            onValueChange={(value) =>
-                              setFormData({
-                                ...formData,
-                                context_id: value === "none" ? "" : value,
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder={t("select_context")} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">
-                                {t("no_context")}
-                              </SelectItem>
-                              {contexts.map((ctx) => (
-                                <SelectItem key={ctx.id} value={ctx.id}>
-                                  {ctx.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </CollapsibleContent>
-                  </Collapsible>
-                )}
-
-                <Button type="submit" className="w-full" autoFocus>
-                  {t("save")}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <TransactionDialog
+            open={isOpen}
+            onOpenChange={setIsOpen}
+            onSubmit={handleSubmit}
+            editingTransaction={editingTransaction}
+          />
         </div>
       </div>
 

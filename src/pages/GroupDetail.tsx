@@ -15,26 +15,11 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { ArrowLeft, Plus, Users, TrendingUp, TrendingDown } from "lucide-react";
 import { TransactionList } from "@/components/TransactionList";
-import { CategorySelector } from "@/components/CategorySelector";
 import { getIconComponent } from "@/lib/icons";
+import { TransactionDialog, TransactionFormData } from "@/components/TransactionDialog";
 
 export function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -66,14 +51,6 @@ export function GroupDetailPage() {
   } | null>(null);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    amount: "",
-    description: "",
-    type: "expense" as "income" | "expense" | "investment",
-    category_id: "",
-    date: new Date().toISOString().split("T")[0],
-    paid_by_user_id: user?.id || "",
-  });
 
   // Find the group
   useEffect(() => {
@@ -108,44 +85,22 @@ export function GroupDetailPage() {
     );
   }, [categories, groupId]);
 
-  const handleAddTransaction = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddTransaction = async (data: TransactionFormData) => {
     if (!user || !groupId) return;
 
     await addTransaction({
       user_id: user.id,
-      amount: parseFloat(formData.amount),
-      description: formData.description,
-      type: formData.type,
-      category_id: formData.category_id,
-      date: formData.date,
-      year_month: formData.date.substring(0, 7),
+      amount: parseFloat(data.amount),
+      description: data.description,
+      type: data.type,
+      category_id: data.category_id,
+      date: data.date,
+      year_month: data.date.substring(0, 7),
       group_id: groupId,
-      paid_by_user_id: formData.paid_by_user_id || user.id,
+      paid_by_user_id: data.paid_by_user_id || user.id,
     });
 
     setIsAddDialogOpen(false);
-    setFormData({
-      amount: "",
-      description: "",
-      type: "expense",
-      category_id: "",
-      date: new Date().toISOString().split("T")[0],
-      paid_by_user_id: user.id,
-    });
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "expense":
-        return "bg-red-500 hover:bg-red-600 text-white";
-      case "income":
-        return "bg-green-500 hover:bg-green-600 text-white";
-      case "investment":
-        return "bg-blue-500 hover:bg-blue-600 text-white";
-      default:
-        return "";
-    }
   };
 
   const myBalance = balance?.balances[user?.id || ""];
@@ -181,128 +136,16 @@ export function GroupDetailPage() {
             <p className="text-sm text-muted-foreground">{group.description}</p>
           )}
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="icon" className="md:w-auto md:px-4 md:h-10">
-              <Plus className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">{t("add_transaction")}</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-lg">
-            <DialogHeader>
-              <DialogTitle>{t("add_transaction")}</DialogTitle>
-              <DialogDescription className="sr-only">
-                {t("add_transaction_description") || "Add a new transaction for this group"}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddTransaction} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("type")}</label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className={`w-full ${formData.type === "expense" ? getTypeColor("expense") : ""
-                      }`}
-                    onClick={() =>
-                      setFormData({ ...formData, type: "expense" })
-                    }
-                  >
-                    {t("expense")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className={`w-full ${formData.type === "income" ? getTypeColor("income") : ""
-                      }`}
-                    onClick={() => setFormData({ ...formData, type: "income" })}
-                  >
-                    {t("income")}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("amount")}</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, amount: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("date")}</label>
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  {t("description")}
-                </label>
-                <Input
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              {groupCategories.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t("category")}</label>
-                  <CategorySelector
-                    value={formData.category_id}
-                    onChange={(value) =>
-                      setFormData({ ...formData, category_id: value })
-                    }
-                    type={formData.type}
-                    modal
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("paid_by")}</label>
-                <Select
-                  value={formData.paid_by_user_id}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, paid_by_user_id: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("select_payer")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {group.members.map((member) => (
-                      <SelectItem key={member.id} value={member.user_id}>
-                        {member.user_id === user?.id
-                          ? t("me")
-                          : member.user_id.substring(0, 8) + "..."}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button type="submit" className="w-full" autoFocus>
-                {t("save")}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button size="icon" className="md:w-auto md:px-4 md:h-10" onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">{t("add_transaction")}</span>
+        </Button>
+        <TransactionDialog
+          open={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+          onSubmit={handleAddTransaction}
+          defaultGroupId={groupId}
+        />
       </div>
 
       {/* Summary Cards */}

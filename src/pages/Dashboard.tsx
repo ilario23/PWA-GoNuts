@@ -16,31 +16,24 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { format } from "date-fns";
 import {
   TrendingUp,
   TrendingDown,
   Plus,
+  PiggyBank,
   ArrowUpRight,
   ArrowDownRight,
-  PiggyBank,
-} from "lucide-react";
-import { useState, useEffect, useMemo, useCallback } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { CategorySelector } from "@/components/CategorySelector";
-import { useAuth } from "@/hooks/useAuth";
-import { ScrollArea } from "@/components/ui/scroll-area";
+}
+  from "lucide-react";
+import { TransactionDialog, TransactionFormData } from "@/components/TransactionDialog";
+import { useState, useCallback, useMemo } from "react";
 import { useCategories } from "@/hooks/useCategories";
 import { FlipCard } from "@/components/ui/flip-card";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Dashboard() {
   const { transactions, addTransaction } = useTransactions();
@@ -183,7 +176,7 @@ export function Dashboard() {
                         accessibilityLayer
                         data={dailyCumulativeExpenses}
                         margin={{
-                          left: 12,
+                          left: 0,
                           right: 12,
                           top: 12,
                           bottom: 12,
@@ -234,6 +227,12 @@ export function Dashboard() {
                           axisLine={false}
                           tickMargin={8}
                           tickFormatter={(value) => `${value}`}
+                        />
+                        <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          tickFormatter={(value) => `€${value}`}
                         />
                         <ChartTooltip
                           cursor={false}
@@ -646,62 +645,28 @@ export function Dashboard() {
 
   // Transaction dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    amount: "",
-    description: "",
-    type: "expense" as "income" | "expense" | "investment",
-    category_id: "",
-    date: new Date().toISOString().split("T")[0],
-  });
-
-  // Reset category when type changes
-  useEffect(() => {
-    setFormData((prev) => ({ ...prev, category_id: "" }));
-  }, [formData.type]);
 
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
+    async (data: TransactionFormData) => {
       if (!user) return;
-      if (!formData.category_id) {
-        alert(t("select_category_required"));
-        return;
-      }
 
       await addTransaction({
         user_id: user.id,
-        amount: parseFloat(formData.amount),
-        description: formData.description,
-        type: formData.type,
-        category_id: formData.category_id,
-        date: formData.date,
-        year_month: formData.date.substring(0, 7),
+        amount: parseFloat(data.amount),
+        description: data.description,
+        type: data.type,
+        category_id: data.category_id,
+        date: data.date,
+        year_month: data.date.substring(0, 7),
+        context_id: data.context_id || undefined,
+        group_id: data.group_id || undefined,
+        paid_by_user_id: data.paid_by_user_id || undefined,
       });
 
       setIsDialogOpen(false);
-      setFormData({
-        amount: "",
-        description: "",
-        category_id: "",
-        type: "expense",
-        date: new Date().toISOString().split("T")[0],
-      });
     },
-    [user, formData, addTransaction, t]
+    [user, addTransaction]
   );
-
-  const getTypeColor = useCallback((type: string) => {
-    switch (type) {
-      case "expense":
-        return "bg-red-500 hover:bg-red-600 text-white";
-      case "income":
-        return "bg-green-500 hover:bg-green-600 text-white";
-      case "investment":
-        return "bg-blue-500 hover:bg-blue-600 text-white";
-      default:
-        return "";
-    }
-  }, []);
 
   return (
     <div className="space-y-4">
@@ -804,102 +769,11 @@ export function Dashboard() {
       </Button>
 
       {/* Add Transaction Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-lg">
-          <DialogHeader>
-            <DialogTitle>{t("add_transaction")}</DialogTitle>
-            <DialogDescription className="sr-only">
-              {t("add_transaction_desc") || "Enter transaction details"}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("type")}</label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={`w-full ${formData.type === "expense" ? getTypeColor("expense") : ""
-                    }`}
-                  onClick={() => setFormData({ ...formData, type: "expense" })}
-                >
-                  {t("expense")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={`w-full ${formData.type === "income" ? getTypeColor("income") : ""
-                    }`}
-                  onClick={() => setFormData({ ...formData, type: "income" })}
-                >
-                  {t("income")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={`w-full ${formData.type === "investment"
-                    ? getTypeColor("investment")
-                    : ""
-                    }`}
-                  onClick={() =>
-                    setFormData({ ...formData, type: "investment" })
-                  }
-                >
-                  {t("investment")}
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("category")}</label>
-              <CategorySelector
-                value={formData.category_id}
-                onChange={(value) =>
-                  setFormData({ ...formData, category_id: value })
-                }
-                type={formData.type}
-                modal
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("amount")}</label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.amount}
-                onChange={(e) =>
-                  setFormData({ ...formData, amount: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("date")}</label>
-              <Input
-                type="date"
-                value={formData.date}
-                onChange={(e) =>
-                  setFormData({ ...formData, date: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("description")}</label>
-              <Input
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" autoFocus>
-              {t("save")}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <TransactionDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSubmit={handleSubmit}
+      />
     </div>
   );
 }

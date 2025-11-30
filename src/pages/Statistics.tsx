@@ -54,9 +54,11 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { format } from "date-fns";
+import { it, enUS } from "date-fns/locale";
 
 export function StatisticsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === "it" ? it : enUS;
   const now = new Date();
 
   // State for filters
@@ -692,7 +694,7 @@ export function StatisticsPage() {
                 <LazyChart height={300} isLoading={isLoading}>
                   <ChartContainer
                     config={chartConfig}
-                    className="mx-auto aspect-square max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
+                    className="mx-auto aspect-square max-w-full md:max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
                   >
                     <PieChart>
                       <ChartTooltip
@@ -727,7 +729,7 @@ export function StatisticsPage() {
                   {currentCategoryPercentages.length > 0 ? (
                     <ChartContainer
                       config={categoryChartConfig}
-                      className="mx-auto aspect-square max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
+                      className="mx-auto aspect-square max-w-full md:max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
                     >
                       <PieChart>
                         <ChartTooltip
@@ -771,7 +773,7 @@ export function StatisticsPage() {
                   {currentExpensesByHierarchy.length > 0 ? (
                     <ChartContainer
                       config={stackedBarConfig}
-                      className="w-full max-w-[100%] overflow-hidden"
+                      className="w-full max-w-[100%] aspect-auto overflow-hidden"
                       style={{
                         height: `${Math.max(
                           currentExpensesByHierarchy.length * 50,
@@ -834,8 +836,8 @@ export function StatisticsPage() {
               <CardTitle>{t("period_comparison")}</CardTitle>
               <CardDescription>
                 {t("comparison_vs_previous_month", {
-                  current: format(new Date(selectedMonth), "MMMM"),
-                  previous: format(new Date(previousMonth), "MMMM"),
+                  current: format(new Date(selectedMonth), "MMMM", { locale: dateLocale }),
+                  previous: format(new Date(previousMonth), "MMMM", { locale: dateLocale }),
                 })}
               </CardDescription>
             </CardHeader>
@@ -1003,11 +1005,11 @@ export function StatisticsPage() {
                           color: "hsl(0 84.2% 60.2% )",
                         },
                         previous: {
-                          label: format(new Date(previousMonth), "MMMM yyyy"),
+                          label: format(new Date(previousMonth), "MMMM yyyy", { locale: dateLocale }),
                           color: "hsl(var(--muted-foreground))",
                         },
                       }}
-                      className="h-[250px] w-full"
+                      className="h-[250px] w-full aspect-auto"
                     >
                       <AreaChart
                         data={dailyCumulativeExpenses.map((d, i) => {
@@ -1341,7 +1343,7 @@ export function StatisticsPage() {
                         },
                         {} as ChartConfig
                       )}
-                      className="mx-auto aspect-square max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
+                      className="mx-auto aspect-square max-w-full md:max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
                     >
                       <PieChart>
                         <ChartTooltip
@@ -1387,7 +1389,7 @@ export function StatisticsPage() {
                   >
                     <ChartContainer
                       config={stackedBarConfig}
-                      className="w-full max-w-[100%] overflow-hidden"
+                      className="w-full max-w-[100%] aspect-auto overflow-hidden"
                       style={{
                         height: `${Math.max(
                           currentExpensesByHierarchy.slice(0, 8).length * 50,
@@ -1592,7 +1594,7 @@ export function StatisticsPage() {
                           color: "hsl(0 84.2% 60.2% / 0.3)",
                         },
                       }}
-                      className="h-[250px] w-full"
+                      className="h-[250px] w-full aspect-auto"
                     >
                       <AreaChart
                         data={yearlyCumulativeExpenses.map((d, i) => {

@@ -36,8 +36,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4 relative w-full">
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 md:px-0">
+          <div className="flex items-center gap-2 px-4 safe-x md:px-4 relative w-full pt-[env(safe-area-inset-top)] md:pt-0">
             <SidebarTrigger className="-ml-1" />
             <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
               <Squirrel className="size-5 text-primary" />
@@ -45,8 +45,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 pt-0">
-          <div className="mx-auto max-w-6xl space-y-6 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 pt-0 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="mx-auto max-w-6xl space-y-6">
             {children}
           </div>
         </main>

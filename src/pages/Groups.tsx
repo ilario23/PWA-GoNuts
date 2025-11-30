@@ -48,6 +48,8 @@ import {
 import { toast } from "sonner";
 import { GroupCard } from "@/components/GroupCard";
 
+import { supabase } from "@/lib/supabase";
+
 interface GroupFormData {
   name: string;
   description: string;
@@ -157,10 +159,32 @@ export function GroupsPage() {
       return;
     }
 
+    // Check if user exists
+    try {
+      const { data: exists, error } = await supabase.rpc("check_user_exists", {
+        user_id: newMemberData.userId.trim(),
+      });
+
+      if (error) {
+        console.error("Error checking user existence:", error);
+        toast.error(t("error_checking_user"));
+        return;
+      }
+
+      if (!exists) {
+        toast.error(t("user_not_found"));
+        return;
+      }
+    } catch (err) {
+      console.error("Unexpected error checking user:", err);
+      toast.error(t("error_checking_user"));
+      return;
+    }
+
     await addMember(
       managingMembers.id,
       newMemberData.userId.trim(),
-      newMemberData.share
+      0
     );
     setNewMemberData({ userId: "", share: 0 });
     toast.success(t("member_added"));
@@ -419,7 +443,10 @@ export function GroupsPage() {
         open={!!managingMembers}
         onOpenChange={(open) => !open && setManagingMembers(null)}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent
+          className="max-w-lg"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{t("manage_members")}</DialogTitle>
             <DialogDescription>{t("manage_members_desc")}</DialogDescription>
@@ -439,20 +466,6 @@ export function GroupsPage() {
                     })
                   }
                   className="flex-1"
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  placeholder="%"
-                  value={newMemberData.share}
-                  onChange={(e) =>
-                    setNewMemberData({
-                      ...newMemberData,
-                      share: Number(e.target.value),
-                    })
-                  }
-                  className="w-20"
                 />
                 <Button onClick={handleAddMember} size="icon">
                   <UserPlus className="h-4 w-4" />

@@ -322,7 +322,7 @@ export function SettingsPage() {
                     value={settings.theme}
                     onValueChange={(value) => updateSettings({ theme: value })}
                   >
-                    <SelectTrigger id="theme">
+                    <SelectTrigger id="theme" className="h-12 touch-manipulation">
                       <SelectValue placeholder={t("select_theme")} />
                     </SelectTrigger>
                     <SelectContent>
@@ -360,7 +360,7 @@ export function SettingsPage() {
                       updateSettings({ accentColor: value })
                     }
                   >
-                    <SelectTrigger id="accentColor">
+                    <SelectTrigger id="accentColor" className="h-12 touch-manipulation">
                       <SelectValue placeholder={t("select_accent_color")} />
                     </SelectTrigger>
                     <SelectContent>
