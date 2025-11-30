@@ -1,17 +1,9 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  LayoutDashboard,
-  Receipt,
-  Repeat,
-  Tags,
-  Settings,
-  Layers,
-  PieChart,
-  Users,
-} from "lucide-react";
-import { MobileNav } from "@/components/MobileNav";
-import { DesktopNav } from "@/components/DesktopNav";
+
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Squirrel } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { applyThemeColor } from "@/lib/theme-colors";
@@ -38,28 +30,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [settings?.accentColor, theme]);
 
-  const navigation = [
-    { name: t("dashboard"), href: "/", icon: LayoutDashboard },
-    { name: t("transactions"), href: "/transactions", icon: Receipt },
-    { name: t("recurring"), href: "/recurring", icon: Repeat },
-    { name: t("categories"), href: "/categories", icon: Tags },
-    { name: t("contexts"), href: "/contexts", icon: Layers },
-    { name: t("groups"), href: "/groups", icon: Users },
-    { name: t("statistics"), href: "/statistics", icon: PieChart },
-    { name: t("settings"), href: "/settings", icon: Settings },
-  ];
+
 
   return (
-    <div className="flex min-h-dvh flex-col md:flex-row bg-background overscroll-none overflow-hidden">
-      <MobileNav navigation={navigation} />
-      <DesktopNav navigation={navigation} />
-
-      {/* Main Content - pt accounts for fixed mobile header + safe area top, pb for iOS safe area bottom */}
-      <main className="main-content-safe flex-1 w-full overflow-y-auto overscroll-contain p-4 md:p-8 md:pt-8 md:pb-8">
-        <div className="mx-auto max-w-6xl space-y-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-0">
-          {children}
-        </div>
-      </main>
-    </div>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4 relative w-full">
+            <SidebarTrigger className="-ml-1" />
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+              <Squirrel className="size-5 text-primary" />
+              <h1 className="font-semibold text-lg">{t("app_title")}</h1>
+            </div>
+          </div>
+        </header>
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 pt-0">
+          <div className="mx-auto max-w-6xl space-y-6 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            {children}
+          </div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

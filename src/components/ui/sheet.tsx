@@ -49,7 +49,7 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {
+  VariantProps<typeof sheetVariants> {
   hideClose?: boolean;
 }
 
@@ -65,6 +65,7 @@ const SheetContent = React.forwardRef<
       <SheetOverlay />
       <SheetPrimitive.Content
         ref={ref}
+        aria-describedby={undefined}
         className={cn(sheetVariants({ side }), className)}
         {...props}
       >
