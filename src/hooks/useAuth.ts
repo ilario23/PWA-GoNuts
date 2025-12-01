@@ -194,7 +194,7 @@ export function useAuth() {
       }
 
       // Run cleanup in background with a delay to not impact startup performance
-      const cleanupTimer = setTimeout(() => {
+      setTimeout(() => {
         cleanupSoftDeletedRecords().catch(e => console.error("Cleanup failed", e));
       }, 10000);
 
