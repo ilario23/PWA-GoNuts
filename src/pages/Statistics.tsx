@@ -1457,7 +1457,7 @@ export function StatisticsPage() {
                 })}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="min-w-0">
               {/* Comparison year selector */}
               <div className="flex flex-wrap gap-4 mb-6">
                 <div className="flex flex-col gap-2">
@@ -1646,7 +1646,11 @@ export function StatisticsPage() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
+                        <XAxis
+                          dataKey="month"
+                          tick={{ fontSize: 11 }}
+                          minTickGap={20}
+                        />
                         <YAxis tickFormatter={(v) => `€${v}`} />
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <Area
