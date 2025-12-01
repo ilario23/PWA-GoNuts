@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { WifiOff, RefreshCw } from "lucide-react";
+import { WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOnlineSync } from "@/hooks/useOnlineSync";
-import { useSync } from "@/hooks/useSync";
 
 /**
  * Non-invasive banner showing offline status.
@@ -12,10 +11,9 @@ import { useSync } from "@/hooks/useSync";
 export function OfflineIndicator() {
   const { t } = useTranslation();
   const { isOnline } = useOnlineSync();
-  const { isSyncing } = useSync();
 
-  // Don't show anything when online and not syncing
-  if (isOnline && !isSyncing) {
+  // Only show when offline
+  if (isOnline) {
     return null;
   }
 
@@ -32,17 +30,8 @@ export function OfflineIndicator() {
       aria-live="polite"
     >
       <div className="flex items-center justify-center gap-2">
-        {isOnline ? (
-          <>
-            <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
-            <span>{t("syncing")}</span>
-          </>
-        ) : (
-          <>
-            <WifiOff className="h-4 w-4" aria-hidden="true" />
-            <span>{t("offline_banner_message")}</span>
-          </>
-        )}
+        <WifiOff className="h-4 w-4" aria-hidden="true" />
+        <span>{t("offline_banner_message")}</span>
       </div>
     </div>
   );

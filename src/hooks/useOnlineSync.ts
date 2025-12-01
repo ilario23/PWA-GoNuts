@@ -21,10 +21,11 @@ function ensureGlobalHandlers() {
     onlineListeners.forEach((cb) => cb(true));
 
     // Show toast only once (globally)
-    toast.success(i18n.t("back_online"), {
-      description: i18n.t("back_online_description"),
-      duration: 3000,
-    });
+    // Toast removed as per user request
+    // toast.success(i18n.t("back_online"), {
+    //   description: i18n.t("back_online_description"),
+    //   duration: 3000,
+    // });
 
     // ✅ Push only - non serve pull, verrà fatto al prossimo refresh
     console.log("[OnlineSync] Back online, pushing pending changes...");

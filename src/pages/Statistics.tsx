@@ -1,5 +1,7 @@
-import { useState, useMemo, startTransition } from "react";
+import { useState, useMemo, startTransition, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useStatistics } from "@/hooks/useStatistics";
+import { useGroups } from "@/hooks/useGroups";
 import { FlipCard } from "@/components/ui/flip-card";
 import { LazyChart } from "@/components/LazyChart";
 import { createColorShade } from "@/lib/utils";
@@ -19,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import {
   PieChart,
   Pie,
@@ -60,11 +63,15 @@ export function StatisticsPage() {
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language === "it" ? it : enUS;
   const now = new Date();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { groups } = useGroups();
 
   // State for filters
   const [selectedMonth, setSelectedMonth] = useState(format(now, "yyyy-MM"));
   const [selectedYear, setSelectedYear] = useState(format(now, "yyyy"));
   const [activeTab, setActiveTab] = useState<"monthly" | "yearly">("monthly");
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   // State for comparison period selection
   const [comparisonMonth, setComparisonMonth] = useState<string | undefined>(
@@ -76,6 +83,20 @@ export function StatisticsPage() {
 
   // State for flip cards (yearly view) - which cards show monthly average
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+
+  // Handle URL parameter for group filtering
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const groupIdFromUrl = searchParams.get('group');
+
+    if (groupIdFromUrl && groups?.some(g => g.id === groupIdFromUrl)) {
+      setSelectedGroupId(groupIdFromUrl);
+    } else if (groupIdFromUrl) {
+      // Invalid group ID, clear it
+      setSelectedGroupId(null);
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.search, groups, navigate, location.pathname]);
 
   const toggleCard = (cardId: string) => {
     setFlippedCards((prev) => ({ ...prev, [cardId]: !prev[cardId] }));
@@ -115,7 +136,13 @@ export function StatisticsPage() {
     comparisonMonth,
     comparisonYear,
     mode: activeTab,
+    groupId: selectedGroupId || undefined,  // Filter by group if selected
   });
+
+
+
+  // Get selected group name for display
+  const selectedGroup = groups?.find(g => g.id === selectedGroupId);
 
   // #4 - Loading state: data is loading if currentStats haven't been calculated yet
   const isLoading =
@@ -275,7 +302,22 @@ export function StatisticsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t("statistics")}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">
+          {selectedGroup
+            ? t("statistics_group_title", { groupName: selectedGroup.name })
+            : t("statistics")}
+        </h1>
+        {selectedGroupId && (
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/groups")}
+            className="text-muted-foreground"
+          >
+            {t("back_to_groups")}
+          </Button>
+        )}
+      </div>
 
       {/* Tabs and filters always visible at the top */}
       <Tabs
@@ -345,6 +387,9 @@ export function StatisticsPage() {
             </div>
           </div>
         )}
+
+        {/* Group Filter Dropdown REMOVED as per user request */}
+        {/* The page now behaves as a dedicated view when accessed from a group card */}
       </Tabs>
 
       {/* Summary Cards - Monthly: static | Yearly: interactive flip cards */}

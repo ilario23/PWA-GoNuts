@@ -32,9 +32,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 md:px-0">
-          <div className="flex items-center gap-2 px-4 safe-x md:px-4 relative w-full md:pt-0">
-            <SidebarTrigger className="-ml-1" />
-            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+          <div className="flex items-center gap-2 px-4 safe-x md:px-4 relative w-full pt-2 md:pt-0">
+            <SidebarTrigger className="ml-1" />
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 mt-1">
               <Squirrel className="size-5 text-primary" />
               <h1 className="font-semibold text-lg">{t("app_title")}</h1>
             </div>

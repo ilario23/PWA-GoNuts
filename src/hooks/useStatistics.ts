@@ -17,6 +17,8 @@ interface UseStatisticsParams {
   comparisonYear?: string;
   /** Active mode - only calculates data for the active tab for performance */
   mode?: "monthly" | "yearly";
+  /** Filter by specific group ID - only includes transactions from that group */
+  groupId?: string;
 }
 
 /**
@@ -74,8 +76,11 @@ export function useStatistics(params?: UseStatisticsParams) {
     () =>
       mode === "monthly"
         ? db.transactions.where("year_month").equals(currentMonth).toArray()
+          .then(txs => params?.groupId
+            ? txs.filter(t => t.group_id === params.groupId)
+            : txs)
         : Promise.resolve([] as Transaction[]),
-    [currentMonth, mode]
+    [currentMonth, mode, params?.groupId]
   );
 
   // Get previous month transactions for comparison - only in monthly mode
@@ -83,8 +88,11 @@ export function useStatistics(params?: UseStatisticsParams) {
     () =>
       mode === "monthly"
         ? db.transactions.where("year_month").equals(previousMonth).toArray()
+          .then(txs => params?.groupId
+            ? txs.filter(t => t.group_id === params.groupId)
+            : txs)
         : Promise.resolve([] as Transaction[]),
-    [previousMonth, mode]
+    [previousMonth, mode, params?.groupId]
   );
 
   // Get all transactions for the selected year - only in yearly mode
@@ -95,8 +103,11 @@ export function useStatistics(params?: UseStatisticsParams) {
           .where("year_month")
           .between(`${currentYear}-01`, `${currentYear}-12`, true, true)
           .toArray()
+          .then(txs => params?.groupId
+            ? txs.filter(t => t.group_id === params.groupId)
+            : txs)
         : Promise.resolve([] as Transaction[]),
-    [currentYear, mode]
+    [currentYear, mode, params?.groupId]
   );
 
   // Get previous year transactions for comparison - only in yearly mode
@@ -107,8 +118,11 @@ export function useStatistics(params?: UseStatisticsParams) {
           .where("year_month")
           .between(`${previousYear}-01`, `${previousYear}-12`, true, true)
           .toArray()
+          .then(txs => params?.groupId
+            ? txs.filter(t => t.group_id === params.groupId)
+            : txs)
         : Promise.resolve([] as Transaction[]),
-    [previousYear, mode]
+    [previousYear, mode, params?.groupId]
   );
 
   const categories = useLiveQuery(() => db.categories.toArray());

@@ -17,6 +17,7 @@ import {
     ExternalLink,
     Users,
     ArrowUpRight,
+    BarChart3,
 } from "lucide-react";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { useState } from "react";
@@ -28,6 +29,7 @@ interface GroupCardProps {
     onView: (group: GroupWithMembers) => void;
     onBalance: (group: GroupWithMembers) => void;
     onMembers: (group: GroupWithMembers) => void;
+    onStatistics?: (group: GroupWithMembers) => void;
 }
 
 export function GroupCard({
@@ -37,6 +39,7 @@ export function GroupCard({
     onView,
     onBalance,
     onMembers,
+    onStatistics,
 }: GroupCardProps) {
     const { t } = useTranslation();
     const x = useMotionValue(0);
@@ -184,6 +187,18 @@ export function GroupCard({
                                 >
                                     <Users className="h-4 w-4 mr-2" />
                                     {t("members")}
+                                </Button>
+                            )}
+                            {onStatistics && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onStatistics(group)}
+                                    className="flex-1 sm:flex-none"
+                                >
+                                    <BarChart3 className="h-4 w-4 mr-2" />
+                                    <span className="hidden md:inline">{t("statistics")}</span>
+                                    <span className="md:hidden">Stats</span>
                                 </Button>
                             )}
                         </div>

@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, Group, GroupMember } from "../lib/db";
+import { db, Group, GroupMember, Profile } from "../lib/db";
 import { syncManager } from "../lib/sync";
 import { useAuth } from "./useAuth";
 import { v4 as uuidv4 } from "uuid";
@@ -12,15 +12,119 @@ import {
 } from "../lib/validation";
 
 /**
+ * Represents a single settlement transaction between two users.
+ */
+export interface SettlementTransaction {
+  /** User ID who needs to pay */
+  from: string;
+  /** User ID who should receive payment */
+  to: string;
+  /** Amount to be transferred */
+  amount: number;
+}
+
+/**
+ * Extended group type with member information and computed properties.
+ */
+export interface GroupMemberWithProfile extends GroupMember {
+  profile?: Profile;
+  displayName: string;
+}
+
+/**
  * Extended group type with member information and computed properties.
  */
 export interface GroupWithMembers extends Group {
   /** List of active members in the group */
-  members: GroupMember[];
+  members: GroupMemberWithProfile[];
   /** Whether the current user created this group */
   isCreator: boolean;
   /** Current user's expense share percentage (0-100) */
   myShare: number;
+}
+
+/**
+ * Calculate optimized settlement transactions to minimize number of payments.
+ * 
+ * Uses a greedy algorithm to match debtors with creditors, minimizing
+ * the total number of transactions needed to settle all balances.
+ * 
+ * @param balances - Record of user balances where positive = owed money, negative = owes money
+ * @returns Array of settlement transactions ordered by amount (largest first)
+ * 
+ * @example
+ * ```ts
+ * const balances = {
+ *   'user1': { userId: 'user1', balance: -50, ... }, // owes €50
+ *   'user2': { userId: 'user2', balance: 30, ... },  // owed €30
+ *   'user3': { userId: 'user3', balance: 20, ... },  // owed €20
+ * };
+ * 
+ * const settlements = calculateSettlement(balances);
+ * // Returns: [
+ * //   { from: 'user1', to: 'user2', amount: 30 },
+ * //   { from: 'user1', to: 'user3', amount: 20 }
+ * // ]
+ * ```
+ */
+export function calculateSettlement(
+  balances: Record<
+    string,
+    {
+      userId: string;
+      share: number;
+      shouldPay: number;
+      hasPaid: number;
+      balance: number;
+    }
+  >
+): SettlementTransaction[] {
+  // Separate debtors (negative balance) and creditors (positive balance)
+  const debtors = Object.values(balances)
+    .filter((b) => b.balance < -0.01) // Use small epsilon for float comparison
+    .map((b) => ({ userId: b.userId, amount: -b.balance })) // Convert to positive amount
+    .sort((a, b) => b.amount - a.amount); // Sort by amount descending
+
+  const creditors = Object.values(balances)
+    .filter((b) => b.balance > 0.01)
+    .map((b) => ({ userId: b.userId, amount: b.balance }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const settlements: SettlementTransaction[] = [];
+
+  // Create working copies to avoid mutating original arrays
+  const debtorQueue = [...debtors];
+  const creditorQueue = [...creditors];
+
+  // Greedy algorithm: match largest debtor with largest creditor
+  while (debtorQueue.length > 0 && creditorQueue.length > 0) {
+    const debtor = debtorQueue[0];
+    const creditor = creditorQueue[0];
+
+    // Determine payment amount (minimum of what debtor owes and creditor is owed)
+    const paymentAmount = Math.min(debtor.amount, creditor.amount);
+
+    // Record the settlement
+    settlements.push({
+      from: debtor.userId,
+      to: creditor.userId,
+      amount: paymentAmount,
+    });
+
+    // Update remaining amounts
+    debtor.amount -= paymentAmount;
+    creditor.amount -= paymentAmount;
+
+    // Remove fully settled parties
+    if (debtor.amount < 0.01) {
+      debtorQueue.shift();
+    }
+    if (creditor.amount < 0.01) {
+      creditorQueue.shift();
+    }
+  }
+
+  return settlements;
 }
 
 /**
@@ -63,6 +167,8 @@ export function useGroups() {
 
     const allGroups = await db.groups.toArray();
     const allMembers = await db.group_members.toArray();
+    const allProfiles = await db.profiles.toArray();
+    const profileMap = new Map(allProfiles.map(p => [p.id, p]));
 
     // Filter groups where user is creator or active member
     const userGroups = allGroups.filter((g) => {
@@ -75,9 +181,23 @@ export function useGroups() {
 
     // Enrich with members info
     return userGroups.map((g) => {
-      const groupMembers = allMembers.filter(
-        (m) => m.group_id === g.id && !m.removed_at
-      );
+      const groupMembers = allMembers
+        .filter((m) => m.group_id === g.id && !m.removed_at)
+        .map(m => {
+          const profile = profileMap.get(m.user_id);
+          // Determine display name: Profile name > Email > "User ..."
+          let displayName = "Unknown User";
+          if (profile?.full_name) displayName = profile.full_name;
+          else if (profile?.email) displayName = profile.email.split('@')[0];
+          else if (m.user_id === user.id) displayName = "You";
+          else displayName = `User ${m.user_id.slice(0, 4)}`;
+
+          return {
+            ...m,
+            profile,
+            displayName
+          } as GroupMemberWithProfile;
+        });
       const myMembership = groupMembers.find((m) => m.user_id === user.id);
 
       return {
@@ -292,8 +412,13 @@ export function useGroups() {
         shouldPay: number;
         hasPaid: number;
         balance: number;
+        displayName: string;
+        avatarUrl?: string;
       }
     > = {};
+
+    const allProfiles = await db.profiles.toArray();
+    const profileMap = new Map(allProfiles.map(p => [p.id, p]));
 
     // Calculate what each member should pay based on share
     for (const member of members) {
@@ -304,12 +429,21 @@ export function useGroups() {
         )
         .reduce((sum, t) => sum + t.amount, 0);
 
+      const profile = profileMap.get(member.user_id);
+      let displayName = "Unknown User";
+      if (profile?.full_name) displayName = profile.full_name;
+      else if (profile?.email) displayName = profile.email.split('@')[0];
+      else if (member.user_id === user?.id) displayName = "You";
+      else displayName = `User ${member.user_id.slice(0, 4)}`;
+
       balances[member.user_id] = {
         userId: member.user_id,
         share: member.share,
         shouldPay,
         hasPaid,
         balance: hasPaid - shouldPay, // Positive = owed money, Negative = owes money
+        displayName,
+        avatarUrl: profile?.avatar_url
       };
     }
 

@@ -64,7 +64,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     return (
         <Sidebar collapsible="icon" {...props}>
-            <SidebarHeader className="pt-[env(safe-area-inset-top)]">
+            <SidebarHeader className="pt-[calc(env(safe-area-inset-top)+1rem)]">
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton
