@@ -1583,54 +1583,52 @@ export function StatisticsPage() {
                     {t("cumulative_expenses_yearly")}
                   </h4>
                   <LazyChart height={250}>
-                    <div className="min-w-0 overflow-x-auto">
-                      <ChartContainer
-                        config={{
-                          current: {
-                            label: selectedYear,
-                            color: "hsl(0 84.2% 60.2%)",
-                          },
-                          previous: {
-                            label: previousYear,
-                            color: "hsl(0 84.2% 60.2% / 0.3)",
-                          },
-                        }}
-                        className="h-[250px] w-full aspect-auto min-w-[300px]"
+                    <ChartContainer
+                      config={{
+                        current: {
+                          label: selectedYear,
+                          color: "hsl(0 84.2% 60.2%)",
+                        },
+                        previous: {
+                          label: previousYear,
+                          color: "hsl(0 84.2% 60.2% / 0.3)",
+                        },
+                      }}
+                      className="h-[250px] w-full aspect-auto"
+                    >
+                      <AreaChart
+                        data={yearlyCumulativeExpenses.map((d, i) => {
+                          const prevYearData = previousYearCumulativeExpenses[i];
+                          return {
+                            month: d.month,
+                            current: d.cumulative,
+                            previous: prevYearData?.cumulative,
+                          };
+                        })}
+                        margin={{ left: 0, right: 12, top: 12, bottom: 12 }}
                       >
-                        <AreaChart
-                          data={yearlyCumulativeExpenses.map((d, i) => {
-                            const prevYearData = previousYearCumulativeExpenses[i];
-                            return {
-                              month: d.month,
-                              current: d.cumulative,
-                              previous: prevYearData?.cumulative,
-                            };
-                          })}
-                          margin={{ left: 0, right: 12, top: 12, bottom: 12 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
-                          <YAxis tickFormatter={(v) => `€${v}`} />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Area
-                            type="monotone"
-                            dataKey="previous"
-                            stroke="var(--color-previous)"
-                            fill="var(--color-previous)"
-                            fillOpacity={0.3}
-                            strokeDasharray="5 5"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="current"
-                            stroke="var(--color-current)"
-                            fill="var(--color-current)"
-                            fillOpacity={0.3}
-                          />
-                          <ChartLegend content={<ChartLegendContent />} />
-                        </AreaChart>
-                      </ChartContainer>
-                    </div>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis tickFormatter={(v) => `€${v}`} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Area
+                          type="monotone"
+                          dataKey="previous"
+                          stroke="var(--color-previous)"
+                          fill="var(--color-previous)"
+                          fillOpacity={0.3}
+                          strokeDasharray="5 5"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="current"
+                          stroke="var(--color-current)"
+                          fill="var(--color-current)"
+                          fillOpacity={0.3}
+                        />
+                        <ChartLegend content={<ChartLegendContent />} />
+                      </AreaChart>
+                    </ChartContainer>
                   </LazyChart>
                 </div>
               )}
