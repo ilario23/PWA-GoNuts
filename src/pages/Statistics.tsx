@@ -1591,7 +1591,7 @@ export function StatisticsPage() {
                         },
                         previous: {
                           label: previousYear,
-                          color: "hsl(0 84.2% 60.2% / 0.3)",
+                          color: "hsl(var(--muted-foreground))",
                         },
                       }}
                       className="h-[250px] w-full aspect-auto"
@@ -1607,6 +1607,44 @@ export function StatisticsPage() {
                         })}
                         margin={{ left: 0, right: 12, top: 12, bottom: 12 }}
                       >
+                        <defs>
+                          <linearGradient
+                            id="currentYearlyGradient"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor="var(--color-current)"
+                              stopOpacity={0.8}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor="var(--color-current)"
+                              stopOpacity={0.1}
+                            />
+                          </linearGradient>
+                          <linearGradient
+                            id="previousYearlyGradient"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor="var(--color-previous)"
+                              stopOpacity={0.6}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor="var(--color-previous)"
+                              stopOpacity={0.1}
+                            />
+                          </linearGradient>
+                        </defs>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
                         <YAxis tickFormatter={(v) => `€${v}`} />
@@ -1615,16 +1653,14 @@ export function StatisticsPage() {
                           type="monotone"
                           dataKey="previous"
                           stroke="var(--color-previous)"
-                          fill="var(--color-previous)"
-                          fillOpacity={0.3}
+                          fill="url(#previousYearlyGradient)"
                           strokeDasharray="5 5"
                         />
                         <Area
                           type="monotone"
                           dataKey="current"
                           stroke="var(--color-current)"
-                          fill="var(--color-current)"
-                          fillOpacity={0.3}
+                          fill="url(#currentYearlyGradient)"
                         />
                         <ChartLegend content={<ChartLegendContent />} />
                       </AreaChart>
