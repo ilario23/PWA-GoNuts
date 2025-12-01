@@ -1648,11 +1648,8 @@ export function StatisticsPage() {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis
                           dataKey="month"
-                          tick={{ fontSize: 10 }}
-                          interval="preserveStartEnd"
-                          angle={-45}
-                          textAnchor="end"
-                          height={60}
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={(value) => value.substring(0, 3)}
                         />
                         <YAxis tickFormatter={(v) => `€${v}`} />
                         <ChartTooltip content={<ChartTooltipContent />} />
@@ -1776,11 +1773,8 @@ export function StatisticsPage() {
                         tickLine={false}
                         axisLine={false}
                         tickMargin={8}
-                        tick={{ fontSize: 10 }}
-                        interval="preserveStartEnd"
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(value) => value.substring(0, 3)}
                       />
                       <YAxis
                         tickLine={false}
@@ -1853,11 +1847,8 @@ export function StatisticsPage() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="period"
-                        tick={{ fontSize: 10 }}
-                        interval="preserveStartEnd"
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(value) => value.substring(0, 3)}
                       />
                       <YAxis />
                       <ChartTooltip content={<ChartTooltipContent />} />
