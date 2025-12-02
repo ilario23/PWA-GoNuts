@@ -20,11 +20,11 @@ export function PendingChangesIndicator() {
         <Button
             onClick={() => sync()}
             disabled={isSyncing}
-            variant="outline"
+            variant="ghost"
             size="sm"
             className={cn(
                 "gap-2",
-                pendingCount > 0 && "border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
+                pendingCount > 0 && "text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
             )}
         >
             {isSyncing ? (

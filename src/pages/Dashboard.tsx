@@ -176,7 +176,7 @@ export function Dashboard() {
                         accessibilityLayer
                         data={dailyCumulativeExpenses}
                         margin={{
-                          left: 12,
+                          left: -5,
                           right: 12,
                           top: 12,
                           bottom: 12,
@@ -236,7 +236,7 @@ export function Dashboard() {
                         />
                         <ChartTooltip
                           cursor={false}
-                          content={<ChartTooltipContent indicator="line" />}
+                          content={<ChartTooltipContent indicator="line" valueFormatter={(value) => `€${Number(value).toLocaleString()}`} />}
                         />
                         <Area
                           dataKey="cumulative"

@@ -1065,7 +1065,7 @@ export function StatisticsPage() {
                             previous: prevMonthData?.cumulative,
                           };
                         })}
-                        margin={{ left: 0, right: 12, top: 12, bottom: 12 }}
+                        margin={{ left: -5, right: 0, top: 12, bottom: 12 }}
                       >
                         <defs>
                           <linearGradient
@@ -1108,7 +1108,7 @@ export function StatisticsPage() {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="day" />
                         <YAxis tickFormatter={(v) => `€${v}`} />
-                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <ChartTooltip content={<ChartTooltipContent valueFormatter={(value) => `€${Number(value).toLocaleString()}`} />} />
                         <Area
                           type="monotone"
                           dataKey="previous"
@@ -1650,7 +1650,7 @@ export function StatisticsPage() {
                             previous: prevYearData?.cumulative,
                           };
                         })}
-                        margin={{ left: 0, right: 12, top: 12, bottom: 12 }}
+                        margin={{ left: -5, right: 0, top: 12, bottom: 12 }}
                       >
                         <defs>
                           <linearGradient
@@ -1695,9 +1695,12 @@ export function StatisticsPage() {
                           dataKey="month"
                           tick={{ fontSize: 11 }}
                           tickFormatter={(value) => value.substring(0, 3)}
+                          interval={yearlyCumulativeExpenses.length > 9 ? 1 : 0}
                         />
                         <YAxis tickFormatter={(v) => `€${v}`} />
-                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <ChartTooltip
+                          content={<ChartTooltipContent valueFormatter={(value) => `€${Number(value).toLocaleString()}`} />}
+                        />
                         <Area
                           type="monotone"
                           dataKey="previous"
@@ -1750,11 +1753,11 @@ export function StatisticsPage() {
                         color: "hsl(217.2 91.2% 59.8%)",
                       },
                     }}
-                    className="h-[350px] w-full"
+                    className="h-[350px] w-full min-w-0 aspect-auto"
                   >
                     <AreaChart
                       data={monthlyTrendData}
-                      margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
+                      margin={{ left: -5, right: 0, top: 12, bottom: 12 }}
                     >
                       <defs>
                         <linearGradient
@@ -1820,13 +1823,16 @@ export function StatisticsPage() {
                         tickMargin={8}
                         tick={{ fontSize: 11 }}
                         tickFormatter={(value) => value.substring(0, 3)}
+                        interval={monthlyTrendData.length > 9 ? 1 : 0}
                       />
                       <YAxis
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={(value) => `€${value}`}
                       />
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartTooltip
+                        content={<ChartTooltipContent valueFormatter={(value) => `€${Number(value).toLocaleString()}`} />}
+                      />
                       <ChartLegend content={<ChartLegendContent />} />
                       <Area
                         type="monotone"
@@ -1883,20 +1889,23 @@ export function StatisticsPage() {
                         color: "hsl(0 84.2% 60.2%)",
                       },
                     }}
-                    className="h-[300px] w-full"
+                    className="h-[300px] w-full min-w-0 aspect-auto"
                   >
                     <ComposedChart
                       data={monthlyCashFlow}
-                      margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
+                      margin={{ left: -5, right: 0, top: 12, bottom: 12 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="period"
                         tick={{ fontSize: 11 }}
                         tickFormatter={(value) => value.substring(0, 3)}
+                        interval={monthlyCashFlow.length > 9 ? 1 : 0}
                       />
                       <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartTooltip
+                        content={<ChartTooltipContent valueFormatter={(value) => `€${Number(value).toLocaleString()}`} />}
+                      />
                       <ChartLegend content={<ChartLegendContent />} />
                       <Bar
                         dataKey="income"

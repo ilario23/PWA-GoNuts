@@ -87,7 +87,7 @@ export function LazyChart({
     <div
       ref={containerRef}
       className={className}
-      style={{ minHeight: heightStyle }}
+      style={{ minHeight: heightStyle, minWidth: 0 }}
     >
       {showSkeleton ? (
         <div
