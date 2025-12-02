@@ -41,7 +41,7 @@ import {
   ChevronDown,
   MoreHorizontal,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { getIconComponent } from "@/lib/icons";
 import { SyncStatusBadge } from "@/components/SyncStatus";
@@ -58,6 +58,8 @@ import {
 } from "date-fns";
 import { CategorySelector } from "@/components/CategorySelector";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { RecurringTransactionDetailDrawer } from "@/components/RecurringTransactionDetailDrawer";
+import { RecurringTransaction } from "@/lib/db";
 import { MobileRecurringTransactionRow } from "@/components/MobileRecurringTransactionRow";
 
 export function RecurringTransactionsPage() {
@@ -77,6 +79,9 @@ export function RecurringTransactionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<RecurringTransaction | null>(null);
   const [moreSectionOpen, setMoreSectionOpen] = useState(false);
   const [formData, setFormData] = useState({
     amount: "",
@@ -99,7 +104,8 @@ export function RecurringTransactionsPage() {
 
   // Reset category when group changes
   useEffect(() => {
-    if (editingId === null) { // Only for new recurring transactions
+    if (editingId === null) {
+      // Only for new recurring transactions
       setFormData((prev) => ({ ...prev, category_id: "" }));
     }
   }, [formData.group_id, editingId]);
@@ -260,6 +266,11 @@ export function RecurringTransactionsPage() {
     }
   };
 
+  const handleTransactionClick = (transaction: RecurringTransaction) => {
+    setSelectedTransaction(transaction);
+    setDetailDrawerOpen(true);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -291,7 +302,11 @@ export function RecurringTransactionsPage() {
                   {editingId ? t("edit_recurring") : t("add_recurring")}
                 </DialogTitle>
                 <DialogDescription className="sr-only">
-                  {editingId ? t("edit_recurring_description") || "Edit recurring transaction details" : t("add_recurring_description") || "Add a new recurring transaction"}
+                  {editingId
+                    ? t("edit_recurring_description") ||
+                      "Edit recurring transaction details"
+                    : t("add_recurring_description") ||
+                      "Add a new recurring transaction"}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -301,10 +316,11 @@ export function RecurringTransactionsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${formData.type === "expense"
-                        ? getTypeColor("expense")
-                        : ""
-                        }`}
+                      className={`w-full ${
+                        formData.type === "expense"
+                          ? getTypeColor("expense")
+                          : ""
+                      }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "expense" })
                       }
@@ -314,8 +330,9 @@ export function RecurringTransactionsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${formData.type === "income" ? getTypeColor("income") : ""
-                        }`}
+                      className={`w-full ${
+                        formData.type === "income" ? getTypeColor("income") : ""
+                      }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "income" })
                       }
@@ -325,10 +342,11 @@ export function RecurringTransactionsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${formData.type === "investment"
-                        ? getTypeColor("investment")
-                        : ""
-                        }`}
+                      className={`w-full ${
+                        formData.type === "investment"
+                          ? getTypeColor("investment")
+                          : ""
+                      }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "investment" })
                       }
@@ -441,8 +459,9 @@ export function RecurringTransactionsPage() {
                           )}
                         </div>
                         <ChevronDown
-                          className={`h-4 w-4 text-muted-foreground transition-transform ${moreSectionOpen ? "rotate-180" : ""
-                            }`}
+                          className={`h-4 w-4 text-muted-foreground transition-transform ${
+                            moreSectionOpen ? "rotate-180" : ""
+                          }`}
                         />
                       </Button>
                     </CollapsibleTrigger>
@@ -464,8 +483,8 @@ export function RecurringTransactionsPage() {
                                     value === "none"
                                       ? ""
                                       : formData.paid_by_user_id ||
-                                      user?.id ||
-                                      "",
+                                        user?.id ||
+                                        "",
                                 })
                               }
                             >
@@ -517,7 +536,7 @@ export function RecurringTransactionsPage() {
                                         {member.user_id === user?.id
                                           ? t("me")
                                           : member.user_id.substring(0, 8) +
-                                          "..."}
+                                            "..."}
                                       </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -582,6 +601,7 @@ export function RecurringTransactionsPage() {
             group={groups?.find((g) => g.id === t_item.group_id)}
             onEdit={handleEdit}
             onDelete={handleDeleteClick}
+            onClick={handleTransactionClick}
           />
         ))}
       </div>
@@ -641,7 +661,6 @@ export function RecurringTransactionsPage() {
           </TableBody>
         </Table>
       </div>
-
       <DeleteConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
@@ -651,6 +670,21 @@ export function RecurringTransactionsPage() {
           t("confirm_delete_recurring_description") ||
           t("confirm_delete_description")
         }
+      />
+
+      <RecurringTransactionDetailDrawer
+        transaction={selectedTransaction}
+        category={categories?.find(
+          (c) => c.id === selectedTransaction?.category_id
+        )}
+        context={contexts?.find(
+          (c) => c.id === selectedTransaction?.context_id
+        )}
+        group={groups?.find((g) => g.id === selectedTransaction?.group_id)}
+        open={detailDrawerOpen}
+        onOpenChange={setDetailDrawerOpen}
+        onEdit={handleEdit}
+        onDelete={handleDeleteClick}
       />
     </div>
   );

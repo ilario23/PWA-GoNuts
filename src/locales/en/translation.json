@@ -302,6 +302,7 @@
   "budget_exceeded_notification": "Budget exceeded! You're {{amount}} over your monthly limit.",
   "recurring_generated": "Generated {{count}} recurring transaction(s) totaling {{amount}}",
   "syncing": "Syncing data...",
+  "synced": "Synced",
   "realtime_connected": "Realtime connected",
   "realtime_disconnected": "Realtime disconnected",
   "category_budget": "Category Budget",

@@ -43,6 +43,8 @@ const SYNC_CONFIG = {
   batchSize: 50,
   /** Items that fail more than this many times are quarantined */
   quarantineThreshold: 5,
+  /** Delay for debounced push (ms) */
+  pushDelay: 30000,
 } as const;
 
 // ============================================================================
@@ -65,6 +67,7 @@ export interface SyncStatus {
   pendingCount: number;
   errorCount: number;
   errors: SyncError[];
+  initialSyncComplete: boolean;
 }
 
 type SyncListener = (status: SyncStatus) => void;
@@ -78,10 +81,30 @@ export class SyncManager {
   private lastSyncAt: string | null = null;
   private syncListeners: Set<SyncListener> = new Set();
   private errorMap: Map<string, SyncError> = new Map();
+  private pushTimer: NodeJS.Timeout | null = null;
+  private initialSyncComplete = false;
 
   // ============================================================================
   // PUBLIC API
   // ============================================================================
+
+  /**
+   * Schedule a push of pending changes with debounce.
+   * Used to batch multiple local changes into a single network request.
+   */
+  schedulePush(): void {
+    if (this.pushTimer) {
+      clearTimeout(this.pushTimer);
+    }
+
+    console.log(`[Sync] Scheduling push in ${SYNC_CONFIG.pushDelay}ms...`);
+
+    this.pushTimer = setTimeout(() => {
+      console.log("[Sync] Push timer fired");
+      this.pushOnly();
+      this.pushTimer = null;
+    }, SYNC_CONFIG.pushDelay);
+  }
 
   /**
    * Main sync function - pushes local changes then pulls remote changes.
@@ -91,6 +114,12 @@ export class SyncManager {
     if (this.isSyncing) {
       console.log("[Sync] Already syncing, skipping...");
       return;
+    }
+
+    // Clear any pending scheduled push since we are syncing now
+    if (this.pushTimer) {
+      clearTimeout(this.pushTimer);
+      this.pushTimer = null;
     }
 
     this.isSyncing = true;
@@ -117,6 +146,7 @@ export class SyncManager {
       await this.pullUserSettings(user.id);
 
       this.lastSyncAt = new Date().toISOString();
+      this.initialSyncComplete = true;
       console.log("[Sync] Sync completed successfully");
     } catch (error) {
       console.error("[Sync] Sync failed:", error);
@@ -131,6 +161,13 @@ export class SyncManager {
    */
   async pushOnly(): Promise<void> {
     if (this.isSyncing) return;
+
+    // Clear any pending scheduled push since we are pushing now
+    if (this.pushTimer) {
+      clearTimeout(this.pushTimer);
+      this.pushTimer = null;
+    }
+
     this.isSyncing = true;
     this.notifyListeners();
 
@@ -162,6 +199,12 @@ export class SyncManager {
       return;
     }
 
+    // Clear any pending scheduled push since we are syncing now
+    if (this.pushTimer) {
+      clearTimeout(this.pushTimer);
+      this.pushTimer = null;
+    }
+
     this.isSyncing = true;
     this.notifyListeners();
 
@@ -186,6 +229,7 @@ export class SyncManager {
       await this.pullUserSettings(user.id);
 
       this.lastSyncAt = new Date().toISOString();
+      this.initialSyncComplete = true;
       console.log("[Sync] Full sync completed successfully");
     } catch (error) {
       console.error("[Sync] Full sync failed:", error);
@@ -215,6 +259,7 @@ export class SyncManager {
       pendingCount: await this.getPendingCount(),
       errorCount: this.errorMap.size,
       errors: Array.from(this.errorMap.values()),
+      initialSyncComplete: this.initialSyncComplete,
     };
   }
 
@@ -247,8 +292,9 @@ export class SyncManager {
     let total = 0;
 
     for (const tableName of TABLES) {
-      const count = await db.table(tableName)
-        .where('pendingSync')
+      const count = await db
+        .table(tableName)
+        .where("pendingSync")
         .equals(1)
         .count();
       total += count;
@@ -346,7 +392,8 @@ export class SyncManager {
       } catch (error) {
         lastError = error as Error;
         console.warn(
-          `[Sync] Attempt ${attempt + 1}/${SYNC_CONFIG.maxRetries
+          `[Sync] Attempt ${attempt + 1}/${
+            SYNC_CONFIG.maxRetries
           } failed for ${tableName}:`,
           error
         );

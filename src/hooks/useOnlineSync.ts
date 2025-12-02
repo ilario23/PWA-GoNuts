@@ -27,9 +27,9 @@ function ensureGlobalHandlers() {
     //   duration: 3000,
     // });
 
-    // ✅ Push only - non serve pull, verrà fatto al prossimo refresh
-    console.log("[OnlineSync] Back online, pushing pending changes...");
-    await syncManager.pushOnly();
+    // ✅ Sync completo (push + pull) per recuperare modifiche perse offline
+    console.log("[OnlineSync] Back online, syncing...");
+    await syncManager.sync();
   };
 
   const handleOffline = () => {

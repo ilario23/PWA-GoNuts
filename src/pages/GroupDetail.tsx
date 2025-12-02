@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useGroups, GroupWithMembers } from "@/hooks/useGroups";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useSync } from "@/hooks/useSync";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,10 +17,20 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
-import { ArrowLeft, Plus, Users, TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Users,
+  TrendingUp,
+  TrendingDown,
+  RefreshCw,
+} from "lucide-react";
 import { TransactionList } from "@/components/TransactionList";
 import { getIconComponent } from "@/lib/icons";
-import { TransactionDialog, TransactionFormData } from "@/components/TransactionDialog";
+import {
+  TransactionDialog,
+  TransactionFormData,
+} from "@/components/TransactionDialog";
 
 export function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -147,10 +157,18 @@ export function GroupDetailPage() {
           className="md:w-auto md:px-4 md:h-10"
           title={t("sync_now") || "Sync now"}
         >
-          <RefreshCw className={`h-4 w-4 md:mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-          <span className="hidden md:inline">{isSyncing ? t("syncing") || "Syncing..." : t("sync_now") || "Sync"}</span>
+          <RefreshCw
+            className={`h-4 w-4 md:mr-2 ${isSyncing ? "animate-spin" : ""}`}
+          />
+          <span className="hidden md:inline">
+            {isSyncing ? t("syncing") || "Syncing..." : t("sync_now") || "Sync"}
+          </span>
         </Button>
-        <Button size="icon" className="md:w-auto md:px-4 md:h-10" onClick={() => setIsAddDialogOpen(true)}>
+        <Button
+          size="icon"
+          className="md:w-auto md:px-4 md:h-10"
+          onClick={() => setIsAddDialogOpen(true)}
+        >
           <Plus className="h-4 w-4 md:mr-2" />
           <span className="hidden md:inline">{t("add_transaction")}</span>
         </Button>
@@ -205,10 +223,11 @@ export function GroupDetailPage() {
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${(myBalance?.balance || 0) >= 0
-                ? "text-green-600"
-                : "text-red-600"
-                }`}
+              className={`text-2xl font-bold ${
+                (myBalance?.balance || 0) >= 0
+                  ? "text-green-600"
+                  : "text-red-600"
+              }`}
             >
               {(myBalance?.balance || 0) >= 0 ? "+" : ""}€
               {(myBalance?.balance || 0).toFixed(2)}
@@ -222,7 +241,7 @@ export function GroupDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="transactions" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="transactions">{t("transactions")}</TabsTrigger>
           <TabsTrigger value="balance">{t("balance")}</TabsTrigger>
           <TabsTrigger value="categories">{t("categories")}</TabsTrigger>
@@ -256,7 +275,7 @@ export function GroupDetailPage() {
                 return (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between py-2 border-b last:border-0"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b last:border-0 gap-2"
                   >
                     <div>
                       <div className="font-medium flex items-center gap-2">
@@ -270,16 +289,17 @@ export function GroupDetailPage() {
                         {(memberBalance?.shouldPay || 0).toFixed(2)}
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="flex items-center justify-between sm:block sm:text-right bg-muted/30 p-2 rounded-md sm:bg-transparent sm:p-0">
                       <div className="text-sm text-muted-foreground">
                         {t("has_paid")}: €
                         {(memberBalance?.hasPaid || 0).toFixed(2)}
                       </div>
                       <div
-                        className={`font-medium ${(memberBalance?.balance || 0) >= 0
-                          ? "text-green-600"
-                          : "text-red-600"
-                          }`}
+                        className={`font-medium ${
+                          (memberBalance?.balance || 0) >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
                       >
                         {(memberBalance?.balance || 0) >= 0 ? "+" : ""}€
                         {(memberBalance?.balance || 0).toFixed(2)}

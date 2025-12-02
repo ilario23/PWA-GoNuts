@@ -199,7 +199,7 @@ export function useCategoryBudgets(
         updated_at: new Date().toISOString(),
       });
     }
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   // Remove budget for a category
@@ -208,7 +208,7 @@ export function useCategoryBudgets(
       deleted_at: new Date().toISOString(),
       pendingSync: 1,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   // Get categories that are over budget

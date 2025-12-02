@@ -302,6 +302,7 @@
   "budget_exceeded_notification": "🚨 Budget superato! Hai sforato di {{amount}} il limite mensile.",
   "recurring_generated": "✅ Generate {{count}} transazione/i ricorrente/i per un totale di {{amount}}",
   "syncing": "Sincronizzazione in corso...",
+  "synced": "Sincronizzato",
   "realtime_connected": "Realtime connesso",
   "realtime_disconnected": "Realtime disconnesso",
   "category_budget": "Budget Categoria",

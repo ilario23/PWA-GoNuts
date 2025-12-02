@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { useOnlineSync } from "@/hooks/useOnlineSync";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { db, Transaction, Category, RecurringTransaction, CategoryBudget } from "@/lib/db";
 import { safeSync, syncManager } from "@/lib/sync";
 import { Label } from "@/components/ui/label";

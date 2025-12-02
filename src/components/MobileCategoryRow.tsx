@@ -9,6 +9,7 @@ interface MobileCategoryRowProps {
   category: Category;
   onEdit: (category: Category) => void;
   onDelete: (id: string) => void;
+  onClick?: (category: Category) => void;
   style?: React.CSSProperties;
   childCount?: number;
   budgetAmount?: number; // Monthly budget limit for expense categories
@@ -21,6 +22,7 @@ export function MobileCategoryRow({
   category,
   onEdit,
   onDelete,
+  onClick,
   style,
   childCount,
   budgetAmount,
@@ -45,7 +47,7 @@ export function MobileCategoryRow({
   );
 
   const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 300; // Increased from 80 to require more deliberate swipe
+    const threshold = 220; // Increased from 80 to require more deliberate swipe
     if (info.offset.x < -threshold) {
       // Swiped left - Delete
       onDelete(category.id);
@@ -91,19 +93,20 @@ export function MobileCategoryRow({
       <motion.div
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
+        dragElastic={0.7}
         onDragEnd={handleDragEnd}
-        onClick={(e) => {
+        onClick={() => {
           // Only handle expand/collapse if there are children and user clicked (not dragged)
-          if (childCount && childCount > 0 && onToggleExpand && x.get() === 0) {
-            e.stopPropagation();
-            onToggleExpand();
+          if (x.get() !== 0) return; // Don't click if dragging
+
+          if (onClick) {
+            onClick(category);
           }
         }}
         style={{
           x,
           touchAction: "pan-y",
-          cursor: childCount && childCount > 0 ? "pointer" : "default",
+          cursor: "pointer",
         }}
         className={`relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] ${isInactive ? "opacity-60" : ""
           }`}
@@ -128,7 +131,10 @@ export function MobileCategoryRow({
           <div className="flex items-center gap-2">
             <div className="font-medium text-sm truncate">{category.name}</div>
             {groupName && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-primary/50 text-primary shrink-0">
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 h-4 border-primary/50 text-primary shrink-0"
+              >
                 {groupName}
               </Badge>
             )}
@@ -149,6 +155,10 @@ export function MobileCategoryRow({
                       damping: 20,
                     }}
                     className="shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleExpand();
+                    }}
                   >
                     <ChevronRight className="h-3 w-3 text-muted-foreground" />
                   </motion.div>

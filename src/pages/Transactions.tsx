@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Filter, X } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { TransactionList } from "@/components/TransactionList";
 import {

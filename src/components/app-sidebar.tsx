@@ -33,7 +33,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/hooks/useAuth"
+import { useAuth } from "@/contexts/AuthProvider"
 import { useOnlineSync } from "@/hooks/useOnlineSync"
 import { cn } from "@/lib/utils"
 import packageJson from "../../package.json"

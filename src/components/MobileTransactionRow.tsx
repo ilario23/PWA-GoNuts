@@ -13,8 +13,12 @@ interface MobileTransactionRowProps {
   group?: Group;
   onEdit?: (transaction: Transaction) => void;
   onDelete?: (id: string) => void;
+  onClick?: () => void;
   isVirtual?: boolean;
   style?: React.CSSProperties;
+  hideContext?: boolean;
+  personalAmount?: number;
+  isGroupShare?: boolean;
 }
 
 export function MobileTransactionRow({
@@ -24,7 +28,11 @@ export function MobileTransactionRow({
   group,
   onEdit,
   onDelete,
+  onClick,
   style,
+  hideContext,
+  personalAmount,
+  isGroupShare,
 }: MobileTransactionRowProps) {
   const { t } = useTranslation();
   const IconComp = category?.icon ? getIconComponent(category.icon) : null;
@@ -43,7 +51,7 @@ export function MobileTransactionRow({
   );
 
   const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 300;
+    const threshold = 220;
     if (info.offset.x < -threshold && onDelete) {
       // Swiped left - Delete
       onDelete(transaction.id);
@@ -98,8 +106,9 @@ export function MobileTransactionRow({
       <motion.div
         drag={hasActions ? "x" : false}
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
+        dragElastic={0.7}
         onDragEnd={handleDragEnd}
+        onClick={onClick}
         style={{ x, touchAction: "pan-y" }} // Important for vertical scrolling
         className="relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px]"
       >
@@ -133,7 +142,7 @@ export function MobileTransactionRow({
                 <span className="truncate max-w-[60px]">{group.name}</span>
               </div>
             )}
-            {context && (
+            {context && !hideContext && (
               <div className="flex items-center gap-0.5 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px]">
                 <Tag className="h-3 w-3" />
                 <span className="truncate max-w-[60px]">{context.name}</span>
@@ -154,8 +163,13 @@ export function MobileTransactionRow({
               : transaction.type === "investment"
               ? ""
               : "+"}
-            €{transaction.amount.toFixed(2)}
+            €{(personalAmount ?? transaction.amount).toFixed(2)}
           </div>
+          {isGroupShare && (
+            <div className="text-[10px] text-muted-foreground">
+              {t("your_share")}
+            </div>
+          )}
           <div className="mt-1">
             <SyncStatusBadge isPending={transaction.pendingSync === 1} />
           </div>

@@ -27,7 +27,9 @@ export function useTransactions(
     if (yearMonth) {
       // 1. Filter by Year/Month (Most selective)
       if (yearMonth.length === 4) {
-        collection = db.transactions.where("date").between(`${yearMonth}-01-01`, `${yearMonth}-12-31\uffff`);
+        collection = db.transactions
+          .where("date")
+          .between(`${yearMonth}-01-01`, `${yearMonth}-12-31\uffff`);
       } else {
         collection = db.transactions.where("year_month").equals(yearMonth);
       }
@@ -61,7 +63,9 @@ export function useTransactions(
 
     // Sort by date descending (most recent first)
     // We sort here because some query paths don't guarantee order
-    results.sort((a: Transaction, b: Transaction) => b.date.localeCompare(a.date));
+    results.sort((a: Transaction, b: Transaction) =>
+      b.date.localeCompare(a.date)
+    );
 
     return results;
   }, [limit, yearMonth, groupId]);
@@ -82,7 +86,7 @@ export function useTransactions(
       pendingSync: 1,
       deleted_at: null,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   const updateTransaction = async (
@@ -96,7 +100,7 @@ export function useTransactions(
       ...validatedUpdates,
       pendingSync: 1,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   const deleteTransaction = async (id: string) => {
@@ -105,7 +109,7 @@ export function useTransactions(
       deleted_at: new Date().toISOString(),
       pendingSync: 1,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   return {

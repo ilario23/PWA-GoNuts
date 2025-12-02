@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useGroups } from "@/hooks/useGroups";
 import { useContexts } from "@/hooks/useContexts";
 import { Button } from "@/components/ui/button";

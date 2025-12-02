@@ -64,7 +64,7 @@ export function useRecurringTransactions(groupId?: string | null) {
       deleted_at: null,
       last_generated: undefined,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   const updateRecurringTransaction = async (
@@ -83,7 +83,7 @@ export function useRecurringTransactions(groupId?: string | null) {
       ...validatedUpdates,
       pendingSync: 1,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   const deleteRecurringTransaction = async (id: string) => {
@@ -91,12 +91,14 @@ export function useRecurringTransactions(groupId?: string | null) {
       deleted_at: new Date().toISOString(),
       pendingSync: 1,
     });
+    syncManager.schedulePush();
   };
 
   const generateTransactions = async () => {
     const all = await db.recurring_transactions.toArray();
     const active = all.filter((rt) => !rt.deleted_at);
     const now = new Date();
+    let changesMade = false;
 
     for (const rt of active) {
       if (!rt.active || rt.deleted_at) continue;
@@ -158,6 +160,8 @@ export function useRecurringTransactions(groupId?: string | null) {
           pendingSync: 1,
         });
 
+        changesMade = true;
+
         // Calculate next date for loop
         switch (rt.frequency) {
           case "daily":
@@ -174,6 +178,10 @@ export function useRecurringTransactions(groupId?: string | null) {
             break;
         }
       }
+    }
+
+    if (changesMade) {
+      syncManager.schedulePush();
     }
   };
 

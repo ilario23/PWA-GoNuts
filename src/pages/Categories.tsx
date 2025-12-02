@@ -56,9 +56,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, X, ChevronRight, ChevronDown, MoreVertical, EyeOff, Eye, MoreHorizontal, Users } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { CategoryDetailSheet } from "@/components/CategoryDetailSheet";
+import {
+  Plus,
+  X,
+  ChevronRight,
+  ChevronDown,
+  MoreVertical,
+  EyeOff,
+  Eye,
+  MoreHorizontal,
+  Users,
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthProvider";
+import { CategoryDetailDrawer } from "@/components/CategoryDetailDrawer";
 import { getIconComponent } from "@/lib/icons";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { CategorySelector } from "@/components/CategorySelector";
@@ -113,20 +123,23 @@ function DesktopCategoryRows({
         return (
           <React.Fragment key={c.id}>
             <TableRow
-              className={`${isRoot && index < 20
-                ? "animate-slide-in-up opacity-0 fill-mode-forwards"
-                : !isRoot
+              className={`${
+                isRoot && index < 20
+                  ? "animate-slide-in-up opacity-0 fill-mode-forwards"
+                  : !isRoot
                   ? "animate-fade-in"
                   : ""
-                } ${children.length > 0 ? "cursor-pointer hover:bg-muted/50" : ""
-                } ${!isRoot ? "bg-muted/20" : ""} ${isInactive ? "opacity-50" : ""
-                }`}
+              } ${
+                children.length > 0 ? "cursor-pointer hover:bg-muted/50" : ""
+              } ${!isRoot ? "bg-muted/20" : ""} ${
+                isInactive ? "opacity-50" : ""
+              }`}
               style={
                 isRoot && index < 20
                   ? { animationDelay: `${index * 0.03}s` }
                   : !isRoot
-                    ? { animationDelay: `${index * 0.03}s` }
-                    : {}
+                  ? { animationDelay: `${index * 0.03}s` }
+                  : {}
               }
             >
               <TableCell className="w-8">
@@ -157,8 +170,9 @@ function DesktopCategoryRows({
                     <div className="w-4 h-4 border-l-2 border-b-2 border-muted-foreground/30 rounded-bl shrink-0" />
                   )}
                   <div
-                    className={`${isRoot ? "h-4 w-4" : "h-3 w-3"
-                      } rounded-full shrink-0 ${isInactive ? "grayscale" : ""}`}
+                    className={`${
+                      isRoot ? "h-4 w-4" : "h-3 w-3"
+                    } rounded-full shrink-0 ${isInactive ? "grayscale" : ""}`}
                     style={{ backgroundColor: c.color }}
                   />
                   {c.icon &&
@@ -170,8 +184,12 @@ function DesktopCategoryRows({
                     })()}
                   <span className={isRoot ? "" : "text-sm"}>{c.name}</span>
                   {c.group_id && (
-                    <Badge variant="outline" className="text-xs ml-1 border-primary/50 text-primary">
-                      {groups?.find((g) => g.id === c.group_id)?.name || t("group")}
+                    <Badge
+                      variant="outline"
+                      className="text-xs ml-1 border-primary/50 text-primary"
+                    >
+                      {groups?.find((g) => g.id === c.group_id)?.name ||
+                        t("group")}
                     </Badge>
                   )}
                   {children.length > 0 && (
@@ -196,8 +214,9 @@ function DesktopCategoryRows({
                 ) : (
                   <Badge
                     variant="outline"
-                    className={`text-green-600 border-green-600 ${isRoot ? "" : "text-xs"
-                      }`}
+                    className={`text-green-600 border-green-600 ${
+                      isRoot ? "" : "text-xs"
+                    }`}
                   >
                     {t("active") || "Active"}
                   </Badge>
@@ -240,7 +259,9 @@ export function CategoriesPage() {
   const { t } = useTranslation();
 
   // Filter State - must be defined before hook calls
-  const [selectedGroupFilter, setSelectedGroupFilter] = useState<string | null | undefined>(null);
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState<
+    string | null | undefined
+  >(null);
 
   const {
     categories,
@@ -320,7 +341,8 @@ export function CategoriesPage() {
     // Only reset if we're actively editing the form (not on initial mount)
     if (formData.name || formData.icon) {
       setFormData((prev) => ({
-        ...prev, parent_id: ""
+        ...prev,
+        parent_id: "",
       }));
     }
   }, [formData.group_id]);
@@ -484,7 +506,7 @@ export function CategoriesPage() {
       // Show warning about group category
       alert(
         t("group_category_delete_warning") ||
-        "This is a group category. Deleting it will affect all group members."
+          "This is a group category. Deleting it will affect all group members."
       );
     }
 
@@ -697,10 +719,11 @@ export function CategoriesPage() {
           {/* Show Inactive Toggle */}
           <button
             onClick={() => setShowInactive(!showInactive)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${showInactive
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-muted/50"
-              }`}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              showInactive
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted/50"
+            }`}
           >
             {showInactive ? (
               <Eye className="h-3.5 w-3.5" />
@@ -722,30 +745,32 @@ export function CategoriesPage() {
                     {selectedGroupFilter === undefined
                       ? t("all_categories") || "All Categories"
                       : selectedGroupFilter === null
-                        ? t("personal_categories") || "Personal"
-                        : groups.find((g) => g.id === selectedGroupFilter)?.name ||
-                        t("group")}
+                      ? t("personal_categories") || "Personal"
+                      : groups.find((g) => g.id === selectedGroupFilter)
+                          ?.name || t("group")}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56">
-                <DropdownMenuLabel>{t("filter_by") || "Filter by"}</DropdownMenuLabel>
+                <DropdownMenuLabel>
+                  {t("filter_by") || "Filter by"}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup
                   value={
                     selectedGroupFilter === undefined
                       ? "all"
                       : selectedGroupFilter === null
-                        ? "personal"
-                        : selectedGroupFilter
+                      ? "personal"
+                      : selectedGroupFilter
                   }
                   onValueChange={(value) =>
                     setSelectedGroupFilter(
                       value === "all"
                         ? undefined
                         : value === "personal"
-                          ? null
-                          : value
+                        ? null
+                        : value
                     )
                   }
                 >
@@ -781,7 +806,9 @@ export function CategoriesPage() {
                   {editingId ? t("edit_category") : t("add_category")}
                 </DialogTitle>
                 <DialogDescription className="sr-only">
-                  {editingId ? t("edit_category_description") || "Edit category details" : t("add_category_description") || "Add a new category"}
+                  {editingId
+                    ? t("edit_category_description") || "Edit category details"
+                    : t("add_category_description") || "Add a new category"}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -821,10 +848,11 @@ export function CategoriesPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${formData.type === "expense"
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : ""
-                        }`}
+                      className={`w-full ${
+                        formData.type === "expense"
+                          ? "bg-red-500 hover:bg-red-600 text-white"
+                          : ""
+                      }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "expense" })
                       }
@@ -834,10 +862,11 @@ export function CategoriesPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${formData.type === "income"
-                        ? "bg-green-500 hover:bg-green-600 text-white"
-                        : ""
-                        }`}
+                      className={`w-full ${
+                        formData.type === "income"
+                          ? "bg-green-500 hover:bg-green-600 text-white"
+                          : ""
+                      }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "income" })
                       }
@@ -847,10 +876,11 @@ export function CategoriesPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${formData.type === "investment"
-                        ? "bg-blue-500 hover:bg-blue-600 text-white"
-                        : ""
-                        }`}
+                      className={`w-full ${
+                        formData.type === "investment"
+                          ? "bg-blue-500 hover:bg-blue-600 text-white"
+                          : ""
+                      }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "investment" })
                       }
@@ -895,12 +925,17 @@ export function CategoriesPage() {
                         <span className="text-sm font-medium">
                           {t("more_options") || "More"}
                         </span>
-                        {(formData.group_id || (formData.budget && parseFloat(formData.budget) > 0) || !formData.active) && (
+                        {(formData.group_id ||
+                          (formData.budget &&
+                            parseFloat(formData.budget) > 0) ||
+                          !formData.active) && (
                           <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                             {[
                               formData.group_id ? 1 : 0,
-                              formData.budget && parseFloat(formData.budget) > 0 ? 1 : 0,
-                              !formData.active ? 1 : 0
+                              formData.budget && parseFloat(formData.budget) > 0
+                                ? 1
+                                : 0,
+                              !formData.active ? 1 : 0,
                             ].reduce((a, b) => a + b, 0)}
                           </span>
                         )}
@@ -925,7 +960,9 @@ export function CategoriesPage() {
                           }
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder={t("select_group") || "Select Group"} />
+                            <SelectValue
+                              placeholder={t("select_group") || "Select Group"}
+                            />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">
@@ -955,7 +992,10 @@ export function CategoriesPage() {
                             min="0"
                             value={formData.budget}
                             onChange={(e) =>
-                              setFormData({ ...formData, budget: e.target.value })
+                              setFormData({
+                                ...formData,
+                                budget: e.target.value,
+                              })
                             }
                             placeholder="0.00"
                           />
@@ -964,7 +1004,10 @@ export function CategoriesPage() {
 
                       {/* Active toggle */}
                       <div className="space-y-2">
-                        <label htmlFor="active-mode" className="text-sm font-medium">
+                        <label
+                          htmlFor="active-mode"
+                          className="text-sm font-medium"
+                        >
                           {t("active") || "Active"}
                         </label>
                         <div className="flex items-center h-10">
@@ -1076,13 +1119,14 @@ export function CategoriesPage() {
                         category={category}
                         onEdit={handleEdit}
                         onDelete={handleDeleteClick}
+                        onClick={handleCategoryClick}
                         childCount={children.length}
                         budgetAmount={budget?.amount}
                         isExpanded={isExpanded}
                         groupName={
                           category.group_id
                             ? groups?.find((g) => g.id === category.group_id)
-                              ?.name
+                                ?.name
                             : undefined
                         }
                         onToggleExpand={
@@ -1222,11 +1266,14 @@ export function CategoriesPage() {
                 parentName:
                   conflictData?.parentName || t("root_category") || "Root",
               }) ||
-                `This category has ${conflictData?.childrenCount
-                } subcategories. ${conflictData?.action === "delete"
-                  ? "Deleting"
-                  : "Deactivating"
-                } it will make them inaccessible. Do you want to move them to the parent category (${conflictData?.parentName || "Root"
+                `This category has ${
+                  conflictData?.childrenCount
+                } subcategories. ${
+                  conflictData?.action === "delete"
+                    ? "Deleting"
+                    : "Deactivating"
+                } it will make them inaccessible. Do you want to move them to the parent category (${
+                  conflictData?.parentName || "Root"
                 })?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1245,7 +1292,8 @@ export function CategoriesPage() {
           <DialogHeader>
             <DialogTitle>{t("set_budget")}</DialogTitle>
             <DialogDescription className="sr-only">
-              {t("set_budget_description") || "Set a monthly budget for this category"}
+              {t("set_budget_description") ||
+                "Set a monthly budget for this category"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1285,19 +1333,24 @@ export function CategoriesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Category Detail Sheet */}
-      <CategoryDetailSheet
+      {/* Category Detail Drawer */}
+      <CategoryDetailDrawer
         category={selectedCategory}
         open={detailSheetOpen}
         onOpenChange={setDetailSheetOpen}
         budgetInfo={
-          selectedCategory?.type === "expense"
+          selectedCategory?.type === "expense" && selectedCategory
             ? getCategoryBudgetInfo(selectedCategory.id)
             : null
         }
         parentCategory={getParentCategory(selectedCategory?.parent_id)}
         childrenCount={
           selectedCategory ? getChildrenCount(selectedCategory.id) : 0
+        }
+        groupName={
+          selectedCategory?.group_id
+            ? groups.find((g) => g.id === selectedCategory.group_id)?.name
+            : undefined
         }
         onEdit={() => selectedCategory && handleEdit(selectedCategory)}
         onDelete={() =>
@@ -1311,12 +1364,19 @@ export function CategoriesPage() {
       <Dialog open={migrationDialogOpen} onOpenChange={setMigrationDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("delete_category_with_data") || "Delete Category with Data"}</DialogTitle>
+            <DialogTitle>
+              {t("delete_category_with_data") || "Delete Category with Data"}
+            </DialogTitle>
             <DialogDescription>
               {t("category_has_data_warning", {
                 transactions: migrationData?.transactionCount || 0,
-                recurring: migrationData?.recurringCount || 0
-              }) || `This category is used by ${migrationData?.transactionCount || 0} transactions and ${migrationData?.recurringCount || 0} recurring templates. Please select a new category to move them to.`}
+                recurring: migrationData?.recurringCount || 0,
+              }) ||
+                `This category is used by ${
+                  migrationData?.transactionCount || 0
+                } transactions and ${
+                  migrationData?.recurringCount || 0
+                } recurring templates. Please select a new category to move them to.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -1328,8 +1388,14 @@ export function CategoriesPage() {
               value={migrationTargetId}
               onChange={setMigrationTargetId}
               excludeId={migrationData?.oldCategoryId}
-              type={categories?.find(c => c.id === migrationData?.oldCategoryId)?.type}
-              groupId={categories?.find(c => c.id === migrationData?.oldCategoryId)?.group_id}
+              type={
+                categories?.find((c) => c.id === migrationData?.oldCategoryId)
+                  ?.type
+              }
+              groupId={
+                categories?.find((c) => c.id === migrationData?.oldCategoryId)
+                  ?.group_id
+              }
               modal
             />
           </div>

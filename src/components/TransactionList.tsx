@@ -20,18 +20,22 @@ import { UI_DEFAULTS } from "@/lib/constants";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { it, enUS } from "date-fns/locale";
 import { MobileTransactionRow } from "./MobileTransactionRow";
+import { TransactionDetailDrawer } from "./TransactionDetailDrawer";
+import { useState } from "react";
+import { GroupWithMembers } from "@/hooks/useGroups";
 
 interface TransactionListProps {
   transactions: Transaction[] | undefined;
   categories: Category[] | undefined;
   contexts?: Context[];
-  groups?: Group[];
+  groups?: Group[] | GroupWithMembers[];
   onEdit?: (transaction: Transaction) => void;
   onDelete?: (id: string) => void;
   showActions?: boolean;
   isLoading?: boolean;
   /** Height of the container for virtualization (default: auto-detect) */
   height?: number;
+  hideContext?: boolean;
 }
 
 // Row heights for virtualization
@@ -53,10 +57,19 @@ export function TransactionList({
   showActions = true,
   isLoading = false,
   height,
+  hideContext = false,
 }: TransactionListProps) {
   const { t, i18n } = useTranslation();
   const isMobile = useMobile();
   const parentRef = useRef<HTMLDivElement>(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleRowClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsDrawerOpen(true);
+  };
 
   // Determine if we should virtualize based on item count
   const shouldVirtualize =
@@ -79,7 +92,7 @@ export function TransactionList({
   }, [contexts]);
 
   const groupMap = useMemo(() => {
-    const map = new Map<string, Group>();
+    const map = new Map<string, Group | GroupWithMembers>();
     groups?.forEach((g) => {
       map.set(g.id, g);
     });
@@ -99,6 +112,13 @@ export function TransactionList({
   const getGroup = (id?: string | null) => {
     if (!id) return undefined;
     return groupMap.get(id);
+  };
+
+  const getPersonalAmount = (transaction: Transaction) => {
+    if (!transaction.group_id) return transaction.amount;
+    const group = getGroup(transaction.group_id);
+    if (!group || !("myShare" in group)) return transaction.amount;
+    return (transaction.amount * (group as GroupWithMembers).myShare) / 100;
   };
 
   const getTypeTextColor = (type: string) => {
@@ -168,9 +188,9 @@ export function TransactionList({
       const animationProps =
         !isVirtual && index < 20
           ? {
-              className: "animate-slide-in-up opacity-0 fill-mode-forwards",
-              style: { animationDelay: `${index * 0.03}s` },
-            }
+            className: "animate-slide-in-up opacity-0 fill-mode-forwards",
+            style: { animationDelay: `${index * 0.03}s` },
+          }
           : {};
 
       return (
@@ -191,7 +211,7 @@ export function TransactionList({
             </div>
           </TableCell>
           <TableCell>
-            {context ? (
+            {context && !hideContext ? (
               <div className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-md">
                 <Tag className="h-3 w-3" aria-hidden="true" />
                 {context.name}
@@ -215,9 +235,14 @@ export function TransactionList({
             {t_item.type === "expense"
               ? "-"
               : t_item.type === "investment"
-              ? ""
-              : "+"}
-            €{t_item.amount.toFixed(2)}
+                ? ""
+                : "+"}
+            €{getPersonalAmount(t_item).toFixed(2)}
+            {t_item.group_id && (
+              <div className="text-[10px] text-muted-foreground">
+                {t("your_share")}
+              </div>
+            )}
           </TableCell>
           {showActions && (
             <TableCell>
@@ -295,22 +320,42 @@ export function TransactionList({
     // Virtualized mobile list for large datasets
     if (shouldVirtualize) {
       return (
-        <div
-          ref={parentRef}
-          className="overflow-auto"
-          style={{ height: height ?? 400 }}
-        >
+        <>
           <div
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
+            ref={parentRef}
+            className="overflow-auto"
+            style={{ height: height ?? 400 }}
           >
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const item = groupedItems[virtualRow.index];
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const item = groupedItems[virtualRow.index];
 
-              if (item.type === "header") {
+                if (item.type === "header") {
+                  return (
+                    <div
+                      key={virtualRow.key}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                        padding: "8px 4px",
+                      }}
+                      className="font-semibold text-sm text-muted-foreground sticky z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+                    >
+                      {item.label}
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={virtualRow.key}
@@ -321,73 +366,83 @@ export function TransactionList({
                       width: "100%",
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start}px)`,
-                      padding: "8px 4px",
+                      padding: "0 4px",
                     }}
-                    className="font-semibold text-sm text-muted-foreground sticky z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
                   >
-                    {item.label}
+                    <MobileTransactionRow
+                      transaction={item.data}
+                      category={getCategory(item.data.category_id)}
+                      context={getContext(item.data.context_id)}
+                      group={getGroup(item.data.group_id)}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onClick={() => handleRowClick(item.data)}
+                      isVirtual={true}
+                      hideContext={hideContext}
+                      personalAmount={getPersonalAmount(item.data)}
+                      isGroupShare={!!item.data.group_id}
+                    />
                   </div>
                 );
-              }
-
-              return (
-                <div
-                  key={virtualRow.key}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${virtualRow.start}px)`,
-                    padding: "0 4px",
-                  }}
-                >
-                  <MobileTransactionRow
-                    transaction={item.data}
-                    category={getCategory(item.data.category_id)}
-                    context={getContext(item.data.context_id)}
-                    group={getGroup(item.data.group_id)}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    isVirtual={true}
-                  />
-                </div>
-              );
-            })}
+              })}
+            </div>
           </div>
-        </div>
+          <TransactionDetailDrawer
+            transaction={selectedTransaction}
+            category={getCategory(selectedTransaction?.category_id)}
+            context={getContext(selectedTransaction?.context_id)}
+            group={getGroup(selectedTransaction?.group_id)}
+            open={isDrawerOpen}
+            onOpenChange={setIsDrawerOpen}
+            onEdit={onEdit}
+          />
+        </>
       );
     }
 
     // Non-virtualized mobile list for small datasets
     return (
-      <div className="space-y-1">
-        {groupedItems.map((item) => {
-          if (item.type === "header") {
+      <>
+        <div className="space-y-1">
+          {groupedItems.map((item) => {
+            if (item.type === "header") {
+              return (
+                <div
+                  key={`header-${item.date}`}
+                  className="font-semibold text-sm text-muted-foreground pt-4 pb-2 px-1 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+                >
+                  {item.label}
+                </div>
+              );
+            }
             return (
-              <div
-                key={`header-${item.date}`}
-                className="font-semibold text-sm text-muted-foreground pt-4 pb-2 px-1 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-              >
-                {item.label}
-              </div>
+              <MobileTransactionRow
+                key={item.data.id}
+                transaction={item.data}
+                category={getCategory(item.data.category_id)}
+                context={getContext(item.data.context_id)}
+                group={getGroup(item.data.group_id)}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onClick={() => handleRowClick(item.data)}
+                isVirtual={false}
+                hideContext={hideContext}
+                personalAmount={getPersonalAmount(item.data)}
+                isGroupShare={!!item.data.group_id}
+              />
             );
-          }
-          return (
-            <MobileTransactionRow
-              key={item.data.id}
-              transaction={item.data}
-              category={getCategory(item.data.category_id)}
-              context={getContext(item.data.context_id)}
-              group={getGroup(item.data.group_id)}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              isVirtual={false}
-            />
-          );
-        })}
-      </div>
+          })}
+        </div>
+        <TransactionDetailDrawer
+          transaction={selectedTransaction}
+          category={getCategory(selectedTransaction?.category_id)}
+          context={getContext(selectedTransaction?.context_id)}
+          group={getGroup(selectedTransaction?.group_id)}
+          open={isDrawerOpen}
+          onOpenChange={setIsDrawerOpen}
+          onEdit={onEdit}
+        />
+      </>
     );
   }
 

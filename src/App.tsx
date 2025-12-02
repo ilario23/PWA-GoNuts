@@ -7,7 +7,7 @@ import {
 import { Suspense, lazy } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthPage } from "@/pages/AuthPage";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/contexts/AuthProvider";
 import { useOnlineSync } from "@/hooks/useOnlineSync";
 import { useSync } from "@/hooks/useSync";
 import { useAutoGenerate } from "@/hooks/useAutoGenerate";
@@ -102,12 +102,39 @@ function AppLoadingState() {
   );
 }
 
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { syncManager } from "@/lib/sync";
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isOffline } = useAuth();
   useOnlineSync(); // Auto-sync when coming online
-  useSync(); // Background sync with 2s delay (non-blocking)
+  const { initialSyncComplete } = useSync(); // Read sync status
+  useRealtimeSync(initialSyncComplete); // Subscribe to realtime changes only after initial sync
   useAutoGenerate(); // Generate recurring transactions on app load
   useBudgetNotifications(); // Monitor budget and show warnings
+
+  // Handle initial sync and visibility changes
+  useEffect(() => {
+    // Initial sync
+    const timer = setTimeout(() => {
+      console.log("[App] Starting initial sync...");
+      syncManager.sync();
+    }, 1000);
+
+    // Visibility listener
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        console.log("[App] App hidden, pushing pending changes...");
+        syncManager.pushOnly();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   if (loading) {
     return <AppLoadingState />;
@@ -179,120 +206,122 @@ function App() {
   return (
     <ErrorBoundary section="App">
       <Router>
-        <ThemeProvider>
-          <Toaster />
-          <PWAUpdateNotification />
-          <PWAInstallPrompt />
-          <OfflineIndicator />
-          <Routes>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <AppShell>
-                    <Routes>
-                      <Route
-                        path="/"
-                        element={
-                          <ErrorBoundary section="Dashboard" minimal>
-                            <Suspense fallback={<PageLoadingFallback />}>
-                              <Dashboard />
-                            </Suspense>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/transactions"
-                        element={
-                          <ErrorBoundary section="Transazioni" minimal>
-                            <Suspense fallback={<PageLoadingFallback />}>
-                              <TransactionsPage />
-                            </Suspense>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/recurring"
-                        element={
-                          <ErrorBoundary
-                            section="Transazioni Ricorrenti"
-                            minimal
-                          >
-                            <Suspense fallback={<PageLoadingFallback />}>
-                              <RecurringTransactionsPage />
-                            </Suspense>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/categories"
-                        element={
-                          <ErrorBoundary section="Categorie" minimal>
-                            <Suspense fallback={<PageLoadingFallback />}>
-                              <CategoriesPage />
-                            </Suspense>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/contexts"
-                        element={
-                          <ErrorBoundary section="Contesti" minimal>
-                            <Suspense fallback={<PageLoadingFallback />}>
-                              <ContextsPage />
-                            </Suspense>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/groups"
-                        element={
-                          <ErrorBoundary section="Gruppi" minimal>
-                            <Suspense fallback={<PageLoadingFallback />}>
-                              <GroupsPage />
-                            </Suspense>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/groups/:groupId"
-                        element={
-                          <ErrorBoundary section="Dettaglio Gruppo" minimal>
-                            <Suspense fallback={<PageLoadingFallback />}>
-                              <GroupDetailPage />
-                            </Suspense>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/statistics"
-                        element={
-                          <ErrorBoundary section="Statistiche" minimal>
-                            <Suspense fallback={<PageLoadingFallback />}>
-                              <StatisticsPage />
-                            </Suspense>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/settings"
-                        element={
-                          <ErrorBoundary section="Impostazioni" minimal>
-                            <Suspense fallback={<PageLoadingFallback />}>
-                              <SettingsPage />
-                            </Suspense>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <Toaster />
+            <PWAUpdateNotification />
+            <PWAInstallPrompt />
+            <OfflineIndicator />
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <AppShell>
+                      <Routes>
+                        <Route
+                          path="/"
+                          element={
+                            <ErrorBoundary section="Dashboard" minimal>
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <Dashboard />
+                              </Suspense>
+                            </ErrorBoundary>
+                          }
+                        />
+                        <Route
+                          path="/transactions"
+                          element={
+                            <ErrorBoundary section="Transazioni" minimal>
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <TransactionsPage />
+                              </Suspense>
+                            </ErrorBoundary>
+                          }
+                        />
+                        <Route
+                          path="/recurring"
+                          element={
+                            <ErrorBoundary
+                              section="Transazioni Ricorrenti"
+                              minimal
+                            >
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <RecurringTransactionsPage />
+                              </Suspense>
+                            </ErrorBoundary>
+                          }
+                        />
+                        <Route
+                          path="/categories"
+                          element={
+                            <ErrorBoundary section="Categorie" minimal>
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <CategoriesPage />
+                              </Suspense>
+                            </ErrorBoundary>
+                          }
+                        />
+                        <Route
+                          path="/contexts"
+                          element={
+                            <ErrorBoundary section="Contesti" minimal>
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <ContextsPage />
+                              </Suspense>
+                            </ErrorBoundary>
+                          }
+                        />
+                        <Route
+                          path="/groups"
+                          element={
+                            <ErrorBoundary section="Gruppi" minimal>
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <GroupsPage />
+                              </Suspense>
+                            </ErrorBoundary>
+                          }
+                        />
+                        <Route
+                          path="/groups/:groupId"
+                          element={
+                            <ErrorBoundary section="Dettaglio Gruppo" minimal>
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <GroupDetailPage />
+                              </Suspense>
+                            </ErrorBoundary>
+                          }
+                        />
+                        <Route
+                          path="/statistics"
+                          element={
+                            <ErrorBoundary section="Statistiche" minimal>
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <StatisticsPage />
+                              </Suspense>
+                            </ErrorBoundary>
+                          }
+                        />
+                        <Route
+                          path="/settings"
+                          element={
+                            <ErrorBoundary section="Impostazioni" minimal>
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <SettingsPage />
+                              </Suspense>
+                            </ErrorBoundary>
+                          }
+                        />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </AppShell>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </ThemeProvider>
+        </AuthProvider>
       </Router>
     </ErrorBoundary>
   );

@@ -19,7 +19,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, Tag } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
@@ -49,7 +49,7 @@ function MobileContextRow({
   );
 
   const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 300;
+    const threshold = 220;
     if (info.offset.x < -threshold) {
       onDelete(context.id);
     } else if (info.offset.x > threshold) {
@@ -79,7 +79,7 @@ function MobileContextRow({
       <motion.div
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
+        dragElastic={0.7}
         onDragEnd={handleDragEnd}
         style={{ x, touchAction: "pan-y" }}
         className="relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3"
@@ -185,7 +185,9 @@ export function ContextsPage() {
                 {editingId ? t("edit_context") || t("edit") : t("add_context")}
               </DialogTitle>
               <DialogDescription className="sr-only">
-                {editingId ? t("edit_context_description") || "Edit context details" : t("add_context_description") || "Add a new context"}
+                {editingId
+                  ? t("edit_context_description") || "Edit context details"
+                  : t("add_context_description") || "Add a new context"}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">

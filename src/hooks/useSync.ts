@@ -18,6 +18,8 @@ export interface UseSyncResult {
   retryError: (errorKey: string) => Promise<void>;
   /** Retry all failed items */
   retryAllErrors: () => Promise<void>;
+  /** Whether the initial startup sync has completed */
+  initialSyncComplete: boolean;
 }
 
 export function useSync(): UseSyncResult {
@@ -27,6 +29,7 @@ export function useSync(): UseSyncResult {
     pendingCount: 0,
     errorCount: 0,
     errors: [],
+    initialSyncComplete: false,
   });
 
   const sync = useCallback(async () => {
@@ -44,16 +47,7 @@ export function useSync(): UseSyncResult {
   useEffect(() => {
     // Subscribe to sync status changes
     const unsubscribe = syncManager.onSyncChange(setStatus);
-
-    // ✅ Sync all'avvio (dopo 2s delay)
-    // Usa fullSync() per essere sicuri di avere tutti i dati
-    const initialSyncTimeout = setTimeout(() => {
-      console.log("[useSync] Starting sync after 2s delay");
-      syncManager.sync();
-    }, 2000);
-
     return () => {
-      clearTimeout(initialSyncTimeout);
       unsubscribe();
     };
   }, []);
@@ -67,5 +61,6 @@ export function useSync(): UseSyncResult {
     sync,
     retryError,
     retryAllErrors,
+    initialSyncComplete: status.initialSyncComplete,
   };
 }

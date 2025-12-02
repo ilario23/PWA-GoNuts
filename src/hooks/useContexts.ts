@@ -56,7 +56,7 @@ export function useContexts() {
       pendingSync: 1,
       deleted_at: null,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   const updateContext = async (
@@ -70,7 +70,7 @@ export function useContexts() {
       ...validatedUpdates,
       pendingSync: 1,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   const deleteContext = async (id: string) => {
@@ -78,7 +78,7 @@ export function useContexts() {
       deleted_at: new Date().toISOString(),
       pendingSync: 1,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   return {

@@ -25,15 +25,17 @@ import {
   PiggyBank,
   ArrowUpRight,
   ArrowDownRight,
-}
-  from "lucide-react";
-import { TransactionDialog, TransactionFormData } from "@/components/TransactionDialog";
+} from "lucide-react";
+import {
+  TransactionDialog,
+  TransactionFormData,
+} from "@/components/TransactionDialog";
 import { useState, useCallback, useMemo } from "react";
 import { useCategories } from "@/hooks/useCategories";
 import { FlipCard } from "@/components/ui/flip-card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 
 export function Dashboard() {
   const { transactions, addTransaction } = useTransactions();
@@ -47,16 +49,16 @@ export function Dashboard() {
   // Chart config - memoized since it depends on translation
   const chartConfig = useMemo(
     () =>
-    ({
-      cumulative: {
-        label: t("cumulative_expenses"),
-        color: "hsl(0 84.2% 60.2%)",
-      },
-      projection: {
-        label: t("projection"),
-        color: "#eb630fff",
-      },
-    } satisfies ChartConfig),
+      ({
+        cumulative: {
+          label: t("cumulative_expenses"),
+          color: "hsl(0 84.2% 60.2%)",
+        },
+        projection: {
+          label: t("projection"),
+          color: "#eb630fff",
+        },
+      } satisfies ChartConfig),
     [t]
   );
 
@@ -144,8 +146,9 @@ export function Dashboard() {
           {Array.from({ length: chartViewsCount }).map((_, i) => (
             <div
               key={i}
-              className={`h-1.5 w-1.5 rounded-full transition-colors ${i === index ? "bg-primary" : "bg-muted-foreground/30"
-                }`}
+              className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                i === index ? "bg-primary" : "bg-muted-foreground/30"
+              }`}
             />
           ))}
         </div>
@@ -236,7 +239,14 @@ export function Dashboard() {
                         />
                         <ChartTooltip
                           cursor={false}
-                          content={<ChartTooltipContent indicator="line" valueFormatter={(value) => `€${Number(value).toLocaleString()}`} />}
+                          content={
+                            <ChartTooltipContent
+                              indicator="line"
+                              valueFormatter={(value) =>
+                                `€${Number(value).toLocaleString()}`
+                              }
+                            />
+                          }
                         />
                         <Area
                           dataKey="cumulative"
@@ -275,7 +285,6 @@ export function Dashboard() {
                     />
                     <span>{t("chart_legend_projection")}</span>
                   </div>
-
                 </div>
               </CardContent>
             </Card>
@@ -296,11 +305,10 @@ export function Dashboard() {
                     categories={categories}
                     showActions={false}
                     isLoading={transactions === undefined}
+                    hideContext={true}
                   />
                 </ScrollArea>
-                <div className="mt-2 flex justify-end pt-2">
-
-                </div>
+                <div className="mt-2 flex justify-end pt-2"></div>
               </CardContent>
             </Card>
           );
@@ -343,12 +351,13 @@ export function Dashboard() {
                   <div className="space-y-2">
                     <div className="h-6 w-full bg-muted rounded-full overflow-hidden">
                       <div
-                        className={`h-full transition-all duration-500 rounded-full ${isOverBudget
-                          ? "bg-red-500"
-                          : budgetUsedPercentage > 80
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          isOverBudget
+                            ? "bg-red-500"
+                            : budgetUsedPercentage > 80
                             ? "bg-yellow-500"
                             : "bg-green-500"
-                          }`}
+                        }`}
                         style={{
                           width: `${Math.min(budgetUsedPercentage, 100)}%`,
                         }}
@@ -356,12 +365,13 @@ export function Dashboard() {
                     </div>
                     <div className="flex justify-between text-base">
                       <span
-                        className={`font-medium ${isOverBudget
-                          ? "text-red-600"
-                          : budgetUsedPercentage > 80
+                        className={`font-medium ${
+                          isOverBudget
+                            ? "text-red-600"
+                            : budgetUsedPercentage > 80
                             ? "text-yellow-600"
                             : "text-green-600"
-                          }`}
+                        }`}
                       >
                         {budgetUsedPercentage.toFixed(0)}% {t("used")}
                       </span>
@@ -374,8 +384,8 @@ export function Dashboard() {
                       >
                         {isOverBudget
                           ? `+€${Math.abs(budgetRemaining).toFixed(2)} ${t(
-                            "over"
-                          )}`
+                              "over"
+                            )}`
                           : `€${budgetRemaining.toFixed(2)} ${t("remaining")}`}
                       </span>
                     </div>
@@ -395,9 +405,7 @@ export function Dashboard() {
                     </div>
                   </div>
                 </div>
-                <div className="mt-auto flex justify-end">
-
-                </div>
+                <div className="mt-auto flex justify-end"></div>
               </CardContent>
             </Card>
           );
@@ -465,22 +473,23 @@ export function Dashboard() {
           {Array.from({ length: statsCount }).map((_, i) => (
             <div
               key={i}
-              className={`h-1.5 w-1.5 rounded-full transition-colors ${i === index
-                ? index === 0
-                  ? "bg-red-500"
-                  : index === 1
+              className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                i === index
+                  ? index === 0
+                    ? "bg-red-500"
+                    : index === 1
                     ? "bg-green-500"
                     : index === 2
-                      ? balance >= 0
-                        ? "bg-emerald-500"
-                        : "bg-red-500"
-                      : isOverBudget
-                        ? "bg-red-500"
-                        : budgetUsedPercentage > 80
-                          ? "bg-amber-500"
-                          : "bg-blue-500"
-                : "bg-muted-foreground/30"
-                }`}
+                    ? balance >= 0
+                      ? "bg-emerald-500"
+                      : "bg-red-500"
+                    : isOverBudget
+                    ? "bg-red-500"
+                    : budgetUsedPercentage > 80
+                    ? "bg-amber-500"
+                    : "bg-blue-500"
+                  : "bg-muted-foreground/30"
+              }`}
             />
           ))}
         </div>
@@ -539,10 +548,11 @@ export function Dashboard() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div
-                    className={`p-1.5 rounded-md ${balance >= 0
-                      ? "bg-emerald-500/15 text-green-500"
-                      : "bg-red-500/15 text-red-500"
-                      }`}
+                    className={`p-1.5 rounded-md ${
+                      balance >= 0
+                        ? "bg-emerald-500/15 text-green-500"
+                        : "bg-red-500/15 text-red-500"
+                    }`}
                   >
                     <PiggyBank className="h-5 w-5" />
                   </div>
@@ -553,15 +563,17 @@ export function Dashboard() {
                 {dotIndicators}
               </div>
               <p
-                className={`text-3xl font-bold tracking-tight ${balance >= 0 ? "text-green-500" : "text-red-500"
-                  }`}
+                className={`text-3xl font-bold tracking-tight ${
+                  balance >= 0 ? "text-green-500" : "text-red-500"
+                }`}
               >
                 {balance >= 0 ? "+" : "-"}€{Math.abs(balance).toFixed(2)}
               </p>
 
               <div
-                className={`absolute -right-4 -bottom-4 opacity-[0.07] ${balance >= 0 ? "text-green-500" : "text-red-500"
-                  }`}
+                className={`absolute -right-4 -bottom-4 opacity-[0.07] ${
+                  balance >= 0 ? "text-green-500" : "text-red-500"
+                }`}
               >
                 <PiggyBank className="h-24 w-24" />
               </div>
@@ -574,12 +586,13 @@ export function Dashboard() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div
-                    className={`p-1.5 rounded-md ${isOverBudget
-                      ? "bg-red-500/20 text-red-600"
-                      : budgetUsedPercentage > 80
+                    className={`p-1.5 rounded-md ${
+                      isOverBudget
+                        ? "bg-red-500/20 text-red-600"
+                        : budgetUsedPercentage > 80
                         ? "bg-amber-500/20 text-amber-600"
                         : "bg-blue-500/20 text-blue-600"
-                      }`}
+                    }`}
                   ></div>
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t("budget")}
@@ -589,12 +602,13 @@ export function Dashboard() {
               </div>
               <div className="flex items-baseline gap-2">
                 <p
-                  className={`text-3xl font-bold tracking-tight ${isOverBudget
-                    ? "text-red-600"
-                    : budgetUsedPercentage > 80
+                  className={`text-3xl font-bold tracking-tight ${
+                    isOverBudget
+                      ? "text-red-600"
+                      : budgetUsedPercentage > 80
                       ? "text-amber-600"
                       : "text-blue-600"
-                    }`}
+                  }`}
                 >
                   {budgetUsedPercentage.toFixed(0)}%
                 </p>
@@ -604,12 +618,13 @@ export function Dashboard() {
               </div>
               <div className="mt-2 h-2 w-full bg-muted/50 rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-500 rounded-full ${isOverBudget
-                    ? "bg-red-500"
-                    : budgetUsedPercentage > 80
+                  className={`h-full transition-all duration-500 rounded-full ${
+                    isOverBudget
+                      ? "bg-red-500"
+                      : budgetUsedPercentage > 80
                       ? "bg-amber-500"
                       : "bg-blue-500"
-                    }`}
+                  }`}
                   style={{
                     width: `${Math.min(budgetUsedPercentage, 100)}%`,
                   }}
@@ -617,12 +632,13 @@ export function Dashboard() {
               </div>
 
               <div
-                className={`absolute -right-4 -bottom-4 opacity-[0.07] ${isOverBudget
-                  ? "text-red-500"
-                  : budgetUsedPercentage > 80
+                className={`absolute -right-4 -bottom-4 opacity-[0.07] ${
+                  isOverBudget
+                    ? "text-red-500"
+                    : budgetUsedPercentage > 80
                     ? "text-amber-500"
                     : "text-blue-500"
-                  }`}
+                }`}
               ></div>
             </div>
           );
@@ -675,7 +691,7 @@ export function Dashboard() {
       {/* Mobile Summary Stats - Smart FlipCard Carousel */}
       <div className="md:hidden">
         <FlipCard
-          className="h-[120px]"
+          className="h-[max(100px,12vh)]"
           isFlipped={isFlipped}
           onFlip={handleStatFlip}
           direction="right"
@@ -688,7 +704,7 @@ export function Dashboard() {
       <div className="grid gap-4 md:grid-cols-[1fr_auto]">
         {/* Cumulative Expenses Chart - FlipCard with 3 states */}
         <FlipCard
-          className="h-[55vh] min-h-[420px]"
+          className="h-[max(350px,calc(100vh-280px))] md:h-[55vh] md:min-h-[420px]"
           isFlipped={isChartFlipped}
           onFlip={handleChartFlip}
           direction="right"
@@ -731,8 +747,9 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div
-                className={`text-2xl font-bold ${balance >= 0 ? "text-green-600" : "text-red-600"
-                  }`}
+                className={`text-2xl font-bold ${
+                  balance >= 0 ? "text-green-600" : "text-red-600"
+                }`}
               >
                 €{balance.toFixed(2)}
               </div>
@@ -753,6 +770,7 @@ export function Dashboard() {
                 categories={categories}
                 showActions={false}
                 isLoading={transactions === undefined}
+                hideContext={true}
               />
             </ScrollArea>
           </CardContent>

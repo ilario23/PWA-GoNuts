@@ -76,7 +76,7 @@ export function useCategories(groupId?: string | null) {
       pendingSync: 1,
       deleted_at: null,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   const updateCategory = async (
@@ -90,7 +90,7 @@ export function useCategories(groupId?: string | null) {
       ...validatedUpdates,
       pendingSync: 1,
     });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   const deleteCategory = async (id: string) => {
@@ -98,6 +98,7 @@ export function useCategories(groupId?: string | null) {
       deleted_at: new Date().toISOString(),
       pendingSync: 1,
     });
+    syncManager.schedulePush();
   };
 
   const reparentChildren = async (
@@ -112,7 +113,7 @@ export function useCategories(groupId?: string | null) {
         parent_id: newParentId,
         pendingSync: 1,
       });
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   const migrateTransactions = async (
@@ -120,13 +121,10 @@ export function useCategories(groupId?: string | null) {
     newCategoryId: string
   ) => {
     // Find all transactions with the old category
-    await db.transactions
-      .where("category_id")
-      .equals(oldCategoryId)
-      .modify({
-        category_id: newCategoryId,
-        pendingSync: 1,
-      });
+    await db.transactions.where("category_id").equals(oldCategoryId).modify({
+      category_id: newCategoryId,
+      pendingSync: 1,
+    });
 
     // Also migrate recurring transactions
     await db.recurring_transactions
@@ -137,7 +135,7 @@ export function useCategories(groupId?: string | null) {
         pendingSync: 1,
       });
 
-    syncManager.sync();
+    syncManager.schedulePush();
   };
 
   return {

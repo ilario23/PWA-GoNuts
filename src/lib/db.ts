@@ -185,6 +185,8 @@ export interface RecurringTransaction {
   pendingSync?: number;
   /** Server-assigned sync token */
   sync_token?: number;
+  /** Creation timestamp (ISO 8601) */
+  created_at?: string;
 }
 
 /**

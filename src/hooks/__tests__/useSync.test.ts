@@ -10,6 +10,7 @@ jest.mock("../../lib/sync", () => {
     pendingCount: 0,
     errorCount: 0,
     errors: [],
+    initialSyncComplete: false,
   };
 
   return {
