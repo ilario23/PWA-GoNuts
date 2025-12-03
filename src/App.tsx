@@ -51,6 +51,9 @@ const StatisticsPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import("@/pages/Settings").then((m) => ({ default: m.SettingsPage }))
 );
+const ProfilePage = lazy(() =>
+  import("@/pages/Profile").then((m) => ({ default: m.ProfilePage }))
+);
 
 /**
  * Loading fallback for lazy-loaded pages
@@ -309,6 +312,16 @@ function App() {
                             <ErrorBoundary section="Impostazioni" minimal>
                               <Suspense fallback={<PageLoadingFallback />}>
                                 <SettingsPage />
+                              </Suspense>
+                            </ErrorBoundary>
+                          }
+                        />
+                        <Route
+                          path="/profile"
+                          element={
+                            <ErrorBoundary section="Profilo" minimal>
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <ProfilePage />
                               </Suspense>
                             </ErrorBoundary>
                           }
