@@ -360,6 +360,7 @@
   "gone_offline": "Sei offline",
   "gone_offline_description": "Le modifiche saranno salvate localmente e sincronizzate quando tornerai online.",
   "offline_banner_message": "Offline - le modifiche saranno sincronizzate alla riconnessione",
+  "offline_tooltip": "Sei offline",
   "loading_offline": "Caricamento dati offline...",
   "loading_offline_description": "Sei offline. Caricamento dei dati salvati localmente.",
   "offline_no_session_title": "Sei Offline",

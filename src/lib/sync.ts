@@ -68,8 +68,8 @@ const SYNC_CONFIG = {
   batchSize: 50,
   /** Items that fail more than this many times are quarantined */
   quarantineThreshold: 5,
-  /** Delay for debounced push (ms) */
-  pushDelay: 30000,
+  /** Delay for debounced push (ms) - 0 for immediate sync when online */
+  pushDelay: 0,
 } as const;
 
 // ============================================================================

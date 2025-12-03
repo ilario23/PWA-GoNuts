@@ -36,10 +36,11 @@ function ensureGlobalHandlers() {
     // Notify all listeners
     onlineListeners.forEach((cb) => cb(false));
 
-    // Show toast only once (globally)
+    // Show toast only once (globally) - small toast at top
     toast.warning(i18n.t("gone_offline"), {
       description: i18n.t("gone_offline_description"),
-      duration: 5000,
+      duration: 3000,
+      position: "top-center",
     });
 
     console.log("[OnlineSync] Gone offline");

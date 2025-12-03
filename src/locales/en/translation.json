@@ -360,6 +360,7 @@
   "gone_offline": "You're offline",
   "gone_offline_description": "Changes will be saved locally and synced when you're back online.",
   "offline_banner_message": "Offline - changes will sync when connected",
+  "offline_tooltip": "You're offline",
   "loading_offline": "Loading offline data...",
   "loading_offline_description": "You're offline. Loading your locally stored data.",
   "offline_no_session_title": "You're Offline",
