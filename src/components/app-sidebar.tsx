@@ -10,7 +10,6 @@ import {
     Layers,
     PieChart,
     Users,
-    LogOut,
     Squirrel,
     ChevronUp,
     User2,
@@ -35,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/AuthProvider"
 import { useOnlineSync } from "@/hooks/useOnlineSync"
+import { useProfile } from "@/hooks/useProfiles"
 import { cn } from "@/lib/utils"
 import packageJson from "../../package.json"
 
@@ -42,9 +42,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const { t } = useTranslation()
     const location = useLocation()
     const navigate = useNavigate()
-    const { user, signOut } = useAuth()
+    const { user } = useAuth()
     const { isOnline } = useOnlineSync()
     const { setOpenMobile } = useSidebar()
+    const profile = useProfile(user?.id)
 
     const navigation = [
         { name: t("dashboard"), href: "/", icon: LayoutDashboard },
@@ -57,9 +58,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         { name: t("settings"), href: "/settings", icon: Settings },
     ]
 
-    const handleSignOut = async () => {
-        await signOut()
-        navigate("/auth")
+    const handleProfileClick = () => {
+        navigate("/profile")
+        setOpenMobile(false)
     }
 
     return (
@@ -112,7 +113,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                         <User2 className="size-4" />
                                     </div>
                                     <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                                        <span className="truncate font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
+                                        <span className="truncate font-semibold">{profile?.full_name || user?.email?.split('@')[0] || 'User'}</span>
                                         <span className="truncate text-xs">{user?.email}</span>
                                     </div>
                                     <ChevronUp className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
@@ -122,9 +123,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 side="top"
                                 className="w-[--radix-popper-anchor-width]"
                             >
-                                <DropdownMenuItem onClick={handleSignOut}>
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>{t("logout")}</span>
+                                <DropdownMenuItem onClick={handleProfileClick}>
+                                    <User2 className="mr-2 h-4 w-4" />
+                                    <span>{t("view_profile")}</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
