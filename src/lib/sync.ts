@@ -12,8 +12,22 @@
  * @module lib/sync
  */
 
-import { db } from "./db";
+import {
+  db,
+  Group,
+  GroupMember,
+  Transaction,
+  Category,
+  Context,
+  RecurringTransaction,
+  CategoryBudget,
+  Profile,
+  Setting,
+} from "./db";
 import { supabase } from "./supabase";
+import { Tables, TablesInsert } from "../types/supabase";
+import { toast } from "sonner";
+import i18n from "@/i18n";
 
 const TABLES = [
   "groups",
@@ -27,6 +41,17 @@ const TABLES = [
 ] as const;
 
 type TableName = (typeof TABLES)[number];
+
+type LocalTableMap = {
+  groups: Group;
+  group_members: GroupMember;
+  transactions: Transaction;
+  categories: Category;
+  contexts: Context;
+  recurring_transactions: RecurringTransaction;
+  category_budgets: CategoryBudget;
+  profiles: Profile;
+};
 
 // ============================================================================
 // CONFIGURATION
@@ -360,9 +385,9 @@ export class SyncManager {
   /**
    * Push a batch of items with retry logic
    */
-  private async pushBatchWithRetry(
-    tableName: TableName,
-    items: any[],
+  private async pushBatchWithRetry<T extends TableName>(
+    tableName: T,
+    items: LocalTableMap[T][],
     userId: string
   ): Promise<void> {
     const itemsToPush = items.map((item) =>
@@ -373,7 +398,7 @@ export class SyncManager {
 
     for (let attempt = 0; attempt < SYNC_CONFIG.maxRetries; attempt++) {
       try {
-        const { error } = await supabase.from(tableName).upsert(itemsToPush);
+        const { error } = await supabase.from(tableName).upsert(itemsToPush as any);
 
         if (error) {
           throw new Error(error.message);
@@ -392,8 +417,7 @@ export class SyncManager {
       } catch (error) {
         lastError = error as Error;
         console.warn(
-          `[Sync] Attempt ${attempt + 1}/${
-            SYNC_CONFIG.maxRetries
+          `[Sync] Attempt ${attempt + 1}/${SYNC_CONFIG.maxRetries
           } failed for ${tableName}:`,
           error
         );
@@ -431,16 +455,18 @@ export class SyncManager {
   /**
    * Prepare an item for pushing to Supabase
    */
-  private prepareItemForPush(
-    item: any,
-    tableName: TableName,
+  private prepareItemForPush<T extends TableName>(
+    item: LocalTableMap[T],
+    tableName: T,
     userId: string
-  ): any {
+  ): TablesInsert<T> {
     // Remove local-only fields
-    const { pendingSync, year_month, ...rest } = item;
+    const itemCopy = { ...item } as any;
+    delete itemCopy.pendingSync;
+    delete itemCopy.year_month;
 
     const pushItem = {
-      ...rest,
+      ...itemCopy,
       updated_at: new Date().toISOString(),
     };
 
@@ -449,7 +475,9 @@ export class SyncManager {
       pushItem.user_id = userId;
     }
 
-    return pushItem;
+    // Cast to unknown first to avoid type overlap issues, then to TablesInsert<T>
+    // This is safe because we're constructing a valid insert object based on the schema
+    return pushItem as unknown as TablesInsert<T>;
   }
 
   /**
@@ -459,6 +487,7 @@ export class SyncManager {
     const userSettings = await db.user_settings.get(userId);
     const lastSyncToken = userSettings?.last_sync_token || 0;
     let maxToken = lastSyncToken;
+    const newGroupTransactions: any[] = [];
 
     for (const tableName of TABLES) {
       try {
@@ -488,12 +517,32 @@ export class SyncManager {
               continue;
             }
 
+            // Track new group transactions for toast notification
+            if (
+              tableName === "transactions" &&
+              "group_id" in item &&
+              item.group_id &&
+              "user_id" in item &&
+              item.user_id !== userId
+            ) {
+              // Check if I am a member of this group
+              const membership = await db.group_members
+                .where("group_id")
+                .equals(item.group_id as string)
+                .and((m: any) => m.user_id === userId && !m.removed_at)
+                .first();
+
+              if (membership) {
+                newGroupTransactions.push(item);
+              }
+            }
+
             // Calculate year_month for transactions if missing
             const localItem = this.prepareItemForLocal(item, tableName);
             await db.table(tableName).put(localItem);
 
-            if (item.sync_token > maxToken) {
-              maxToken = item.sync_token;
+            if ((item.sync_token || 0) > maxToken) {
+              maxToken = item.sync_token || 0;
             }
           }
         });
@@ -507,6 +556,9 @@ export class SyncManager {
     if (maxToken > lastSyncToken) {
       await this.updateLastSyncToken(userId, maxToken, userSettings);
     }
+
+    // Show toast notification for new group transactions
+    await this.showGroupTransactionToast(newGroupTransactions);
   }
 
   /**
@@ -515,6 +567,7 @@ export class SyncManager {
    */
   private async pullAll(userId: string): Promise<void> {
     let maxToken = 0;
+    const newGroupTransactions: any[] = [];
 
     for (const tableName of TABLES) {
       try {
@@ -545,6 +598,26 @@ export class SyncManager {
               continue;
             }
 
+            // Track new group transactions for toast notification
+            if (
+              tableName === "transactions" &&
+              "group_id" in item &&
+              item.group_id &&
+              "user_id" in item &&
+              item.user_id !== userId
+            ) {
+              // Check if I am a member of this group
+              const membership = await db.group_members
+                .where("group_id")
+                .equals(item.group_id as string)
+                .and((m: any) => m.user_id === userId && !m.removed_at)
+                .first();
+
+              if (membership) {
+                newGroupTransactions.push(item);
+              }
+            }
+
             // Calculate year_month for transactions if missing
             const localItem = this.prepareItemForLocal(item, tableName);
             await db.table(tableName).put(localItem);
@@ -566,42 +639,53 @@ export class SyncManager {
       const userSettings = await db.user_settings.get(userId);
       await this.updateLastSyncToken(userId, maxToken, userSettings);
     }
+
+    // Show toast notification for new group transactions
+    await this.showGroupTransactionToast(newGroupTransactions);
   }
 
   /**
    * Check if we should update local with remote data
    * Implements last-write-wins conflict resolution
    */
-  private async shouldUpdateLocal(
-    tableName: TableName,
-    remoteItem: any
+  private async shouldUpdateLocal<T extends TableName>(
+    tableName: T,
+    remoteItem: Tables<T>
   ): Promise<boolean> {
     const existing = await db.table(tableName).get(remoteItem.id);
 
     if (!existing) return true;
-    if (existing.pendingSync !== 1) return true;
+    // Local has pending changes - ALWAYS keep local to avoid overwriting user work
+    // The user will need to resolve this conflict later (Phase 3)
+    if (existing.pendingSync === 1) {
+      console.log(
+        `[Sync] Conflict detected for ${tableName} ${remoteItem.id} - keeping local pending change`
+      );
+      return false;
+    }
 
-    // Local has pending changes - compare timestamps
-    const localTime = existing.updated_at
-      ? new Date(existing.updated_at).getTime()
-      : 0;
-    const remoteTime = remoteItem.updated_at
-      ? new Date(remoteItem.updated_at).getTime()
-      : 0;
+    // If no pending local changes, trust the server's sync_token
+    // We only update if the server has a newer version (higher token)
+    // This avoids issues with clock skew since we don't rely on timestamps
+    const localToken = existing.sync_token || 0;
+    const remoteToken = remoteItem.sync_token || 0;
 
-    return remoteTime > localTime;
+    return remoteToken > localToken;
   }
 
   /**
    * Prepare a remote item for local storage.
    * Normalizes data types that differ between Supabase (PostgreSQL) and IndexedDB.
    */
-  private prepareItemForLocal(item: any, tableName: TableName): any {
-    const localItem = { ...item, pendingSync: 0 };
+  private prepareItemForLocal<T extends TableName>(
+    item: Tables<T>,
+    tableName: T
+  ): LocalTableMap[T] {
+    const localItem: any = { ...item, pendingSync: 0 };
 
     // Calculate year_month for transactions
-    if (tableName === "transactions" && item.date) {
-      localItem.year_month = item.date.substring(0, 7);
+    if (tableName === "transactions" && "date" in item && item.date) {
+      localItem.year_month = (item.date as string).substring(0, 7);
     }
 
     // Normalize boolean -> number for 'active' field
@@ -611,6 +695,56 @@ export class SyncManager {
     }
 
     return localItem;
+  }
+
+  /**
+   * Show toast notification for new group transactions.
+   * If one transaction, show full details. If multiple, show summary.
+   */
+  private async showGroupTransactionToast(
+    transactions: any[]
+  ): Promise<void> {
+    if (transactions.length === 0) return;
+
+    if (transactions.length === 1) {
+      // Single transaction - show detailed toast
+      const txn = transactions[0];
+      const group = await db.groups.get(txn.group_id);
+      const groupName = group?.name || "Unknown Group";
+
+      // Get payer name
+      let payerName = "Someone";
+      if (txn.paid_by_user_id) {
+        const payerProfile = await db.profiles.get(txn.paid_by_user_id);
+        payerName =
+          payerProfile?.full_name || payerProfile?.email || "Someone";
+      }
+
+      toast.info(
+        i18n.t("new_group_transaction", {
+          defaultValue: "New transaction in {{group}}",
+          group: groupName,
+        }),
+        {
+          description: `${payerName}: ${txn.description} (€${txn.amount})`,
+          duration: 5000,
+        }
+      );
+    } else {
+      // Multiple transactions - show summary
+      toast.info(
+        i18n.t("new_group_transactions", {
+          defaultValue: "{{count}} new group transactions",
+          count: transactions.length,
+        }),
+        {
+          description: i18n.t("new_group_transactions_desc", {
+            defaultValue: "Synced from your groups",
+          }),
+          duration: 5000,
+        }
+      );
+    }
   }
 
   /**
@@ -638,7 +772,7 @@ export class SyncManager {
   private async updateLastSyncToken(
     userId: string,
     maxToken: number,
-    existingSettings: any
+    existingSettings: Setting | undefined
   ): Promise<void> {
     if (existingSettings) {
       await db.user_settings.update(userId, { last_sync_token: maxToken });
@@ -704,19 +838,19 @@ export class SyncManager {
       // Map Supabase column names to local field names
       const localItem = {
         user_id: data.user_id,
-        currency: data.currency,
-        language: data.language,
-        theme: data.theme,
-        accentColor: data.accent_color, // Map snake_case to camelCase
-        start_of_week: data.start_of_week,
-        default_view: data.default_view,
+        currency: data.currency || "EUR",
+        language: data.language || "en",
+        theme: (data.theme as any) || "light",
+        accentColor: data.accent_color || "slate", // Map snake_case to camelCase
+        start_of_week: (data.start_of_week as any) || "monday",
+        default_view: (data.default_view as any) || "list",
         include_investments_in_expense_totals:
-          data.include_investments_in_expense_totals,
-        include_group_expenses: data.include_group_expenses,
+          data.include_investments_in_expense_totals || false,
+        include_group_expenses: data.include_group_expenses || false,
         monthly_budget: data.monthly_budget,
-        cached_month: data.cached_month,
+        cached_month: data.cached_month || undefined,
         last_sync_token: localSettings?.last_sync_token || 0, // Preserve local sync token
-        updated_at: data.updated_at,
+        updated_at: data.updated_at || undefined,
       };
 
       await db.user_settings.put(localItem);
