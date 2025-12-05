@@ -470,14 +470,20 @@ Hook that automatically syncs when the app comes back online.
 **Location**: [src/hooks/useOnlineSync.ts](file:///Users/ilariopc/Code/react/pwa-antigravity/src/hooks/useOnlineSync.ts)
 
 ```typescript
-function useOnlineSync(): void;
+function useOnlineSync(): {
+  isOnline: boolean;
+};
 ```
+
+**Returns**:
+
+- `isOnline`: Whether the browser is currently online
 
 **Usage**: Call once in a top-level component (already used in `ProtectedRoute`)
 
 ```typescript
 function ProtectedRoute({ children }) {
-  useOnlineSync(); // Auto-sync when coming online
+  const { isOnline } = useOnlineSync(); // Auto-sync when coming online
   // ...
 }
 ```
@@ -491,14 +497,20 @@ Hook for Supabase Realtime subscriptions - instant cross-device sync.
 **Location**: [src/hooks/useRealtimeSync.ts](file:///src/hooks/useRealtimeSync.ts)
 
 ```typescript
-function useRealtimeSync(): {
+function useRealtimeSync(enabled?: boolean): {
   isConnected: boolean;
+  lastEvent: RealtimeEvent | null;
+  reconnect: () => Promise<void>;
+  unsubscribe: () => Promise<void>;
 };
 ```
 
 **Returns**:
 
 - `isConnected`: True if Realtime connection is active
+- `lastEvent`: Last received Realtime event (for debugging)
+- `reconnect`: Function to manually reconnect
+- `unsubscribe`: Function to manually unsubscribe
 
 **Features**:
 

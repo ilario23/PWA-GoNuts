@@ -2,7 +2,7 @@
 
 This document provides a detailed technical overview of the Personal Expense Tracker PWA architecture, design patterns, and implementation details.
 
-## 🎉 What's New in v0.6.1
+## 🎉 What's New in v0.7.0
 
 ### User Identity System (Public Profiles)
 - **`public.profiles` table** with automatic user creation trigger
@@ -12,8 +12,8 @@ This document provides a detailed technical overview of the Personal Expense Tra
 - **Hooks**: `useProfiles(userIds)` and `useProfile(userId)`
 - **Component**: `<UserAvatar>` for consistent user display
 
-### Minimalist Sync Strategy
-- **Removed Supabase Realtime** - No more WebSocket connections
+### Hybrid Sync Strategy
+- **Restored Supabase Realtime** - Instant cross-device updates
 - **Push-only sync** when device comes online
 - **Manual refresh buttons** on all data pages (Groups, etc.)
 - **Pending Changes Indicator** with badge in header
@@ -464,15 +464,15 @@ class SyncManager {
 - **Rationale**: Single-user app, conflicts are rare
 - **Future**: Could implement CRDTs for multi-device scenarios
 
-### Minimalist Sync Strategy (v0.6.1)
+### Hybrid Sync Strategy (v0.7.0)
 
-The app uses a **minimalist, local-first sync strategy** optimized for simplicity and reliability:
+The app uses a **hybrid sync strategy** that combines the reliability of offline-first storage with the immediacy of realtime updates:
 
 **Core Principles**:
-1. **Push-only when online** - No automatic background polling
-2. **Manual refresh** - User explicitly pulls latest data
-3. **No Realtime WebSockets** - Removed Supabase Realtime for simplicity
-4. **Pending changes indicator** - Visual feedback for unsynced data
+1.  **Local-First**: All writes go to IndexedDB first.
+2.  **Push on Online**: Pending changes are pushed to Supabase when the device comes online.
+3.  **Realtime Listeners**: The app listens for changes from other devices via Supabase Realtime.
+4.  **Manual Refresh**: Users can explicitly pull the latest data.
 
 **How It Works**:
 
@@ -485,30 +485,19 @@ window.addEventListener('online', () => {
   syncManager.sync(); // Pushes pendingSync items
 });
 
-// 3. Manual refresh → Pull latest from server
-<Button onClick={() => syncManager.sync()}>Refresh</Button>
+// 3. Realtime → Listen for remote changes
+useRealtimeSync(); // Subscribes to Supabase changes and updates IndexedDB
 ```
 
 **Benefits**:
-- ✅ Simpler architecture (no WebSocket management)
-- ✅ Better battery life (no persistent connections)
-- ✅ More predictable behavior (user-controlled sync)
-- ✅ Easier to debug (explicit sync triggers)
+-   ✅ **Instant Updates**: See changes from other devices immediately.
+-   ✅ **Offline Reliability**: Works perfectly without internet.
+-   ✅ **Battery Efficient**: Realtime connection is managed intelligently.
 
-**Visual Feedback**:
-- `<PendingChangesIndicator>` shows badge with pending count
-- Manual refresh buttons on all data pages (Groups, etc.)
-- Debounced online events (300ms) prevent spam
-
-**Removed**:
-- `useRealtimeSync` hook deleted
-- Supabase Realtime subscriptions removed
-- Automatic channel management eliminated
-
-**Migration from Realtime** (v0.5.3 → v0.6.1):
-- Users who prefer instant cross-device sync can manually refresh
-- Offline-first guarantees no data loss
-- Simpler mental model: "pull when you need fresh data"
+**Realtime Implementation**:
+-   `useRealtimeSync` hook manages subscriptions.
+-   Updates are written to IndexedDB, triggering reactive UI updates via `useLiveQuery`.
+-   Last-write-wins conflict resolution based on `updated_at`.
 
 ### Sync Triggers
 

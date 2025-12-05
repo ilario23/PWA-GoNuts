@@ -2,20 +2,21 @@
 
 A modern, offline-first Progressive Web App for managing personal finances. Track your income, expenses, and investments with a beautiful, responsive interface that works seamlessly online and offline.
 
-![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)
 ![React](https://img.shields.io/badge/React-19.2-61dafb.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## ✨ Key Features
 
-### 🔄 Offline-First Architecture
+### 🔄 Hybrid Offline-First Architecture
 
 - **Full offline functionality** - All features work without internet connection
 - **Local-first data storage** using IndexedDB (Dexie)
-- **Automatic background sync** when connection is restored
+- **Hybrid Sync Strategy**:
+  - **Push/Pull Sync**: Automatic background sync when connection is restored
+  - **Realtime Sync**: Instant cross-device updates via Supabase Realtime
 - **Delta synchronization** for efficient data updates
-- **Realtime sync** with Supabase Realtime for instant cross-device updates
 - **Conflict-free sync** using sync tokens (last-write-wins)
 
 ### 💰 Financial Management
