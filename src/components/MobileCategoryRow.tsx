@@ -103,6 +103,7 @@ export function MobileCategoryRow({
             onClick(category);
           }
         }}
+        whileTap={{ scale: 0.98 }}
         style={{
           x,
           touchAction: "pan-y",

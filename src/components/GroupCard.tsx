@@ -100,6 +100,8 @@ export function GroupCard({
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.7}
         onDragEnd={handleDragEnd}
+        whileHover={{ y: -4 }}
+        whileTap={{ scale: 0.98 }}
         style={{ x, touchAction: "pan-y" }}
         className="relative bg-card rounded-xl border shadow-sm h-full flex flex-col"
       >

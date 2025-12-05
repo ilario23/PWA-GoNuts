@@ -109,6 +109,7 @@ export function MobileTransactionRow({
         dragElastic={0.7}
         onDragEnd={handleDragEnd}
         onClick={onClick}
+        whileTap={{ scale: 0.98 }}
         style={{ x, touchAction: "pan-y" }} // Important for vertical scrolling
         className="relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px]"
       >

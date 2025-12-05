@@ -3,7 +3,10 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import { PageTransition } from "@/components/PageTransition";
 import { Suspense, lazy } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthPage } from "@/pages/AuthPage";
@@ -198,6 +201,138 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AppRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route
+          path="/"
+          element={
+            <ErrorBoundary section="Dashboard" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <Dashboard />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/transactions"
+          element={
+            <ErrorBoundary section="Transazioni" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <TransactionsPage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/recurring"
+          element={
+            <ErrorBoundary section="Transazioni Ricorrenti" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <RecurringTransactionsPage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/categories"
+          element={
+            <ErrorBoundary section="Categorie" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <CategoriesPage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/contexts"
+          element={
+            <ErrorBoundary section="Contesti" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <ContextsPage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/groups"
+          element={
+            <ErrorBoundary section="Gruppi" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <GroupsPage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/groups/:groupId"
+          element={
+            <ErrorBoundary section="Dettaglio Gruppo" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <GroupDetailPage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/statistics"
+          element={
+            <ErrorBoundary section="Statistiche" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <StatisticsPage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ErrorBoundary section="Impostazioni" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <SettingsPage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ErrorBoundary section="Profilo" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <ProfilePage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary section="App">
@@ -215,112 +350,7 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AppShell>
-                      <Routes>
-                        <Route
-                          path="/"
-                          element={
-                            <ErrorBoundary section="Dashboard" minimal>
-                              <Suspense fallback={<PageLoadingFallback />}>
-                                <Dashboard />
-                              </Suspense>
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/transactions"
-                          element={
-                            <ErrorBoundary section="Transazioni" minimal>
-                              <Suspense fallback={<PageLoadingFallback />}>
-                                <TransactionsPage />
-                              </Suspense>
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/recurring"
-                          element={
-                            <ErrorBoundary
-                              section="Transazioni Ricorrenti"
-                              minimal
-                            >
-                              <Suspense fallback={<PageLoadingFallback />}>
-                                <RecurringTransactionsPage />
-                              </Suspense>
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/categories"
-                          element={
-                            <ErrorBoundary section="Categorie" minimal>
-                              <Suspense fallback={<PageLoadingFallback />}>
-                                <CategoriesPage />
-                              </Suspense>
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/contexts"
-                          element={
-                            <ErrorBoundary section="Contesti" minimal>
-                              <Suspense fallback={<PageLoadingFallback />}>
-                                <ContextsPage />
-                              </Suspense>
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/groups"
-                          element={
-                            <ErrorBoundary section="Gruppi" minimal>
-                              <Suspense fallback={<PageLoadingFallback />}>
-                                <GroupsPage />
-                              </Suspense>
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/groups/:groupId"
-                          element={
-                            <ErrorBoundary section="Dettaglio Gruppo" minimal>
-                              <Suspense fallback={<PageLoadingFallback />}>
-                                <GroupDetailPage />
-                              </Suspense>
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/statistics"
-                          element={
-                            <ErrorBoundary section="Statistiche" minimal>
-                              <Suspense fallback={<PageLoadingFallback />}>
-                                <StatisticsPage />
-                              </Suspense>
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/settings"
-                          element={
-                            <ErrorBoundary section="Impostazioni" minimal>
-                              <Suspense fallback={<PageLoadingFallback />}>
-                                <SettingsPage />
-                              </Suspense>
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="/profile"
-                          element={
-                            <ErrorBoundary section="Profilo" minimal>
-                              <Suspense fallback={<PageLoadingFallback />}>
-                                <ProfilePage />
-                              </Suspense>
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                      </Routes>
+                      <AppRoutes />
                     </AppShell>
                   </ProtectedRoute>
                 }
