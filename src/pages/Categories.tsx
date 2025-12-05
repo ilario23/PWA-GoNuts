@@ -74,6 +74,7 @@ import { SyncStatusBadge } from "@/components/SyncStatus";
 import { CategorySelector } from "@/components/CategorySelector";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { ContentLoader } from "@/components/ui/content-loader";
+import { SmoothLoader } from "@/components/ui/smooth-loader";
 import type { Category } from "@/lib/db";
 import { MobileCategoryRow } from "@/components/MobileCategoryRow";
 import { motion, AnimatePresence } from "framer-motion";
@@ -714,6 +715,8 @@ export function CategoriesPage() {
     return getChildren(categoryId).length;
   };
 
+  const isLoading = !categories;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -1047,137 +1050,148 @@ export function CategoriesPage() {
 
       {/* Mobile View: Grouped by Type */}
       <div className="space-y-3 md:hidden">
-        {!categories ? (
-          <ContentLoader variant="category-mobile" count={5} />
-        ) : categories.length === 0 ? (
-          <div className="text-muted-foreground text-center py-8">
-            {t("no_categories") || "No categories"}
-          </div>
-        ) : (
-          <div className="pb-20">
-            {/* Render each type group */}
-            {["expense", "income", "investment"].map((type) => {
-              const categoriesOfType = filteredCategories.filter(
-                (c) => c.type === type
-              );
-              if (categoriesOfType.length === 0) return null;
-
-              // Toggle function using component-level state
-              const toggleExpand = (categoryId: string) => {
-                setExpandedCategoryIds((prev) => {
-                  const newSet = new Set(prev);
-                  if (newSet.has(categoryId)) {
-                    newSet.delete(categoryId);
-                  } else {
-                    newSet.add(categoryId);
-                  }
-                  return newSet;
-                });
-              };
-
-              // Recursive function to render a category and its children
-              const renderCategory = (
-                category: Category,
-                depth: number = 0,
-                index: number = 0
-              ): React.ReactNode => {
-                const children = categoriesOfType.filter(
-                  (c) => c.parent_id === category.id
+        <SmoothLoader
+          isLoading={isLoading}
+          skeleton={<ContentLoader variant="category-mobile" count={5} />}
+        >
+          {categories && categories.length === 0 ? (
+            <div className="text-muted-foreground text-center py-8">
+              {t("no_categories") || "No categories"}
+            </div>
+          ) : (
+            <div className="pb-20">
+              {/* Render each type group */}
+              {["expense", "income", "investment"].map((type) => {
+                const categoriesOfType = filteredCategories.filter(
+                  (c) => c.type === type
                 );
-                const budget =
-                  category.type === "expense"
-                    ? getBudgetForCategory(category.id)
-                    : null;
-                const isExpanded = expandedCategoryIds.has(category.id);
+                if (categoriesOfType.length === 0) return null;
 
-                return (
-                  <motion.div
-                    key={category.id}
-                    className={depth > 0 ? "mt-1" : ""}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{
-                      duration: 0.2,
-                      delay: depth === 0 ? index * 0.05 : 0, // Stagger only for root categories
-                    }}
-                  >
-                    <div
-                      style={{
-                        marginLeft: depth > 0 ? `${depth * 16}px` : "0",
-                        paddingLeft: depth > 0 ? "8px" : "0",
-                        borderLeft:
-                          depth > 0 ? "2px solid hsl(var(--muted))" : "none",
+                // Toggle function using component-level state
+                const toggleExpand = (categoryId: string) => {
+                  setExpandedCategoryIds((prev) => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(categoryId)) {
+                      newSet.delete(categoryId);
+                    } else {
+                      newSet.add(categoryId);
+                    }
+                    return newSet;
+                  });
+                };
+
+                // Recursive function to render a category and its children
+                const renderCategory = (
+                  category: Category,
+                  depth: number = 0,
+                  index: number = 0
+                ): React.ReactNode => {
+                  const children = categoriesOfType.filter(
+                    (c) => c.parent_id === category.id
+                  );
+                  const budget =
+                    category.type === "expense"
+                      ? getBudgetForCategory(category.id)
+                      : null;
+                  const isExpanded = expandedCategoryIds.has(category.id);
+
+                  return (
+                    <motion.div
+                      key={category.id}
+                      className={depth > 0 ? "mt-1" : ""}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{
+                        duration: 0.2,
+                        delay: depth === 0 ? index * 0.05 : 0, // Stagger only for root categories
                       }}
                     >
-                      <MobileCategoryRow
-                        category={category}
-                        onEdit={handleEdit}
-                        onDelete={handleDeleteClick}
-                        onClick={handleCategoryClick}
-                        childCount={children.length}
-                        budgetAmount={budget?.amount}
-                        isExpanded={isExpanded}
-                        groupName={
-                          category.group_id
-                            ? groups?.find((g) => g.id === category.group_id)
-                              ?.name
-                            : undefined
-                        }
-                        onToggleExpand={
-                          children.length > 0
-                            ? () => toggleExpand(category.id)
-                            : undefined
-                        }
-                      />
-                    </div>
+                      <div
+                        style={{
+                          marginLeft: depth > 0 ? `${depth * 16}px` : "0",
+                          paddingLeft: depth > 0 ? "8px" : "0",
+                          borderLeft:
+                            depth > 0 ? "2px solid hsl(var(--muted))" : "none",
+                        }}
+                      >
+                        <MobileCategoryRow
+                          category={category}
+                          onEdit={handleEdit}
+                          onDelete={handleDeleteClick}
+                          onClick={handleCategoryClick}
+                          childCount={children.length}
+                          budgetAmount={budget?.amount}
+                          isExpanded={isExpanded}
+                          groupName={
+                            category.group_id
+                              ? groups?.find((g) => g.id === category.group_id)
+                                ?.name
+                              : undefined
+                          }
+                          onToggleExpand={
+                            children.length > 0
+                              ? () => toggleExpand(category.id)
+                              : undefined
+                          }
+                        />
+                      </div>
 
-                    {/* Recursively render children - only if expanded - with AnimatePresence */}
-                    <AnimatePresence>
-                      {children.length > 0 && isExpanded && (
-                        <motion.div
-                          className="space-y-1 overflow-hidden"
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3, ease: "easeInOut" }}
-                        >
-                          {children.map((child, childIndex) =>
-                            renderCategory(child, depth + 1, childIndex)
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
+                      {/* Recursively render children - only if expanded - with AnimatePresence */}
+                      <AnimatePresence>
+                        {children.length > 0 && isExpanded && (
+                          <motion.div
+                            className="space-y-1 overflow-hidden"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                          >
+                            {children.map((child, childIndex) =>
+                              renderCategory(child, depth + 1, childIndex)
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                };
+
+                // Get root categories (no parent) for this type
+                const rootCategories = categoriesOfType.filter(
+                  (c) => !c.parent_id
                 );
-              };
 
-              // Get root categories (no parent) for this type
-              const rootCategories = categoriesOfType.filter(
-                (c) => !c.parent_id
-              );
+                return (
+                  <div key={type} className="mb-6">
+                    {/* Type header */}
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-3 px-1 sticky top-0 bg-background/95 backdrop-blur z-10 py-2 uppercase tracking-wider">
+                      {t(type)}
+                    </h3>
 
-              return (
-                <div key={type} className="mb-6">
-                  {/* Type header */}
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-3 px-1 sticky top-0 bg-background/95 backdrop-blur z-10 py-2 uppercase tracking-wider">
-                    {t(type)}
-                  </h3>
-
-                  <div className="space-y-4">
-                    {rootCategories.map((category, index) =>
-                      renderCategory(category, 0, index)
-                    )}
+                    <div className="space-y-4">
+                      {rootCategories.map((category, index) =>
+                        renderCategory(category, 0, index)
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </SmoothLoader>
       </div>
 
       {/* Desktop View: Table with Collapsible */}
-      <div className="hidden md:block rounded-md border">
+      < SmoothLoader
+        isLoading={isLoading}
+        skeleton={
+          < div className="hidden md:block rounded-md border p-4" >
+            <ContentLoader variant="category-desktop" count={5} />
+          </div >
+        }
+        className="hidden md:block rounded-md border"
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -1189,28 +1203,20 @@ export function CategoriesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!categories ? (
-              <tr>
-                <td colSpan={5}>
-                  <ContentLoader variant="category-desktop" count={5} />
-                </td>
-              </tr>
-            ) : (
-              <DesktopCategoryRows
-                categories={rootCategories}
-                depth={0}
-                getChildren={getChildren}
-                hasChildren={hasChildren}
-                expandedCategories={expandedCategories}
-                toggleCategory={toggleCategory}
-                onCategoryClick={handleCategoryClick}
-                t={t}
-                groups={groups}
-              />
-            )}
+            <DesktopCategoryRows
+              categories={rootCategories}
+              depth={0}
+              getChildren={getChildren}
+              hasChildren={hasChildren}
+              expandedCategories={expandedCategories}
+              toggleCategory={toggleCategory}
+              onCategoryClick={handleCategoryClick}
+              t={t}
+              groups={groups}
+            />
           </TableBody>
         </Table>
-      </div>
+      </SmoothLoader >
 
       <DeleteConfirmDialog
         open={deleteDialogOpen}
@@ -1384,6 +1390,6 @@ export function CategoriesPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }

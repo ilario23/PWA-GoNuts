@@ -1407,7 +1407,13 @@ export function useStatistics(params?: UseStatisticsParams) {
   // Correct, recurringVsOneTime and calendarHeatmap were calculated but NOT returned.
   // I will remove them completely to improve performance.
 
+  const isLoading =
+    (mode === "monthly" && !transactions) ||
+    (mode === "yearly" && !yearlyTransactions) ||
+    !categories;
+
   return {
+    isLoading,
     currentMonth,
     currentYear,
     monthlyStats,

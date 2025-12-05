@@ -36,6 +36,9 @@ import { FlipCard } from "@/components/ui/flip-card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthProvider";
+import { SmoothLoader } from "@/components/ui/smooth-loader";
+import { ContentLoader } from "@/components/ui/content-loader";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function Dashboard() {
   const { transactions, addTransaction } = useTransactions();
@@ -63,7 +66,7 @@ export function Dashboard() {
   );
 
   // Get current month statistics
-  const { monthlyStats, dailyCumulativeExpenses } = useStatistics({
+  const { monthlyStats, dailyCumulativeExpenses, isLoading: isStatsLoading } = useStatistics({
     selectedMonth: currentMonth,
     userId: user?.id,
   });
@@ -169,106 +172,113 @@ export function Dashboard() {
                 {dotIndicators}
               </CardHeader>
               <CardContent className="flex-1 flex flex-col min-h-0">
-                {dailyCumulativeExpenses.length > 0 ? (
-                  <div className="flex-1 w-full min-h-0">
-                    <ChartContainer
-                      config={chartConfig}
-                      className="h-full w-full"
-                    >
-                      <AreaChart
-                        accessibilityLayer
-                        data={dailyCumulativeExpenses}
-                        margin={{
-                          left: -5,
-                          right: 12,
-                          top: 12,
-                          bottom: 12,
-                        }}
+                <SmoothLoader
+                  isLoading={isStatsLoading}
+                  skeleton={<ContentLoader variant="chart" />}
+                  className="flex-1 w-full min-h-0"
+                >
+                  {dailyCumulativeExpenses.length > 0 ? (
+                    <div className="items-center justify-center flex w-full h-full">
+                      {/* Note: Recharts needs container dimensions. We wrap it to be safe */}
+                      <ChartContainer
+                        config={chartConfig}
+                        className="h-full w-full"
                       >
-                        <defs>
-                          <linearGradient
-                            id="cumulativeGradient"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="5%"
-                              stopColor="var(--color-cumulative)"
-                              stopOpacity={0.8}
-                            />
-                            <stop
-                              offset="95%"
-                              stopColor="var(--color-cumulative)"
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
-                          <linearGradient
-                            id="projectionGradient"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="5%"
-                              stopColor="var(--color-projection)"
-                              stopOpacity={0.6}
-                            />
-                            <stop
-                              offset="95%"
-                              stopColor="var(--color-projection)"
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          dataKey="day"
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          tickFormatter={(value) => `${value}`}
-                        />
-                        <YAxis
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          tickFormatter={(value) => `€${value}`}
-                        />
-                        <ChartTooltip
-                          cursor={false}
-                          content={
-                            <ChartTooltipContent
-                              indicator="line"
-                              valueFormatter={(value) =>
-                                `€${Number(value).toLocaleString()}`
-                              }
-                            />
-                          }
-                        />
-                        <Area
-                          dataKey="cumulative"
-                          type="monotone"
-                          fill="url(#cumulativeGradient)"
-                          stroke="var(--color-cumulative)"
-                        />
-                        <Area
-                          dataKey="projection"
-                          type="monotone"
-                          fill="url(#projectionGradient)"
-                          stroke="var(--color-projection)"
-                          strokeDasharray="5 5"
-                        />
-                      </AreaChart>
-                    </ChartContainer>
-                  </div>
-                ) : (
-                  <div className="flex flex-1 items-center justify-center text-muted-foreground">
-                    {t("no_data")}
-                  </div>
-                )}
+                        <AreaChart
+                          accessibilityLayer
+                          data={dailyCumulativeExpenses}
+                          margin={{
+                            left: -5,
+                            right: 12,
+                            top: 12,
+                            bottom: 12,
+                          }}
+                        >
+                          <defs>
+                            <linearGradient
+                              id="cumulativeGradient"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor="var(--color-cumulative)"
+                                stopOpacity={0.8}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="var(--color-cumulative)"
+                                stopOpacity={0.1}
+                              />
+                            </linearGradient>
+                            <linearGradient
+                              id="projectionGradient"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor="var(--color-projection)"
+                                stopOpacity={0.6}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="var(--color-projection)"
+                                stopOpacity={0.1}
+                              />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid vertical={false} />
+                          <XAxis
+                            dataKey="day"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => `${value}`}
+                          />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => `€${value}`}
+                          />
+                          <ChartTooltip
+                            cursor={false}
+                            content={
+                              <ChartTooltipContent
+                                indicator="line"
+                                valueFormatter={(value) =>
+                                  `€${Number(value).toLocaleString()}`
+                                }
+                              />
+                            }
+                          />
+                          <Area
+                            dataKey="cumulative"
+                            type="monotone"
+                            fill="url(#cumulativeGradient)"
+                            stroke="var(--color-cumulative)"
+                          />
+                          <Area
+                            dataKey="projection"
+                            type="monotone"
+                            fill="url(#projectionGradient)"
+                            stroke="var(--color-projection)"
+                            strokeDasharray="5 5"
+                          />
+                        </AreaChart>
+                      </ChartContainer>
+                    </div>
+                  ) : (
+                    <div className="flex flex-1 items-center justify-center text-muted-foreground h-full">
+                      {t("no_data")}
+                    </div>
+                  )}
+                </SmoothLoader>
                 {/* Chart Legend */}
                 <div className="flex flex-wrap items-center gap-4 mt-auto pt-4 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5">
@@ -506,9 +516,14 @@ export function Dashboard() {
                 </div>
                 {dotIndicators}
               </div>
-              <p className="text-3xl font-bold tracking-tight text-red-500">
-                -€{totalExpense.toFixed(2)}
-              </p>
+              <SmoothLoader
+                isLoading={isStatsLoading}
+                skeleton={<Skeleton className="h-9 w-32" />}
+              >
+                <p className="text-3xl font-bold tracking-tight text-red-500">
+                  -€{totalExpense.toFixed(2)}
+                </p>
+              </SmoothLoader>
 
               <div className="absolute -right-4 -bottom-4 opacity-[0.07] text-red-500">
                 <TrendingDown className="h-24 w-24" />
@@ -529,9 +544,14 @@ export function Dashboard() {
                 </div>
                 {dotIndicators}
               </div>
-              <p className="text-3xl font-bold tracking-tight text-green-500">
-                +€{totalIncome.toFixed(2)}
-              </p>
+              <SmoothLoader
+                isLoading={isStatsLoading}
+                skeleton={<Skeleton className="h-9 w-32" />}
+              >
+                <p className="text-3xl font-bold tracking-tight text-green-500">
+                  +€{totalIncome.toFixed(2)}
+                </p>
+              </SmoothLoader>
 
               <div className="absolute -right-4 -bottom-4 opacity-[0.07] text-green-500">
                 <TrendingUp className="h-24 w-24" />
@@ -557,12 +577,17 @@ export function Dashboard() {
                 </div>
                 {dotIndicators}
               </div>
-              <p
-                className={`text-3xl font-bold tracking-tight ${balance >= 0 ? "text-green-500" : "text-red-500"
-                  }`}
+              <SmoothLoader
+                isLoading={isStatsLoading}
+                skeleton={<Skeleton className="h-9 w-32" />}
               >
-                {balance >= 0 ? "+" : "-"}€{Math.abs(balance).toFixed(2)}
-              </p>
+                <p
+                  className={`text-3xl font-bold tracking-tight ${balance >= 0 ? "text-green-500" : "text-red-500"
+                    }`}
+                >
+                  {balance >= 0 ? "+" : "-"}€{Math.abs(balance).toFixed(2)}
+                </p>
+              </SmoothLoader>
 
               <div
                 className={`absolute -right-4 -bottom-4 opacity-[0.07] ${balance >= 0 ? "text-green-500" : "text-red-500"
@@ -711,9 +736,14 @@ export function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                -€{totalExpense.toFixed(2)}
-              </div>
+              <SmoothLoader
+                isLoading={isStatsLoading}
+                skeleton={<Skeleton className="h-8 w-28" />}
+              >
+                <div className="text-2xl font-bold text-red-600">
+                  -€{totalExpense.toFixed(2)}
+                </div>
+              </SmoothLoader>
             </CardContent>
           </Card>
           <Card>
@@ -723,9 +753,14 @@ export function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                +€{totalIncome.toFixed(2)}
-              </div>
+              <SmoothLoader
+                isLoading={isStatsLoading}
+                skeleton={<Skeleton className="h-8 w-28" />}
+              >
+                <div className="text-2xl font-bold text-green-600">
+                  +€{totalIncome.toFixed(2)}
+                </div>
+              </SmoothLoader>
             </CardContent>
           </Card>
           <Card>
@@ -735,12 +770,17 @@ export function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div
-                className={`text-2xl font-bold ${balance >= 0 ? "text-green-600" : "text-red-600"
-                  }`}
+              <SmoothLoader
+                isLoading={isStatsLoading}
+                skeleton={<Skeleton className="h-8 w-28" />}
               >
-                €{balance.toFixed(2)}
-              </div>
+                <div
+                  className={`text-2xl font-bold ${balance >= 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                >
+                  €{balance.toFixed(2)}
+                </div>
+              </SmoothLoader>
             </CardContent>
           </Card>
         </div>
