@@ -1,10 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   useGroups,
   GroupWithMembers,
-  calculateSettlement,
 } from "@/hooks/useGroups";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useSync } from "@/hooks/useSync";
@@ -13,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { ContentLoader } from "@/components/ui/content-loader";
-import { Badge } from "@/components/ui/badge";
+
 import {
   Dialog,
   DialogContent,
@@ -33,31 +32,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import {
   Plus,
   Users,
   Check,
   AlertTriangle,
-  ArrowUpRight,
-  ArrowDownRight,
   IdCard,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { GroupCard } from "@/components/GroupCard";
-import { UserAvatar } from "@/components/UserAvatar";
-import { BalanceStatusCard } from "@/components/BalanceStatusCard";
-import { SettlementPlan } from "@/components/SettlementPlan";
-import { BalanceChart } from "@/components/BalanceChart";
 import { ManageMembersDrawer } from "@/components/ManageMembersDrawer";
+import { GroupBalanceDrawer } from "@/components/GroupBalanceDrawer";
 
 interface GroupFormData {
   name: string;
@@ -95,7 +82,7 @@ export function GroupsPage() {
     ReturnType<typeof getGroupBalance>
   > | null>(null);
   const [copiedUserId, setCopiedUserId] = useState(false);
-  const [balanceTab, setBalanceTab] = useState("settlement");
+  // balanceTab removed - GroupBalanceDrawer uses Accordion instead of Tabs
 
   const [formData, setFormData] = useState<GroupFormData>({
     name: "",
@@ -105,6 +92,19 @@ export function GroupsPage() {
   const managingGroup = useMemo(() => {
     return groups?.find((g) => g.id === managingGroupId) || null;
   }, [groups, managingGroupId]);
+
+  // Auto-refresh balance data when drawer is open and data might have changed
+  useEffect(() => {
+    if (!viewingBalance) return;
+
+    const refreshBalance = async () => {
+      const data = await getGroupBalance(viewingBalance.id);
+      setBalanceData(data);
+    };
+
+    refreshBalance();
+  }, [viewingBalance, groups, getGroupBalance]);
+
 
   const handleCreateGroup = async () => {
     if (!formData.name.trim()) {
@@ -389,177 +389,18 @@ export function GroupsPage() {
         onOpenChange={(open) => !open && setManagingGroupId(null)}
       />
 
-      {/* View Balance Dialog */}
-      <Dialog
+      {/* Group Balance Drawer (Mobile-First) */}
+      <GroupBalanceDrawer
+        group={viewingBalance}
+        balanceData={balanceData}
         open={!!viewingBalance}
         onOpenChange={(open) => {
           if (!open) {
             setViewingBalance(null);
-            setBalanceTab("settlement"); // Reset to default tab
           }
         }}
-      >
-        <DialogContent className="max-w-[95vw] md:max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t("group_balance")}</DialogTitle>
-          </DialogHeader>
-
-          {balanceData &&
-            user &&
-            viewingBalance &&
-            (() => {
-              // Calculate settlements
-              const settlements = calculateSettlement(balanceData.balances);
-              const myBalance = balanceData.balances[user.id];
-              const netBalance = myBalance?.balance || 0;
-
-              return (
-                <div className="space-y-6 py-4">
-                  {/* Hero Status Card */}
-                  <BalanceStatusCard
-                    netBalance={netBalance}
-                    groupName={viewingBalance.name}
-                    totalExpenses={balanceData.totalExpenses}
-                    settlementsCount={
-                      settlements.filter(
-                        (s) => s.from === user.id || s.to === user.id
-                      ).length
-                    }
-                    onViewPlan={() => setBalanceTab("settlement")}
-                  />
-
-                  {/* Tabs */}
-                  <Tabs value={balanceTab} onValueChange={setBalanceTab}>
-                    {/* Mobile View: Dropdown */}
-                    <div className="md:hidden mb-4">
-                      <Select value={balanceTab} onValueChange={setBalanceTab}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue
-                            placeholder={t("select_view") || "Select view"}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="settlement">
-                            {t("settlement_plan")}
-                          </SelectItem>
-                          <SelectItem value="visual">
-                            {t("visual_breakdown")}
-                          </SelectItem>
-                          <SelectItem value="details">
-                            {t("member_details")}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Desktop View: Tabs */}
-                    <TabsList className="hidden md:grid w-full grid-cols-3">
-                      <TabsTrigger value="settlement">
-                        {t("settlement_plan")}
-                      </TabsTrigger>
-                      <TabsTrigger value="visual">
-                        {t("visual_breakdown")}
-                      </TabsTrigger>
-                      <TabsTrigger value="details">
-                        {t("member_details")}
-                      </TabsTrigger>
-                    </TabsList>
-
-                    {/* Settlement Plan Tab */}
-                    <TabsContent value="settlement" className="mt-4">
-                      <SettlementPlan
-                        settlements={settlements}
-                        balances={balanceData.balances}
-                        currentUserId={user.id}
-                        groupName={viewingBalance.name}
-                        totalExpenses={balanceData.totalExpenses}
-                      />
-                    </TabsContent>
-
-                    {/* Visual Breakdown Tab */}
-                    <TabsContent value="visual" className="mt-4">
-                      <BalanceChart
-                        balances={balanceData.balances}
-                        currentUserId={user.id}
-                      />
-                    </TabsContent>
-
-                    {/* Member Details Tab */}
-                    <TabsContent value="details" className="mt-4 space-y-3">
-                      {Object.values(balanceData.balances).map((balance) => (
-                        <Card key={balance.userId}>
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <UserAvatar userId={balance.userId} />
-                                <div>
-                                  <span className="font-medium">
-                                    {balance.userId === user.id ? (
-                                      t("you")
-                                    ) : (
-                                      <span className="font-mono text-xs">
-                                        {balance.userId.slice(0, 8)}...
-                                      </span>
-                                    )}
-                                  </span>
-                                  <Badge className="ml-2">
-                                    {balance.share}%
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-3 text-sm">
-                              <div>
-                                <p className="text-muted-foreground text-xs mb-1">
-                                  {t("should_pay")}
-                                </p>
-                                <p className="font-medium">
-                                  €{balance.shouldPay.toFixed(2)}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground text-xs mb-1">
-                                  {t("has_paid")}
-                                </p>
-                                <p className="font-medium">
-                                  €{balance.hasPaid.toFixed(2)}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground text-xs mb-1">
-                                  {t("balance")}
-                                </p>
-                                <p
-                                  className={`font-bold flex items-center gap-1 ${balance.balance >= 0
-                                    ? "text-green-600"
-                                    : "text-red-600"
-                                    }`}
-                                >
-                                  {balance.balance >= 0 ? (
-                                    <ArrowUpRight className="h-4 w-4" />
-                                  ) : (
-                                    <ArrowDownRight className="h-4 w-4" />
-                                  )}
-                                  €{Math.abs(balance.balance).toFixed(2)}
-                                </p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              );
-            })()}
-
-          <DialogFooter>
-            <Button onClick={() => setViewingBalance(null)}>
-              {t("close")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        currentUserId={user?.id || ""}
+      />
     </div>
   );
 }

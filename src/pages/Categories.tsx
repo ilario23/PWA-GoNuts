@@ -34,10 +34,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -60,12 +61,12 @@ import {
   Plus,
   X,
   ChevronRight,
-  ChevronDown,
   MoreVertical,
   EyeOff,
   Eye,
-  MoreHorizontal,
   Users,
+  ListFilter,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { CategoryDetailDrawer } from "@/components/CategoryDetailDrawer";
@@ -321,7 +322,7 @@ export function CategoriesPage() {
     parentName?: string;
   } | null>(null);
 
-  const [moreSectionOpen, setMoreSectionOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("main");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -450,11 +451,13 @@ export function CategoriesPage() {
       budget: categoryBudget ? categoryBudget.amount.toString() : "",
       group_id: category.group_id || "",
     });
-    setMoreSectionOpen(
-      !!category.group_id ||
-      (categoryBudget && categoryBudget.amount > 0) ||
-      category.active === 0
-    );
+
+    // Auto-open 'more' if advanced fields are present
+    if (!!category.group_id || (categoryBudget && categoryBudget.amount > 0) || category.active === 0) {
+      setActiveSection("more");
+    } else {
+      setActiveSection("main");
+    }
     setIsOpen(true);
   };
 
@@ -470,7 +473,8 @@ export function CategoriesPage() {
       budget: "",
       group_id: "",
     });
-    setMoreSectionOpen(false);
+    // Default to main section for new categories
+    setActiveSection("main");
     setIsOpen(true);
   };
 
@@ -786,9 +790,9 @@ export function CategoriesPage() {
                     {t("personal_categories") || "Personal"}
                   </DropdownMenuRadioItem>
                   {groups.map((group) => (
-                    <DropdownMenuRadioItem key={group.id} value={group.id}>
+                    <SelectItem key={group.id} value={group.id}>
                       {group.name}
-                    </DropdownMenuRadioItem>
+                    </SelectItem>
                   ))}
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
@@ -817,121 +821,124 @@ export function CategoriesPage() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Base Fields - Collapse when More is opened */}
-                <Collapsible open={!moreSectionOpen}>
-                  <CollapsibleContent className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">{t("name")}</label>
-                      <Input
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">{t("color")}</label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="color"
-                          value={formData.color}
-                          onChange={(e) =>
-                            setFormData({ ...formData, color: e.target.value })
-                          }
-                          className="h-10 w-20 p-1"
-                        />
-                        <Input
-                          value={formData.color}
-                          onChange={(e) =>
-                            setFormData({ ...formData, color: e.target.value })
-                          }
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">{t("type")}</label>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={`w-full ${formData.type === "expense"
-                            ? "bg-red-500 hover:bg-red-600 text-white"
-                            : ""
-                            }`}
-                          onClick={() =>
-                            setFormData({ ...formData, type: "expense" })
-                          }
-                        >
-                          {t("expense")}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={`w-full ${formData.type === "income"
-                            ? "bg-green-500 hover:bg-green-600 text-white"
-                            : ""
-                            }`}
-                          onClick={() =>
-                            setFormData({ ...formData, type: "income" })
-                          }
-                        >
-                          {t("income")}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={`w-full ${formData.type === "investment"
-                            ? "bg-blue-500 hover:bg-blue-600 text-white"
-                            : ""
-                            }`}
-                          onClick={() =>
-                            setFormData({ ...formData, type: "investment" })
-                          }
-                        >
-                          {t("investment")}
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">{t("icon")}</label>
-                      <IconSelector
-                        value={formData.icon}
-                        onChange={(icon) => setFormData({ ...formData, icon })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        {t("parent_category")}
-                      </label>
-                      <CategorySelector
-                        value={formData.parent_id}
-                        onChange={(value) =>
-                          setFormData({ ...formData, parent_id: value })
-                        }
-                        type={formData.type}
-                        excludeId={editingId || undefined}
-                        groupId={formData.group_id || null}
-                        modal
-                      />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-
-                {/* More Options - Collapsible */}
-                <Collapsible
-                  open={moreSectionOpen}
-                  onOpenChange={setMoreSectionOpen}
+                <Accordion
+                  type="single"
+                  collapsible
+                  value={activeSection}
+                  onValueChange={(value) => setActiveSection(value || "main")}
+                  className="w-full"
                 >
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full flex items-center justify-between p-2 h-auto"
-                    >
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MoreHorizontal className="h-4 w-4" />
+                  <AccordionItem value="main" className="border-b-0">
+                    <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
+                      <span className="flex items-center gap-2">
+                        <ListFilter className="h-4 w-4" />
+                        {t("category_details") || "Category Details"}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-4 pt-2 px-1">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">{t("name")}</label>
+                        <Input
+                          value={formData.name}
+                          onChange={(e) =>
+                            setFormData({ ...formData, name: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">{t("color")}</label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="color"
+                            value={formData.color}
+                            onChange={(e) =>
+                              setFormData({ ...formData, color: e.target.value })
+                            }
+                            className="h-10 w-20 p-1"
+                          />
+                          <Input
+                            value={formData.color}
+                            onChange={(e) =>
+                              setFormData({ ...formData, color: e.target.value })
+                            }
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">{t("type")}</label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={`w-full ${formData.type === "expense"
+                              ? "bg-red-500 hover:bg-red-600 text-white"
+                              : ""
+                              }`}
+                            onClick={() =>
+                              setFormData({ ...formData, type: "expense" })
+                            }
+                          >
+                            {t("expense")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={`w-full ${formData.type === "income"
+                              ? "bg-green-500 hover:bg-green-600 text-white"
+                              : ""
+                              }`}
+                            onClick={() =>
+                              setFormData({ ...formData, type: "income" })
+                            }
+                          >
+                            {t("income")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={`w-full ${formData.type === "investment"
+                              ? "bg-blue-500 hover:bg-blue-600 text-white"
+                              : ""
+                              }`}
+                            onClick={() =>
+                              setFormData({ ...formData, type: "investment" })
+                            }
+                          >
+                            {t("investment")}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">{t("icon")}</label>
+                        <IconSelector
+                          value={formData.icon}
+                          onChange={(icon) => setFormData({ ...formData, icon })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          {t("parent_category")}
+                        </label>
+                        <CategorySelector
+                          value={formData.parent_id}
+                          onChange={(value) =>
+                            setFormData({ ...formData, parent_id: value })
+                          }
+                          type={formData.type}
+                          excludeId={editingId || undefined}
+                          groupId={formData.group_id || null}
+                          modal
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="more" className="border-b-0 border-t">
+                    <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
+                      <span className="flex items-center gap-2">
+                        <SlidersHorizontal className="h-4 w-4" />
                         <span className="text-sm font-medium">
                           {t("more_options") || "More"}
                         </span>
@@ -939,7 +946,7 @@ export function CategoriesPage() {
                           (formData.budget &&
                             parseFloat(formData.budget) > 0) ||
                           !formData.active) && (
-                            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                            <Badge className="ml-2">
                               {[
                                 formData.group_id ? 1 : 0,
                                 formData.budget && parseFloat(formData.budget) > 0
@@ -947,98 +954,95 @@ export function CategoriesPage() {
                                   : 0,
                                 !formData.active ? 1 : 0,
                               ].reduce((a, b) => a + b, 0)}
-                            </span>
+                            </Badge>
                           )}
-                      </div>
-                      <ChevronDown
-                        className={`h-4 w-4 text-muted-foreground transition-transform ${moreSectionOpen ? "rotate-180" : ""
-                          }`}
-                      />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-4 pt-2">
-                    {/* Group Selection */}
-                    {groups.length > 0 && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                          {t("group") || "Group"}
-                        </label>
-                        <Select
-                          value={formData.group_id || "none"}
-                          onValueChange={(value) =>
-                            setFormData({
-                              ...formData,
-                              group_id: value === "none" ? "" : value,
-                            })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={t("select_group") || "Select Group"}
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">
-                              {t("personal_category") || "Personal Category"}
-                            </SelectItem>
-                            {groups.map((group) => (
-                              <SelectItem key={group.id} value={group.id}>
-                                {group.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    {/* Budget and Active fields */}
-                    <div className="space-y-4">
-                      {/* Budget field - only for expense categories */}
-                      {formData.type === "expense" && (
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-4 pt-2 px-1">
+                      {/* Group Selection */}
+                      {groups.length > 0 && (
                         <div className="space-y-2">
                           <label className="text-sm font-medium">
-                            {t("budget")}
+                            {t("group") || "Group"}
                           </label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={formData.budget}
-                            onChange={(e) =>
+                          <Select
+                            value={formData.group_id || "none"}
+                            onValueChange={(value) =>
                               setFormData({
                                 ...formData,
-                                budget: e.target.value,
+                                group_id: value === "none" ? "" : value,
                               })
                             }
-                            placeholder="0.00"
-                          />
+                          >
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={t("select_group") || "Select Group"}
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">
+                                {t("personal_category") || "Personal Category"}
+                              </SelectItem>
+                              {groups.map((group) => (
+                                <SelectItem key={group.id} value={group.id}>
+                                  {group.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       )}
 
-                      {/* Active toggle */}
-                      <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <div className="space-y-0.5">
-                          <label
-                            htmlFor="active-mode"
-                            className="text-sm font-medium"
-                          >
-                            {t("active") || "Active"}
-                          </label>
-                          <div className="text-[0.8rem] text-muted-foreground">
-                            {t("active_description") || "Enable or disable this category"}
+                      {/* Budget and Active fields */}
+                      <div className="space-y-4">
+                        {/* Budget field - only for expense categories */}
+                        {formData.type === "expense" && (
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">
+                              {t("budget")}
+                            </label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={formData.budget}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  budget: e.target.value,
+                                })
+                              }
+                              placeholder="0.00"
+                            />
                           </div>
+                        )}
+
+                        {/* Active toggle */}
+                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                          <div className="space-y-0.5">
+                            <label
+                              htmlFor="active-mode"
+                              className="text-sm font-medium"
+                            >
+                              {t("active") || "Active"}
+                            </label>
+                            <div className="text-[0.8rem] text-muted-foreground">
+                              {t("active_description") || "Enable or disable this category"}
+                            </div>
+                          </div>
+                          <Switch
+                            id="active-mode"
+                            checked={formData.active}
+                            onCheckedChange={(checked) =>
+                              setFormData({ ...formData, active: checked })
+                            }
+                          />
                         </div>
-                        <Switch
-                          id="active-mode"
-                          checked={formData.active}
-                          onCheckedChange={(checked) =>
-                            setFormData({ ...formData, active: checked })
-                          }
-                        />
                       </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
                 <Button type="submit" className="w-full" autoFocus>
                   {t("save")}
                 </Button>

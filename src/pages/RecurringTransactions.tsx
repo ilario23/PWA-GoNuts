@@ -29,17 +29,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import {
   Plus,
   Trash2,
   Play,
   Edit,
-  ChevronDown,
-  MoreHorizontal,
+  ListFilter,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
@@ -82,7 +84,7 @@ export function RecurringTransactionsPage() {
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<RecurringTransaction | null>(null);
-  const [moreSectionOpen, setMoreSectionOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("main");
   const [formData, setFormData] = useState({
     amount: "",
     description: "",
@@ -152,7 +154,7 @@ export function RecurringTransactionsPage() {
     }
     setIsOpen(false);
     setEditingId(null);
-    setMoreSectionOpen(false);
+    setActiveSection("main");
     setFormData({
       amount: "",
       description: "",
@@ -179,7 +181,12 @@ export function RecurringTransactionsPage() {
       group_id: transaction.group_id || "",
       paid_by_member_id: transaction.paid_by_member_id || "",
     });
-    setMoreSectionOpen(!!transaction.group_id || !!transaction.context_id);
+    // Auto-open 'more' if advanced fields are present
+    if (!!transaction.group_id || !!transaction.context_id) {
+      setActiveSection("more");
+    } else {
+      setActiveSection("main");
+    }
     setIsOpen(true);
   };
 
@@ -196,7 +203,8 @@ export function RecurringTransactionsPage() {
       group_id: "",
       paid_by_member_id: "",
     });
-    setMoreSectionOpen(false);
+    // Default to main section for new recurring transactions
+    setActiveSection("main");
     setIsOpen(true);
   };
 
@@ -317,281 +325,280 @@ export function RecurringTransactionsPage() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Base Fields - Collapse when More is opened */}
-                <Collapsible open={!moreSectionOpen}>
-                  <CollapsibleContent className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">{t("type")}</label>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={`w-full ${formData.type === "expense"
-                            ? getTypeColor("expense")
-                            : ""
-                            }`}
-                          onClick={() =>
-                            setFormData({ ...formData, type: "expense" })
-                          }
-                        >
-                          {t("expense")}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={`w-full ${formData.type === "income" ? getTypeColor("income") : ""
-                            }`}
-                          onClick={() =>
-                            setFormData({ ...formData, type: "income" })
-                          }
-                        >
-                          {t("income")}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={`w-full ${formData.type === "investment"
-                            ? getTypeColor("investment")
-                            : ""
-                            }`}
-                          onClick={() =>
-                            setFormData({ ...formData, type: "investment" })
-                          }
-                        >
-                          {t("investment")}
-                        </Button>
+                <Accordion
+                  type="single"
+                  collapsible
+                  value={activeSection}
+                  onValueChange={(value) => setActiveSection(value || "main")}
+                  className="w-full"
+                >
+                  <AccordionItem value="main" className="border-b-0">
+                    <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
+                      <span className="flex items-center gap-2">
+                        <ListFilter className="h-4 w-4" />
+                        {t("transaction_details") || "Details"}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-4 pt-2 px-1">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">{t("type")}</label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={`w-full ${formData.type === "expense"
+                              ? getTypeColor("expense")
+                              : ""
+                              }`}
+                            onClick={() =>
+                              setFormData({ ...formData, type: "expense" })
+                            }
+                          >
+                            {t("expense")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={`w-full ${formData.type === "income" ? getTypeColor("income") : ""
+                              }`}
+                            onClick={() =>
+                              setFormData({ ...formData, type: "income" })
+                            }
+                          >
+                            {t("income")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={`w-full ${formData.type === "investment"
+                              ? getTypeColor("investment")
+                              : ""
+                              }`}
+                            onClick={() =>
+                              setFormData({ ...formData, type: "investment" })
+                            }
+                          >
+                            {t("investment")}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        {t("frequency")}
-                      </label>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={formData.frequency}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            frequency: e.target.value as any,
-                          })
-                        }
-                      >
-                        <option value="daily">{t("daily")}</option>
-                        <option value="weekly">{t("weekly")}</option>
-                        <option value="monthly">{t("monthly")}</option>
-                        <option value="yearly">{t("yearly")}</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">{t("amount")}</label>
-                      <Input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        value={formData.amount}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          // Limit to 2 decimal places
-                          const match = value.match(/^-?\d*\.?\d{0,2}$/);
-                          if (match || value === "") {
-                            setFormData({ ...formData, amount: value });
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          {t("frequency")}
+                        </label>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          value={formData.frequency}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              frequency: e.target.value as any,
+                            })
                           }
-                        }}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        {t("start_date")}
-                      </label>
-                      <Input
-                        type="date"
-                        value={formData.start_date}
-                        onChange={(e) =>
-                          setFormData({ ...formData, start_date: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">{t("category")}</label>
-                      <CategorySelector
-                        value={formData.category_id}
-                        onChange={(value) =>
-                          setFormData({ ...formData, category_id: value })
-                        }
-                        type={formData.type}
-                        groupId={formData.group_id || null}
-                        modal
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        {t("description")}
-                      </label>
-                      <Input
-                        value={formData.description}
-                        onChange={(e) =>
-                          setFormData({ ...formData, description: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                        >
+                          <option value="daily">{t("daily")}</option>
+                          <option value="weekly">{t("weekly")}</option>
+                          <option value="monthly">{t("monthly")}</option>
+                          <option value="yearly">{t("yearly")}</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">{t("amount")}</label>
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.01"
+                          value={formData.amount}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Limit to 2 decimal places
+                            const match = value.match(/^-?\d*\.?\d{0,2}$/);
+                            if (match || value === "") {
+                              setFormData({ ...formData, amount: value });
+                            }
+                          }}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          {t("start_date")}
+                        </label>
+                        <Input
+                          type="date"
+                          value={formData.start_date}
+                          onChange={(e) =>
+                            setFormData({ ...formData, start_date: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">{t("category")}</label>
+                        <CategorySelector
+                          value={formData.category_id}
+                          onChange={(value) =>
+                            setFormData({ ...formData, category_id: value })
+                          }
+                          type={formData.type}
+                          groupId={formData.group_id || null}
+                          modal
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          {t("description")}
+                        </label>
+                        <Input
+                          value={formData.description}
+                          onChange={(e) =>
+                            setFormData({ ...formData, description: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
 
-                {/* Collapsible More Section - Group & Context */}
-                {(groups.length > 0 || (contexts && contexts.length > 0)) && (
-                  <Collapsible
-                    open={moreSectionOpen}
-                    onOpenChange={setMoreSectionOpen}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="w-full flex items-center justify-between p-2 h-auto"
-                      >
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MoreHorizontal className="h-4 w-4" />
+                  {(groups.length > 0 || (contexts && contexts.length > 0)) && (
+                    <AccordionItem value="more" className="border-b-0 border-t">
+                      <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
+                        <span className="flex items-center gap-2">
+                          <SlidersHorizontal className="h-4 w-4" />
                           <span className="text-sm font-medium">
                             {t("more_options") || "More"}
                           </span>
                           {(formData.group_id || formData.context_id) && (
-                            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                            <Badge className="ml-2">
                               {
                                 [formData.group_id, formData.context_id].filter(
                                   Boolean
                                 ).length
                               }
-                            </span>
+                            </Badge>
                           )}
-                        </div>
-                        <ChevronDown
-                          className={`h-4 w-4 text-muted-foreground transition-transform ${moreSectionOpen ? "rotate-180" : ""
-                            }`}
-                        />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-3 pt-2">
-                      {/* Group Selection */}
-                      {groups.length > 0 && (
-                        <>
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-3 pt-2 px-1">
+                        {/* Group Selection */}
+                        {groups.length > 0 && (
+                          <>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">
+                                {t("group")}
+                              </label>
+                              <Select
+                                value={formData.group_id || "none"}
+                                onValueChange={(value) =>
+                                  setFormData({
+                                    ...formData,
+                                    group_id: value === "none" ? "" : value,
+                                    paid_by_member_id:
+                                      value === "none"
+                                        ? ""
+                                        : (() => {
+                                          // Default to me (my member ID)
+                                          const group = groups.find(g => g.id === value);
+                                          const member = group?.members.find(m => m.user_id === user?.id);
+                                          return member?.id || "";
+                                        })(),
+                                  })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder={t("select_group")} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">
+                                    {t("personal_expense")}
+                                  </SelectItem>
+                                  {groups.map((group) => (
+                                    <SelectItem key={group.id} value={group.id}>
+                                      {group.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {formData.group_id && (
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">
+                                  {t("paid_by")}
+                                </label>
+                                <Select
+                                  value={
+                                    formData.paid_by_member_id || ""
+                                  }
+                                  onValueChange={(value) =>
+                                    setFormData({
+                                      ...formData,
+                                      paid_by_member_id: value,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue
+                                      placeholder={t("select_payer")}
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {groups
+                                      .find((g) => g.id === formData.group_id)
+                                      ?.members.map((member) => (
+                                        <SelectItem
+                                          key={member.id}
+                                          value={member.id}
+                                        >
+                                          {member.is_guest
+                                            ? (member.guest_name || "Guest")
+                                            : (member.user_id === user?.id
+                                              ? t("me")
+                                              : member.displayName || member.user_id?.substring(0, 8))}
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Context Selection */}
+                        {contexts && contexts.length > 0 && (
                           <div className="space-y-2">
                             <label className="text-sm font-medium">
-                              {t("group")}
+                              {t("context")}
                             </label>
                             <Select
-                              value={formData.group_id || "none"}
+                              value={formData.context_id || "none"}
                               onValueChange={(value) =>
                                 setFormData({
                                   ...formData,
-                                  group_id: value === "none" ? "" : value,
-                                  paid_by_member_id:
-                                    value === "none"
-                                      ? ""
-                                      : (() => {
-                                        // Default to me (my member ID)
-                                        const group = groups.find(g => g.id === value);
-                                        const member = group?.members.find(m => m.user_id === user?.id);
-                                        return member?.id || "";
-                                      })(),
+                                  context_id: value === "none" ? "" : value,
                                 })
                               }
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder={t("select_group")} />
+                                <SelectValue placeholder={t("select_context")} />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none">
-                                  {t("personal_expense")}
+                                  {t("no_context")}
                                 </SelectItem>
-                                {groups.map((group) => (
-                                  <SelectItem key={group.id} value={group.id}>
-                                    {group.name}
+                                {contexts.map((ctx) => (
+                                  <SelectItem key={ctx.id} value={ctx.id}>
+                                    {ctx.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
-
-                          {formData.group_id && (
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium">
-                                {t("paid_by")}
-                              </label>
-                              <Select
-                                value={
-                                  formData.paid_by_member_id || ""
-                                }
-                                onValueChange={(value) =>
-                                  setFormData({
-                                    ...formData,
-                                    paid_by_member_id: value,
-                                  })
-                                }
-                              >
-                                <SelectTrigger>
-                                  <SelectValue
-                                    placeholder={t("select_payer")}
-                                  />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {groups
-                                    .find((g) => g.id === formData.group_id)
-                                    ?.members.map((member) => (
-                                      <SelectItem
-                                        key={member.id}
-                                        value={member.id}
-                                      >
-                                        {member.is_guest
-                                          ? (member.guest_name || "Guest")
-                                          : (member.user_id === user?.id
-                                            ? t("me")
-                                            : member.displayName || member.user_id?.substring(0, 8))}
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* Context Selection */}
-                      {contexts && contexts.length > 0 && (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            {t("context")}
-                          </label>
-                          <Select
-                            value={formData.context_id || "none"}
-                            onValueChange={(value) =>
-                              setFormData({
-                                ...formData,
-                                context_id: value === "none" ? "" : value,
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder={t("select_context")} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">
-                                {t("no_context")}
-                              </SelectItem>
-                              {contexts.map((ctx) => (
-                                <SelectItem key={ctx.id} value={ctx.id}>
-                                  {ctx.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </CollapsibleContent>
-                  </Collapsible>
-                )}
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  )}
+                </Accordion>
 
                 <Button type="submit" className="w-full" autoFocus>
                   {t("save")}

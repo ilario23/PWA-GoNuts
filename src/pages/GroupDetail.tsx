@@ -10,12 +10,10 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -285,9 +283,8 @@ export function GroupDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="transactions" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="transactions">{t("transactions")}</TabsTrigger>
-          <TabsTrigger value="balance">{t("balance")}</TabsTrigger>
           <TabsTrigger value="categories">{t("categories")}</TabsTrigger>
         </TabsList>
 
@@ -295,6 +292,7 @@ export function GroupDetailPage() {
           <TransactionList
             transactions={groupTransactions}
             categories={categories}
+            groups={group ? [group] : []}
             onEdit={(transaction) => {
               setEditingTransaction(transaction);
               setIsTxDialogOpen(true);
@@ -304,56 +302,6 @@ export function GroupDetailPage() {
           />
         </TabsContent>
 
-        <TabsContent value="balance" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("member_shares")}</CardTitle>
-              <CardDescription>{t("group_balance")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {group.members.map((member) => {
-                const memberBalance = balance?.balances[member.user_id || member.id];
-                const isMe = member.user_id === user?.id;
-                return (
-                  <div
-                    key={member.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b last:border-0 gap-2"
-                  >
-                    <div>
-                      <div className="font-medium flex items-center gap-2">
-                        {isMe
-                          ? t("you")
-                          : member.user_id
-                            ? member.user_id.substring(0, 8) + "..."
-                            : t("guest")}
-                        {isMe && <Badge variant="secondary">{t("you")}</Badge>}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {member.share}% • {t("should_pay")}: €
-                        {(memberBalance?.shouldPay || 0).toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between sm:block sm:text-right bg-muted/30 p-2 rounded-md sm:bg-transparent sm:p-0">
-                      <div className="text-sm text-muted-foreground">
-                        {t("has_paid")}: €
-                        {(memberBalance?.hasPaid || 0).toFixed(2)}
-                      </div>
-                      <div
-                        className={`font-medium ${(memberBalance?.balance || 0) >= 0
-                          ? "text-green-600"
-                          : "text-red-600"
-                          }`}
-                      >
-                        {(memberBalance?.balance || 0) >= 0 ? "+" : ""}€
-                        {(memberBalance?.balance || 0).toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="categories" className="space-y-4">
           {groupCategories.length === 0 ? (

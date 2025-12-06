@@ -1,6 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useMobile } from "@/hooks/useMobile";
+import { useState, useEffect } from "react";
 
 interface ContentLoaderProps {
     variant: "transaction" | "card" | "chart" | "table-row" | "category-mobile" | "category-desktop" | "group-card";
@@ -8,6 +9,8 @@ interface ContentLoaderProps {
     className?: string;
     /** If true, automatically adjusts count based on screen size (mobile: 60% of count, desktop: full count) */
     adaptive?: boolean;
+    /** Delay in milliseconds before showing skeleton (default: 150ms). Prevents flash for fast cached data. */
+    delay?: number;
 }
 
 /**
@@ -26,18 +29,38 @@ function getAdaptiveSkeletonCount(count: number, isMobile: boolean): number {
  * Provides pre-built skeleton layouts that match actual content structure.
  * Uses shimmer animation for smooth loading indication.
  * 
+ * Implements a delay mechanism to prevent flash of loading state when data
+ * is cached (e.g., IndexedDB). If data loads within the delay period,
+ * skeleton never appears, providing instant perceived performance.
+ * 
  * @example
  * ```tsx
- * // Single skeleton
+ * // Single skeleton with default 150ms delay
  * <ContentLoader variant="transaction" count={1} />
  * 
- * // Multiple skeletons with adaptive count
- * <ContentLoader variant="card" count={8} adaptive />
+ * // Multiple skeletons with custom delay
+ * <ContentLoader variant="card" count={8} adaptive delay={200} />
  * ```
  */
-export function ContentLoader({ variant, count = 5, className, adaptive = false }: ContentLoaderProps) {
+export function ContentLoader({ variant, count = 5, className, adaptive = false, delay = 150 }: ContentLoaderProps) {
     const isMobile = useMobile();
     const actualCount = adaptive ? getAdaptiveSkeletonCount(count, isMobile) : count;
+    const [showSkeleton, setShowSkeleton] = useState(false);
+
+    useEffect(() => {
+        // Set a timeout to show skeleton only after delay
+        // If component unmounts before delay (data arrived), skeleton never shows
+        const timer = setTimeout(() => {
+            setShowSkeleton(true);
+        }, delay);
+
+        return () => clearTimeout(timer);
+    }, [delay]);
+
+    // Don't render anything until delay has passed
+    if (!showSkeleton) {
+        return null;
+    }
 
     const renderSkeleton = () => {
         switch (variant) {

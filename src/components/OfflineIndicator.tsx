@@ -26,7 +26,8 @@ export function OfflineIndicator() {
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className="fixed top-4 right-4 z-50 flex items-center justify-center transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 rounded-sm p-1"
+          className="fixed right-4 z-50 flex items-center justify-center transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 rounded-sm p-1"
+          style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
           role="status"
           aria-live="polite"
           aria-label={t("offline_tooltip")}
