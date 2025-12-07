@@ -30,14 +30,14 @@ import { toast } from "sonner";
 import i18n from "@/i18n";
 
 const TABLES = [
+  "profiles",
   "groups",
   "group_members",
-  "transactions",
-  "categories",
   "contexts",
+  "categories",
+  "transactions",
   "recurring_transactions",
   "category_budgets",
-  "profiles",
 ] as const;
 
 type TableName = (typeof TABLES)[number];
@@ -409,20 +409,35 @@ export class SyncManager {
 
     for (let attempt = 0; attempt < SYNC_CONFIG.maxRetries; attempt++) {
       try {
-        const { error } = await supabase.from(tableName).upsert(itemsToPush as any);
+        // Use .select() to get the updated server data immediately (including new sync_token)
+        const { data, error } = await supabase
+          .from(tableName)
+          .upsert(itemsToPush as any)
+          .select();
 
         if (error) {
           throw new Error(error.message);
         }
 
-        // Success - mark items as synced
-        await db.transaction("rw", db.table(tableName), async () => {
-          for (const item of items) {
-            await db.table(tableName).update(item.id, { pendingSync: 0 });
-            // Clear any previous errors for this item
-            this.errorMap.delete(`${tableName}:${item.id}`);
-          }
-        });
+        // Success - update local items with server data (sync_token, updated_at, etc.)
+        if (data) {
+          await db.transaction("rw", db.table(tableName), async () => {
+            for (const serverItem of data) {
+              const item = serverItem as any;
+              // Prepare item for local storage (handles type conversions etc.)
+              const localUpdate = this.prepareItemForLocal(item, tableName);
+
+              // Update local DB ensuring pendingSync is 0
+              await db.table(tableName).update(item.id, {
+                ...localUpdate,
+                pendingSync: 0,
+              });
+
+              // Clear any previous errors for this item
+              this.errorMap.delete(`${tableName}:${item.id}`);
+            }
+          });
+        }
 
         return; // Success, exit retry loop
       } catch (error) {
@@ -524,12 +539,16 @@ export class SyncManager {
 
         await db.transaction("rw", tables, async () => {
           for (const item of data) {
-            const shouldUpdate = await this.shouldUpdateLocal(tableName, item);
+            const updateResult = await this.shouldUpdateLocal(tableName, item);
 
-            if (!shouldUpdate) {
-              console.log(
-                `[Sync] Skipping ${tableName} ${item.id} - local is newer`
-              );
+            if (!updateResult.shouldUpdate) {
+              // Only log conflicts (pending changes), skip silent for already-synced items
+              if (updateResult.reason === 'pending') {
+                console.log(
+                  `[Sync] Conflict: ${tableName} ${item.id} has pending local changes`
+                );
+              }
+              // Don't log 'already_synced' - too noisy for normal operation
               continue;
             }
 
@@ -613,12 +632,15 @@ export class SyncManager {
 
         await db.transaction("rw", tables, async () => {
           for (const item of data) {
-            const shouldUpdate = await this.shouldUpdateLocal(tableName, item);
+            const updateResult = await this.shouldUpdateLocal(tableName, item);
 
-            if (!shouldUpdate) {
-              console.log(
-                `[Sync] Skipping ${tableName} ${item.id} - local has pending changes`
-              );
+            if (!updateResult.shouldUpdate) {
+              // Only log conflicts (pending changes), skip silent for already-synced items
+              if (updateResult.reason === 'pending') {
+                console.log(
+                  `[Sync] Conflict: ${tableName} ${item.id} has pending local changes`
+                );
+              }
               continue;
             }
 
@@ -676,32 +698,36 @@ export class SyncManager {
   }
 
   /**
-   * Check if we should update local with remote data
-   * Implements last-write-wins conflict resolution
+   * Check if we should update local with remote data.
+   * Implements last-write-wins conflict resolution.
+   * Returns an object with the decision and reason for better logging.
    */
   private async shouldUpdateLocal<T extends TableName>(
     tableName: T,
     remoteItem: Tables<T>
-  ): Promise<boolean> {
+  ): Promise<{ shouldUpdate: boolean; reason: 'new' | 'pending' | 'already_synced' | 'remote_newer' }> {
     const existing = await db.table(tableName).get(remoteItem.id);
 
-    if (!existing) return true;
-    // Local has pending changes - ALWAYS keep local to avoid overwriting user work
-    // The user will need to resolve this conflict later (Phase 3)
-    if (existing.pendingSync === 1) {
-      console.log(
-        `[Sync] Conflict detected for ${tableName} ${remoteItem.id} - keeping local pending change`
-      );
-      return false;
+    // New item - always accept
+    if (!existing) {
+      return { shouldUpdate: true, reason: 'new' };
     }
 
-    // If no pending local changes, trust the server's sync_token
-    // We only update if the server has a newer version (higher token)
-    // This avoids issues with clock skew since we don't rely on timestamps
+    // Local has pending changes - ALWAYS keep local to avoid overwriting user work
+    if (existing.pendingSync === 1) {
+      return { shouldUpdate: false, reason: 'pending' };
+    }
+
+    // Compare sync tokens - only update if remote has a newer version
     const localToken = existing.sync_token || 0;
     const remoteToken = remoteItem.sync_token || 0;
 
-    return remoteToken > localToken;
+    if (remoteToken > localToken) {
+      return { shouldUpdate: true, reason: 'remote_newer' };
+    }
+
+    // Already synced or local is newer - no action needed
+    return { shouldUpdate: false, reason: 'already_synced' };
   }
 
   /**

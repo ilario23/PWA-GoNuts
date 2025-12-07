@@ -139,7 +139,7 @@ export function ManageMembersDrawer({
                             </AccordionTrigger>
                             <AccordionContent className="px-4 pb-4">
                                 <Tabs defaultValue="invite" className="w-full">
-                                    <TabsList className="grid w-full grid-cols-2 h-9">
+                                    <TabsList className="grid w-full grid-cols-2 h-14">
                                         <TabsTrigger value="invite" className="text-xs">{t("invite_user") || "Invite User"}</TabsTrigger>
                                         <TabsTrigger value="guest" className="text-xs">{t("add_guest") || "Add Guest"}</TabsTrigger>
                                     </TabsList>

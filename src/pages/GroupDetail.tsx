@@ -115,6 +115,9 @@ export function GroupDetailPage() {
   const handleSaveTransaction = async (data: TransactionFormData) => {
     if (!user || !groupId) return;
 
+    // paid_by_member_id is required for group transactions (database constraint: paid_by_logic)
+    const paidByMemberId = data.paid_by_member_id || null;
+
     if (editingTransaction) {
       await updateTransaction(editingTransaction.id, {
         amount: parseFloat(data.amount),
@@ -124,6 +127,7 @@ export function GroupDetailPage() {
         date: data.date,
         year_month: data.date.substring(0, 7),
         group_id: groupId,
+        paid_by_member_id: paidByMemberId,
       });
     } else {
       await addTransaction({
@@ -135,6 +139,7 @@ export function GroupDetailPage() {
         date: data.date,
         year_month: data.date.substring(0, 7),
         group_id: groupId,
+        paid_by_member_id: paidByMemberId,
       });
     }
 
@@ -173,9 +178,6 @@ export function GroupDetailPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/groups")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{group.name}</h1>
           {group.description && (

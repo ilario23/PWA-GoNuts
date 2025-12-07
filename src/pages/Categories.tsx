@@ -790,9 +790,9 @@ export function CategoriesPage() {
                     {t("personal_categories") || "Personal"}
                   </DropdownMenuRadioItem>
                   {groups.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
+                    <DropdownMenuRadioItem key={group.id} value={group.id}>
                       {group.name}
-                    </SelectItem>
+                    </DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>

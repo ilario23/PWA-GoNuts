@@ -154,9 +154,9 @@ export const REALTIME_CONFIG = {
   TABLES: [
     "groups",
     "group_members",
-    "transactions",
-    "categories",
     "contexts",
+    "categories",
+    "transactions",
     "recurring_transactions",
     "category_budgets",
   ] as const,

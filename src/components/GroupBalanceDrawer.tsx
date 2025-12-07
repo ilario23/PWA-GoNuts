@@ -56,12 +56,12 @@ interface GroupBalanceDrawerProps {
     onMarkPaid?: (settlement: Settlement) => void;
 }
 
-// Helper function to calculate settlements
 function calculateSettlement(
     balances: Record<string, BalanceData>
 ): Settlement[] {
     const settlements: Settlement[] = [];
-    const people = Object.values(balances);
+    // Deep copy to avoid mutating original balances which caused UI to show €0.00
+    const people = Object.values(balances).map(p => ({ ...p }));
     const creditors = people.filter((p) => p.balance > 0.01).sort((a, b) => b.balance - a.balance);
     const debtors = people.filter((p) => p.balance < -0.01).sort((a, b) => a.balance - b.balance);
 
@@ -284,9 +284,7 @@ export function GroupBalanceDrawer({
                                                             {balance.userId === currentUserId ? (
                                                                 t("you")
                                                             ) : (
-                                                                <span className="font-mono text-xs">
-                                                                    {balance.userId.slice(0, 8)}...
-                                                                </span>
+                                                                balance.displayName || balance.userId.slice(0, 8) + "..."
                                                             )}
                                                         </span>
                                                         <Badge className="ml-2 h-5 text-xs">{balance.share}%</Badge>
