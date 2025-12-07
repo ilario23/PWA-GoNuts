@@ -24,6 +24,7 @@ import {
   Profile,
   Setting,
 } from "./db";
+import { processRecurringTransactions } from "./recurring";
 import { supabase } from "./supabase";
 import { Tables, TablesInsert } from "../types/supabase";
 import { toast } from "sonner";
@@ -596,6 +597,17 @@ export class SyncManager {
     await this.showGroupTransactionToast(newGroupTransactions, "new");
     const modifiedGroupTransactions: any[] = []; // Track modified separately if needed
     await this.showGroupTransactionToast(modifiedGroupTransactions, "modified");
+
+    // Process recurring transactions
+    const addedCount = await processRecurringTransactions();
+    if (addedCount > 0) {
+      toast.success(
+        i18n.t("recurring_expenses_added", {
+          count: addedCount,
+          defaultValue: "{{count}} recurring expenses added",
+        })
+      );
+    }
   }
 
   /**
@@ -695,6 +707,17 @@ export class SyncManager {
     // Show toast notification for new and modified group transactions
     await this.showGroupTransactionToast(newGroupTransactions, "new");
     await this.showGroupTransactionToast(modifiedGroupTransactions, "modified");
+
+    // Process recurring transactions
+    const addedCount = await processRecurringTransactions();
+    if (addedCount > 0) {
+      toast.success(
+        i18n.t("recurring_expenses_added", {
+          count: addedCount,
+          defaultValue: "{{count}} recurring expenses added",
+        })
+      );
+    }
   }
 
   /**

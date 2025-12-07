@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
+import { toast } from "sonner";
 import { useCategories } from "@/hooks/useCategories";
 import { useContexts } from "@/hooks/useContexts";
 import { useGroups } from "@/hooks/useGroups";
@@ -293,7 +294,14 @@ export function RecurringTransactionsPage() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => generateTransactions()}
+            onClick={async () => {
+              const count = await generateTransactions();
+              if (count > 0) {
+                toast.success(t("recurring_expenses_added", { count, defaultValue: "{{count}} recurring expenses added" }));
+              } else {
+                toast.info(t("no_expenses_to_load", { defaultValue: "No expenses to load" }));
+              }
+            }}
             size="icon"
             className="md:w-auto md:px-4 md:h-10"
           >
