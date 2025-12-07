@@ -17,7 +17,14 @@ import {
   Users,
   ArrowUpRight,
   BarChart3,
+  ChevronDown,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { useState } from "react";
 
@@ -159,12 +166,12 @@ export function GroupCard({
             <Separator />
 
             {/* Action Buttons - Now with text for both mobile and desktop */}
-            <div className="flex flex-wrap items-center gap-2 pt-2">
+            {/* Desktop Actions */}
+            <div className="hidden sm:flex flex-wrap items-center gap-2 pt-2">
               <Button
                 variant="default"
                 size="sm"
                 onClick={() => onView(group)}
-                className="flex-1 sm:flex-none"
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 {t("view")}
@@ -173,9 +180,7 @@ export function GroupCard({
                 variant="outline"
                 size="sm"
                 onClick={() => onBalance(group)}
-                className="flex-1 sm:flex-none"
               >
-                {/* Add an icon for balance if desired, or just text */}
                 <ArrowUpRight className="h-4 w-4 mr-2 text-green-500" />
                 {t("balance")}
               </Button>
@@ -184,7 +189,6 @@ export function GroupCard({
                   variant="outline"
                   size="sm"
                   onClick={() => onMembers(group)}
-                  className="flex-1 sm:flex-none"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   {t("members")}
@@ -195,13 +199,48 @@ export function GroupCard({
                   variant="outline"
                   size="sm"
                   onClick={() => onStatistics(group)}
-                  className="flex-1 sm:flex-none"
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
-                  <span className="hidden md:inline">{t("statistics")}</span>
-                  <span className="md:hidden">{t("stats_short")}</span>
+                  {t("statistics")}
                 </Button>
               )}
+            </div>
+
+            {/* Mobile Actions - Dropdown */}
+            <div className="sm:hidden pt-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    <span className="flex items-center">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      {t("actions")}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => onView(group)}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    {t("view")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onBalance(group)}>
+                    <ArrowUpRight className="h-4 w-4 mr-2 text-green-500" />
+                    {t("balance")}
+                  </DropdownMenuItem>
+                  {group.isCreator && (
+                    <DropdownMenuItem onClick={() => onMembers(group)}>
+                      <Users className="h-4 w-4 mr-2" />
+                      {t("members")}
+                    </DropdownMenuItem>
+                  )}
+                  {onStatistics && (
+                    <DropdownMenuItem onClick={() => onStatistics(group)}>
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      {t("statistics")}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardContent>
