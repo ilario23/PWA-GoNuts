@@ -386,7 +386,6 @@
   "install_app": "Install App",
   "install_app_desc": "Install this app on your device for a better experience.",
   "install": "Install",
-  "more_options": "More",
   "expense_breakdown_desc": "Detailed spending by category hierarchy",
   "personal_categories": "Personal",
   "group_category": "Group Category",
@@ -408,8 +407,6 @@
   "view_settlement_plan": "View settlement plan",
   "payment_needed": "payment needed",
   "payments_needed": "payments needed",
-  "mark_as_paid": "Mark as paid",
-  "share_plan": "Share plan",
   "visual_breakdown": "Visual breakdown",
   "member_details": "Member details",
   "settlement_summary": "Settlement summary",
@@ -469,5 +466,6 @@
   "mark_as_paid": "Mark as Paid",
   "share_plan": "Share Plan",
   "unknown": "Unknown",
-  "more_options": "More Options"
+  "more_options": "More Options",
+  "icons_not_preserved_warning": "Warning: {{count}} category(s) could not preserve their icon (default icon assigned)."
 }

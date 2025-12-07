@@ -386,7 +386,6 @@
   "install_app": "Installa App",
   "install_app_desc": "Installa questa app sul tuo dispositivo per un'esperienza migliore.",
   "install": "Installa",
-  "more_options": "Extra",
   "expense_breakdown_desc": "Dettaglio spese per gerarchia di categorie",
   "personal_categories": "Personali",
   "group_category": "Categoria di Gruppo",
@@ -408,8 +407,6 @@
   "view_settlement_plan": "Vedi piano di sistemazione",
   "payment_needed": "pagamento necessario",
   "payments_needed": "pagamenti necessari",
-  "mark_as_paid": "Segna come pagato",
-  "share_plan": "Condividi piano",
   "visual_breakdown": "Visualizzazione grafica",
   "member_details": "Dettagli membri",
   "settlement_summary": "Riepilogo sistemazioni",
@@ -469,5 +466,6 @@
   "mark_as_paid": "Segna come Pagato",
   "share_plan": "Condividi Piano",
   "unknown": "Sconosciuto",
-  "more_options": "Altre Opzioni"
+  "more_options": "Altre Opzioni",
+  "icons_not_preserved_warning": "Attenzione: {{count}} categoria/e non hanno preservato l'icona (assegnata default)."
 }

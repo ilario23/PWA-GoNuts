@@ -32,7 +32,7 @@ import {
 } from "@/components/TransactionDialog";
 import { useState, useCallback, useMemo } from "react";
 import { useCategories } from "@/hooks/useCategories";
-import { FlipCard } from "@/components/ui/flip-card";
+import { FlipCard, type SwipeDirection } from "@/components/ui/flip-card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -110,38 +110,57 @@ export function Dashboard() {
   );
 
   // Mobile stats carousel state
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [isChartFlipped, setIsChartFlipped] = useState(false);
-  const statsCount = monthlyBudget ? 4 : 3; // 4 stats if budget is set, otherwise 3
+  const [statsRotation, setStatsRotation] = useState(0);
+  const [chartRotation, setChartRotation] = useState(0);
+  const statsCount = monthlyBudget ? 4 : 3;
 
   // Chart Card Flip State
   const [chartFaceAIndex, setChartFaceAIndex] = useState(0);
   const [chartFaceBIndex, setChartFaceBIndex] = useState(1);
-  // Chart views: 0=Chart, 1=Recent Transactions, 2=Budget (only if budget is set)
   const chartViewsCount = monthlyBudget ? 3 : 2;
+
+  // Derive flip state from rotation (odd multiples of 180 are flipped)
+  const isChartFlipped = (Math.abs(chartRotation / 180) % 2) === 1;
+  const isStatsFlipped = (Math.abs(statsRotation / 180) % 2) === 1;
 
   const currentChartVisibleIndex = isChartFlipped
     ? chartFaceBIndex
     : chartFaceAIndex;
 
-  const handleChartFlip = useCallback(() => {
-    const nextIndex = (currentChartVisibleIndex + 1) % chartViewsCount;
-    const afterNextIndex = (nextIndex + 1) % chartViewsCount;
+  // Handle chart flip with direction (circular navigation)
+  const handleChartSwipe = useCallback((direction: SwipeDirection) => {
+    // Calculate new rotation based on swipe direction
+    // Swipe Left (next) -> Rotate negative (e.g. 0 -> -180)
+    // Swipe Right (prev) -> Rotate positive (e.g. 0 -> 180)
+    const newRotation = direction === "left" ? chartRotation - 180 : chartRotation + 180;
+    setChartRotation(newRotation);
+
+    // Navigation logic:
+    // Swipe right = show PREVIOUS card
+    // Swipe left = show NEXT card
+    const nextIndex = direction === "right"
+      ? (currentChartVisibleIndex - 1 + chartViewsCount) % chartViewsCount
+      : (currentChartVisibleIndex + 1) % chartViewsCount;
+
+    const afterNextIndex = direction === "right"
+      ? (nextIndex - 1 + chartViewsCount) % chartViewsCount
+      : (nextIndex + 1) % chartViewsCount;
 
     if (isChartFlipped) {
+      // Currently showing faceB (Back), will transition to faceA (Front)
       setChartFaceAIndex(nextIndex);
       setTimeout(() => {
         setChartFaceBIndex(afterNextIndex);
       }, 350);
     } else {
+      // Currently showing faceA (Front), will transition to faceB (Back)
       setChartFaceBIndex(nextIndex);
       setTimeout(() => {
         setChartFaceAIndex(afterNextIndex);
       }, 350);
     }
-
-    setIsChartFlipped(!isChartFlipped);
-  }, [currentChartVisibleIndex, isChartFlipped, chartViewsCount]);
+    // No need to toggle boolean, rotation update handles it
+  }, [currentChartVisibleIndex, isChartFlipped, chartRotation, chartViewsCount]);
 
   const renderChartCard = useCallback(
     (index: number) => {
@@ -434,7 +453,6 @@ export function Dashboard() {
       categories,
       transactions,
       chartViewsCount,
-      handleChartFlip,
     ]
   );
 
@@ -444,33 +462,39 @@ export function Dashboard() {
   const [faceBIndex, setFaceBIndex] = useState(1);
 
   // Current visible index (for dot indicators)
-  const currentVisibleIndex = isFlipped ? faceBIndex : faceAIndex;
+  const currentVisibleIndex = isStatsFlipped ? faceBIndex : faceAIndex;
 
-  // Handle flip - swap to the other face, then update the hidden face
-  const handleStatFlip = useCallback(() => {
-    const nextIndex = (currentVisibleIndex + 1) % statsCount;
-    const afterNextIndex = (nextIndex + 1) % statsCount;
+  // Handle stat flip with direction (circular navigation)
+  const handleStatSwipe = useCallback((direction: SwipeDirection) => {
+    // Calculate new rotation based on swipe direction
+    const newRotation = direction === "left" ? statsRotation - 180 : statsRotation + 180;
+    setStatsRotation(newRotation);
 
-    if (isFlipped) {
-      // Currently showing faceB, will flip to faceA
-      // faceA should already have nextIndex from last flip
-      // After flip, update faceB (now hidden) with afterNextIndex
+    // Navigation logic:
+    // Swipe right = show PREVIOUS card
+    // Swipe left = show NEXT card
+    const nextIndex = direction === "right"
+      ? (currentVisibleIndex - 1 + statsCount) % statsCount
+      : (currentVisibleIndex + 1) % statsCount;
+
+    const afterNextIndex = direction === "right"
+      ? (nextIndex - 1 + statsCount) % statsCount
+      : (nextIndex + 1) % statsCount;
+
+    if (isStatsFlipped) {
+      // Currently showing faceB (Back), will transition to faceA (Front)
       setFaceAIndex(nextIndex);
       setTimeout(() => {
         setFaceBIndex(afterNextIndex);
       }, 350);
     } else {
-      // Currently showing faceA, will flip to faceB
-      // faceB should already have nextIndex from last flip
-      // After flip, update faceA (now hidden) with afterNextIndex
+      // Currently showing faceA (Front), will transition to faceB (Back)
       setFaceBIndex(nextIndex);
       setTimeout(() => {
         setFaceAIndex(afterNextIndex);
       }, 350);
     }
-
-    setIsFlipped(!isFlipped);
-  }, [currentVisibleIndex, isFlipped, statsCount]);
+  }, [currentVisibleIndex, isStatsFlipped, statsRotation, statsCount]);
 
   // Render a stat card by index
   const renderStatCard = useCallback(
@@ -669,7 +693,6 @@ export function Dashboard() {
       isOverBudget,
       budgetUsedPercentage,
       statsCount,
-      handleStatFlip,
     ]
   );
 
@@ -705,9 +728,9 @@ export function Dashboard() {
       <div className="md:hidden">
         <FlipCard
           className="h-[max(100px,12vh)]"
-          isFlipped={isFlipped}
-          onFlip={handleStatFlip}
-          direction="right"
+          isFlipped={isStatsFlipped}
+          onSwipe={handleStatSwipe}
+          rotation={statsRotation}
           disableGlobalClick
           frontContent={renderStatCard(faceAIndex)}
           backContent={renderStatCard(faceBIndex)}
@@ -719,8 +742,8 @@ export function Dashboard() {
         <FlipCard
           className="h-[max(280px,55vh)] md:h-[50vh] md:min-h-[400px]"
           isFlipped={isChartFlipped}
-          onFlip={handleChartFlip}
-          direction="right"
+          onSwipe={handleChartSwipe}
+          rotation={chartRotation}
           disableGlobalClick
           frontContent={renderChartCard(chartFaceAIndex)}
           backContent={renderChartCard(chartFaceBIndex)}

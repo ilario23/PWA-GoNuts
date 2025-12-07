@@ -3,6 +3,7 @@ import { motion, type Transition } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 type FlipDirection = "top" | "bottom" | "left" | "right";
+type SwipeDirection = "left" | "right";
 
 interface FlipCardProps {
   /** Content for the front face */
@@ -11,10 +12,14 @@ interface FlipCardProps {
   backContent: React.ReactNode;
   /** Whether the card is flipped */
   isFlipped?: boolean;
-  /** Callback when card is clicked */
+  /** Callback when card is clicked (simple flip) */
   onFlip?: () => void;
-  /** Direction of the flip animation */
-  direction?: FlipDirection;
+  /** Callback when card is swiped with direction info */
+  onSwipe?: (direction: SwipeDirection) => void;
+  /** Custom rotation value in degrees (overrides isFlipped-based calculation) */
+  rotation?: number;
+  /** Direction of the flip animation - can be changed dynamically */
+  flipDirection?: FlipDirection;
   /** Framer Motion transition configuration */
   transition?: Transition;
   /** Additional classes for the container */
@@ -46,7 +51,9 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
       backContent,
       isFlipped = false,
       onFlip,
-      direction = "top",
+      onSwipe,
+      rotation,
+      flipDirection = "right",
       transition = { type: "spring", stiffness: 260, damping: 20 },
       className,
       frontClassName,
@@ -56,11 +63,11 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
     },
     ref
   ) => {
-    const { axis, direction: dir } = directionConfig[direction];
-    const rotation = isFlipped ? dir * 180 : 0;
+    const { axis, direction: dir } = directionConfig[flipDirection];
+    const finalRotation = rotation !== undefined ? rotation : (isFlipped ? dir * 180 : 0);
     const isClickable = !disabled && !disableGlobalClick;
 
-    // Swipe handling
+    // Swipe handling with direction detection
     const handlePanEnd = (
       _event: MouseEvent | TouchEvent | PointerEvent,
       info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
@@ -72,7 +79,16 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
         Math.abs(info.offset.x) > Math.abs(info.offset.y) &&
         Math.abs(info.offset.x) > swipeThreshold
       ) {
-        onFlip?.();
+        // Determine swipe direction: negative x = swipe left, positive x = swipe right
+        const swipeDir: SwipeDirection = info.offset.x < 0 ? "left" : "right";
+
+        if (onSwipe) {
+          // Use the new directional callback if provided
+          onSwipe(swipeDir);
+        } else if (onFlip) {
+          // Fall back to simple flip for backwards compatibility
+          onFlip();
+        }
       }
     };
 
@@ -112,7 +128,7 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
           className={cn("w-full h-full", frontClassName)}
           initial={false}
           animate={{
-            [axis]: rotation,
+            [axis]: finalRotation,
             opacity: isFlipped ? 0 : 1,
           }}
           transition={transition}
@@ -130,7 +146,7 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
           className={cn("absolute inset-0 w-full h-full", backClassName)}
           initial={false}
           animate={{
-            [axis]: rotation + dir * 180,
+            [axis]: finalRotation + dir * 180,
             opacity: isFlipped ? 1 : 0,
           }}
           transition={transition}
@@ -150,4 +166,4 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
 FlipCard.displayName = "FlipCard";
 
 export { FlipCard };
-export type { FlipCardProps, FlipDirection };
+export type { FlipCardProps, FlipDirection, SwipeDirection };

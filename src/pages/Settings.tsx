@@ -4,6 +4,7 @@ import { useOnlineSync } from "@/hooks/useOnlineSync";
 import { useAuth } from "@/contexts/AuthProvider";
 import { db, Transaction, Category, RecurringTransaction, CategoryBudget } from "@/lib/db";
 import { safeSync, syncManager } from "@/lib/sync";
+import { AVAILABLE_ICONS } from "@/lib/icons";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,11 +64,30 @@ import {
 
 import { v4 as uuidv4 } from "uuid";
 
+// Default fallback icon for unsupported icons
+const DEFAULT_FALLBACK_ICON = "DollarSign";
+
+// Set of valid icon names for fast lookup
+const VALID_ICON_NAMES = new Set(AVAILABLE_ICONS.map(i => i.name));
+
+/**
+ * Validates an icon name and returns it if valid, otherwise returns the fallback icon.
+ * @param iconName The icon name to validate
+ * @returns The validated icon name or the fallback
+ */
+function validateIcon(iconName: string | undefined | null): string {
+  if (!iconName || !VALID_ICON_NAMES.has(iconName)) {
+    return DEFAULT_FALLBACK_ICON;
+  }
+  return iconName;
+}
+
 interface ImportStats {
   categories: number;
   transactions: number;
   recurring: number;
   budgets: number;
+  iconsNotPreserved: number;
   isVueMigration: boolean;
 }
 
@@ -150,6 +170,7 @@ export function SettingsPage() {
         let importedCategories = 0;
         let importedRecurring = 0;
         let importedBudgets = 0;
+        let iconsNotPreserved = 0;
 
         // 1. Import Categories
         const categoryMap = new Map<string, string>(); // Old ID -> New ID (though we try to keep IDs)
@@ -161,11 +182,19 @@ export function SettingsPage() {
             if (vueCat.type === 2) type = "income";
             if (vueCat.type === 3) type = "investment";
 
+            // Validate icon - use fallback if not supported
+            const originalIcon = vueCat.icon;
+            const validatedIcon = validateIcon(originalIcon);
+            if (originalIcon && originalIcon !== validatedIcon) {
+              iconsNotPreserved++;
+              console.log(`Icon "${originalIcon}" not supported, using fallback "${validatedIcon}" for category "${vueCat.title}"`);
+            }
+
             const category: Category = {
               id: vueCat.id, // Try to preserve ID
               user_id: user.id,
               name: vueCat.title,
-              icon: vueCat.icon || "CircleDollarSign",
+              icon: validatedIcon,
               color: vueCat.color || "#6366f1",
               type: type,
               parent_id: vueCat.parentCategoryId || undefined,
@@ -259,6 +288,7 @@ export function SettingsPage() {
           transactions: importedTransactions,
           recurring: importedRecurring,
           budgets: importedBudgets,
+          iconsNotPreserved: iconsNotPreserved,
           isVueMigration: true
         });
         setShowImportSuccess(true);
@@ -274,15 +304,24 @@ export function SettingsPage() {
 
         let importedTransactions = 0;
         let importedCategories = 0;
+        let iconsNotPreserved = 0;
 
         // Import categories first (transactions may depend on them)
         if (data.categories && Array.isArray(data.categories)) {
           for (const cat of data.categories) {
+            // Validate icon - use fallback if not supported
+            const originalIcon = cat.icon;
+            const validatedIcon = validateIcon(originalIcon);
+            if (originalIcon && originalIcon !== validatedIcon) {
+              iconsNotPreserved++;
+              console.log(`Icon "${originalIcon}" not supported, using fallback "${validatedIcon}" for category "${cat.name}"`);
+            }
+
             const category: Category = {
               id: cat.id || uuidv4(),
               user_id: user.id,
               name: cat.name,
-              icon: cat.icon || "CircleDollarSign",
+              icon: validatedIcon,
               color: cat.color || "#6366f1",
               type: cat.type || "expense",
               parent_id: cat.parent_id,
@@ -325,6 +364,7 @@ export function SettingsPage() {
           transactions: importedTransactions,
           recurring: 0,
           budgets: 0,
+          iconsNotPreserved: iconsNotPreserved,
           isVueMigration: false
         });
         setShowImportSuccess(true);
@@ -774,26 +814,39 @@ export function SettingsPage() {
           </DialogHeader>
 
           {importStats && (
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <div className="flex flex-col items-center p-3 bg-secondary/20 rounded-lg">
-                <span className="text-2xl font-bold">{importStats.categories}</span>
-                <span className="text-xs text-muted-foreground uppercase">{t("categories") || "Categories"}</span>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col items-center p-3 bg-secondary/20 rounded-lg">
+                  <span className="text-2xl font-bold">{importStats.categories}</span>
+                  <span className="text-xs text-muted-foreground uppercase">{t("categories") || "Categories"}</span>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-secondary/20 rounded-lg">
+                  <span className="text-2xl font-bold">{importStats.transactions}</span>
+                  <span className="text-xs text-muted-foreground uppercase">{t("transactions") || "Transactions"}</span>
+                </div>
+                {importStats.isVueMigration && (
+                  <>
+                    <div className="flex flex-col items-center p-3 bg-secondary/20 rounded-lg">
+                      <span className="text-2xl font-bold">{importStats.recurring}</span>
+                      <span className="text-xs text-muted-foreground uppercase">{t("recurring") || "Recurring"}</span>
+                    </div>
+                    <div className="flex flex-col items-center p-3 bg-secondary/20 rounded-lg">
+                      <span className="text-2xl font-bold">{importStats.budgets}</span>
+                      <span className="text-xs text-muted-foreground uppercase">{t("budgets") || "Budgets"}</span>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="flex flex-col items-center p-3 bg-secondary/20 rounded-lg">
-                <span className="text-2xl font-bold">{importStats.transactions}</span>
-                <span className="text-xs text-muted-foreground uppercase">{t("transactions") || "Transactions"}</span>
-              </div>
-              {importStats.isVueMigration && (
-                <>
-                  <div className="flex flex-col items-center p-3 bg-secondary/20 rounded-lg">
-                    <span className="text-2xl font-bold">{importStats.recurring}</span>
-                    <span className="text-xs text-muted-foreground uppercase">{t("recurring") || "Recurring"}</span>
-                  </div>
-                  <div className="flex flex-col items-center p-3 bg-secondary/20 rounded-lg">
-                    <span className="text-2xl font-bold">{importStats.budgets}</span>
-                    <span className="text-xs text-muted-foreground uppercase">{t("budgets") || "Budgets"}</span>
-                  </div>
-                </>
+
+              {/* Warning for unsupported icons */}
+              {importStats.iconsNotPreserved > 0 && (
+                <div className="flex items-start gap-2 p-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>
+                    {t("icons_not_preserved_warning", { count: importStats.iconsNotPreserved }) ||
+                      `${importStats.iconsNotPreserved} ${importStats.iconsNotPreserved === 1 ? "category had an unsupported icon" : "categories had unsupported icons"} and ${importStats.iconsNotPreserved === 1 ? "was" : "were"} assigned a default icon.`}
+                  </span>
+                </div>
               )}
             </div>
           )}
