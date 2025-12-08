@@ -403,7 +403,7 @@ export function StatisticsPage() {
             className="h-[100px] md:h-[116px]"
             isFlipped={flippedCards.income}
             onFlip={() => toggleCard("income")}
-            direction="top"
+            flipDirection="top"
             frontContent={
               <Card className="h-full hover:bg-accent/50 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
@@ -466,7 +466,7 @@ export function StatisticsPage() {
             className="h-[100px] md:h-[116px]"
             isFlipped={flippedCards.expense}
             onFlip={() => toggleCard("expense")}
-            direction="top"
+            flipDirection="top"
             frontContent={
               <Card className="h-full hover:bg-accent/50 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
@@ -529,7 +529,7 @@ export function StatisticsPage() {
             className="h-[100px] md:h-[116px]"
             isFlipped={flippedCards.investment}
             onFlip={() => toggleCard("investment")}
-            direction="top"
+            flipDirection="top"
             frontContent={
               <Card className="h-full hover:bg-accent/50 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
@@ -589,7 +589,7 @@ export function StatisticsPage() {
             className="h-[100px] md:h-[116px]"
             isFlipped={flippedCards.netBalance}
             onFlip={() => toggleCard("netBalance")}
-            direction="top"
+            flipDirection="top"
             frontContent={
               <Card className="h-full hover:bg-accent/50 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
