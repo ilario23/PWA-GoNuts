@@ -619,7 +619,10 @@ export class SyncManager {
             continue;
           }
 
-          if (!data || data.length === 0) continue;
+          if (!data || data.length === 0) {
+            hasMore = false;
+            continue;
+          }
 
           console.log(`[Sync] Pulled ${data.length} items from ${tableName}`);
 
@@ -739,6 +742,7 @@ export class SyncManager {
 
           if (!data || data.length === 0) {
             console.log(`[Sync] No data in ${tableName}`);
+            hasMore = false;
             continue;
           }
 
