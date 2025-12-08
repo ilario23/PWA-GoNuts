@@ -61,6 +61,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -88,6 +89,7 @@ interface ImportStats {
   recurring: number;
   budgets: number;
   iconsNotPreserved: number;
+  orphansDetected: number;
   isVueMigration: boolean;
 }
 
@@ -106,12 +108,31 @@ export function SettingsPage() {
   const [exportingData, setExportingData] = useState(false);
   const [showImportSuccess, setShowImportSuccess] = useState(false);
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
+  const [importProgress, setImportProgress] = useState<{
+    phase: 'idle' | 'parsing' | 'importing' | 'syncing' | 'complete';
+    current: number;
+    total: number;
+    pendingSync: number;
+  }>({ phase: 'idle', current: 0, total: 0, pendingSync: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Avoid hydration mismatch
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Subscribe to sync manager to track pending items during sync phase
+  React.useEffect(() => {
+    if (importProgress.phase === 'syncing') {
+      const unsubscribe = syncManager.onSyncChange((status) => {
+        setImportProgress(prev => ({
+          ...prev,
+          pendingSync: status.pendingCount
+        }));
+      });
+      return unsubscribe;
+    }
+  }, [importProgress.phase]);
 
   const isSyncing = manualSyncing || fullSyncing;
 
@@ -158,25 +179,83 @@ export function SettingsPage() {
     setImportingData(true);
     try {
       const text = await file.text();
+      // Update progress: Parsing
+      setImportProgress({ phase: 'parsing', current: 0, total: 0, pendingSync: 0 });
+      // Small delay to let UI update
+      await new Promise(r => setTimeout(r, 10));
+
       const data = JSON.parse(text);
 
       // Check if this is a Vue export
       const isVueExport = data.source === 'vue-firebase-expense-tracker';
 
+      // Track valid category IDs to prevent FK violations
+      const validCategoryIds = new Set<string>();
+
+      // Helper to ensure fallback category exists
+      let fallbackCategoryId: string | null = null;
+      const ensureFallbackCategory = async (): Promise<string> => {
+        if (fallbackCategoryId) return fallbackCategoryId;
+
+        // Check if already imported or exists
+        const existingFallback = await db.categories.where('name').equalsIgnoreCase('Uncategorized').first();
+        if (existingFallback) {
+          fallbackCategoryId = existingFallback.id;
+          validCategoryIds.add(existingFallback.id);
+          return existingFallback.id;
+        }
+
+        // Create new
+        const newFallbackId = uuidv4();
+        const fallbackCat: Category = {
+          id: newFallbackId,
+          user_id: user.id,
+          name: "Uncategorized",
+          icon: "HelpCircle",
+          color: "#94a3b8", // slate-400
+          type: "expense",
+          active: 1,
+          deleted_at: null,
+          pendingSync: 1
+        };
+        await db.categories.put(fallbackCat);
+        fallbackCategoryId = newFallbackId;
+        validCategoryIds.add(newFallbackId);
+        return newFallbackId;
+      };
+
       if (isVueExport) {
         // VUE MIGRATION LOGIC
         console.log("Starting migration from Vue export...");
+
+        // Calculate total items to import
+        const totalItems =
+          (data.data.categories?.length || 0) +
+          (data.data.transactions?.length || 0) +
+          (data.data.recurringExpenses?.length || 0);
+
+        setImportProgress({ phase: 'importing', current: 0, total: totalItems, pendingSync: 0 });
+
         let importedTransactions = 0;
         let importedCategories = 0;
         let importedRecurring = 0;
         let importedBudgets = 0;
         let iconsNotPreserved = 0;
+        let orphansDetected = 0;
+        let processedItems = 0;
 
         // 1. Import Categories
-        const categoryMap = new Map<string, string>(); // Old ID -> New ID (though we try to keep IDs)
+        const categoryIdMap = new Map<string, string>(); // Old Firebase ID -> New UUID
 
         if (data.data.categories && Array.isArray(data.data.categories)) {
           for (const vueCat of data.data.categories) {
+            // Update progress occasionally
+            processedItems++;
+            if (processedItems % 5 === 0) {
+              setImportProgress(prev => ({ ...prev, current: processedItems }));
+              await new Promise(r => setTimeout(r, 0)); // Yield to main thread
+            }
+
             // Map type: 1=expense, 2=income, 3=investment
             let type: "expense" | "income" | "investment" = "expense";
             if (vueCat.type === 2) type = "income";
@@ -190,21 +269,28 @@ export function SettingsPage() {
               console.log(`Icon "${originalIcon}" not supported, using fallback "${validatedIcon}" for category "${vueCat.title}"`);
             }
 
+            // Generate NEW UUID
+            const newId = uuidv4();
+            if (vueCat.id) categoryIdMap.set(vueCat.id, newId);
+
+            // Resolve Parent
+            const newParentId = vueCat.parentCategoryId ? categoryIdMap.get(vueCat.parentCategoryId) : undefined;
+
             const category: Category = {
-              id: vueCat.id, // Try to preserve ID
+              id: newId,
               user_id: user.id,
               name: vueCat.title,
               icon: validatedIcon,
               color: vueCat.color || "#6366f1",
               type: type,
-              parent_id: vueCat.parentCategoryId || undefined,
+              parent_id: newParentId,
               active: vueCat.active ? 1 : 0,
               deleted_at: null,
               pendingSync: 1,
             };
 
             await db.categories.put(category);
-            categoryMap.set(vueCat.id, vueCat.id);
+            validCategoryIds.add(newId); // Track valid NEW ID
             importedCategories++;
 
             // Handle Budget (move to category_budgets table)
@@ -212,7 +298,7 @@ export function SettingsPage() {
               const budget: CategoryBudget = {
                 id: uuidv4(),
                 user_id: user.id,
-                category_id: vueCat.id,
+                category_id: newId, // Use new ID
                 amount: vueCat.budget,
                 period: "monthly",
                 deleted_at: null,
@@ -229,15 +315,39 @@ export function SettingsPage() {
         // 2. Import Transactions
         if (data.data.transactions && Array.isArray(data.data.transactions)) {
           for (const vueTx of data.data.transactions) {
-            // Infer type from category if possible, otherwise default to expense
-            // We need to look up the category to get the type
-            const category = await db.categories.get(vueTx.categoryId);
-            const type = category?.type || "expense";
+            processedItems++;
+            if (processedItems % 10 === 0) {
+              setImportProgress(prev => ({ ...prev, current: processedItems }));
+              await new Promise(r => setTimeout(r, 0));
+            }
+
+            // Infer type from category if possible
+            // We need to look up the NEW category ID using the map
+            let finalCategoryId = "";
+            let type: "expense" | "income" | "investment" = "expense";
+
+            if (vueTx.categoryId) {
+              const mappedId = categoryIdMap.get(vueTx.categoryId);
+              if (mappedId) {
+                finalCategoryId = mappedId;
+                // Get type from inserted category (or memory if optimizable, but DB is safer source of truth for types)
+                const cat = await db.categories.get(mappedId);
+                if (cat) type = cat.type;
+              } else {
+                // Orphan
+                console.warn(`Orphan transaction detected! ID: ${vueTx.id}, Missing Category: ${vueTx.categoryId}`);
+                finalCategoryId = await ensureFallbackCategory();
+                orphansDetected++;
+              }
+            } else {
+              finalCategoryId = await ensureFallbackCategory();
+              orphansDetected++;
+            }
 
             const transaction: Transaction = {
-              id: vueTx.id, // Try to preserve ID
+              id: uuidv4(), // Always new UUID
               user_id: user.id,
-              category_id: vueTx.categoryId,
+              category_id: finalCategoryId,
               type: type,
               amount: parseFloat(vueTx.amount),
               date: vueTx.timestamp.split("T")[0],
@@ -255,20 +365,40 @@ export function SettingsPage() {
         // 3. Import Recurring Expenses
         if (data.data.recurringExpenses && Array.isArray(data.data.recurringExpenses)) {
           for (const vueRec of data.data.recurringExpenses) {
+            processedItems++;
+            setImportProgress(prev => ({ ...prev, current: processedItems }));
+            await new Promise(r => setTimeout(r, 0));
+
             // Map frequency
             let frequency: "daily" | "weekly" | "monthly" | "yearly" = "monthly";
             if (vueRec.frequency === "WEEKLY") frequency = "weekly";
             if (vueRec.frequency === "YEARLY") frequency = "yearly";
 
-            // Look up category for type
-            const category = await db.categories.get(vueRec.categoryId);
-            const type = category?.type || "expense";
+            // Resolve Category
+            let finalCategoryId = "";
+            let type: "expense" | "income" | "investment" = "expense";
+
+            if (vueRec.categoryId) {
+              const mappedId = categoryIdMap.get(vueRec.categoryId);
+              if (mappedId) {
+                finalCategoryId = mappedId;
+                const cat = await db.categories.get(mappedId);
+                if (cat) type = cat.type;
+              } else {
+                console.warn(`Orphan recurring detected! ID: ${vueRec.id}, Missing Category: ${vueRec.categoryId}`);
+                finalCategoryId = await ensureFallbackCategory();
+                orphansDetected++;
+              }
+            } else {
+              finalCategoryId = await ensureFallbackCategory();
+              orphansDetected++;
+            }
 
             const recurring: RecurringTransaction = {
-              id: vueRec.id,
+              id: uuidv4(), // Always new UUID
               user_id: user.id,
-              category_id: vueRec.categoryId,
-              type: type,
+              category_id: finalCategoryId,
+              type: type, // Derived from category
               amount: parseFloat(vueRec.amount),
               description: vueRec.description || "",
               frequency: frequency,
@@ -289,58 +419,271 @@ export function SettingsPage() {
           recurring: importedRecurring,
           budgets: importedBudgets,
           iconsNotPreserved: iconsNotPreserved,
+          orphansDetected: orphansDetected,
           isVueMigration: true
         });
         setShowImportSuccess(true);
 
       } else {
-        // EXISTING IMPORT LOGIC
-        // Validate structure
-        if (!data.transactions && !data.categories) {
+        // STANDARD IMPORT LOGIC
+        // Validate structure (more loosely now as we support partial imports)
+        if (!data.transactions && !data.categories && !data.contexts && !data.recurring_transactions) {
           throw new Error(
-            "Invalid format: must contain transactions and/or categories"
+            "Invalid format: must contain at least one data type (transactions, categories, contexts, etc.)"
           );
         }
 
         let importedTransactions = 0;
         let importedCategories = 0;
+        let importedContexts = 0;
+        let importedRecurring = 0;
+        let importedBudgets = 0;
         let iconsNotPreserved = 0;
+        let orphansDetected = 0;
 
-        // Import categories first (transactions may depend on them)
-        if (data.categories && Array.isArray(data.categories)) {
-          for (const cat of data.categories) {
-            // Validate icon - use fallback if not supported
-            const originalIcon = cat.icon;
-            const validatedIcon = validateIcon(originalIcon);
-            if (originalIcon && originalIcon !== validatedIcon) {
-              iconsNotPreserved++;
-              console.log(`Icon "${originalIcon}" not supported, using fallback "${validatedIcon}" for category "${cat.name}"`);
+        // ID Mappings: Old ID -> New ID (or Existing ID)
+        const categoryIdMap = new Map<string, string>();
+        const contextIdMap = new Map<string, string>();
+
+        const totalItems =
+          (data.categories?.length || 0) +
+          (data.transactions?.length || 0) +
+          (data.contexts?.length || 0) +
+          (data.recurring_transactions?.length || 0) +
+          (data.category_budgets?.length || 0);
+
+        setImportProgress({ phase: 'importing', current: 0, total: totalItems, pendingSync: 0 });
+        let processedItems = 0;
+
+        // 1. Import Contexts (Merge by Name)
+        if (data.contexts && Array.isArray(data.contexts)) {
+          for (const ctx of data.contexts) {
+            processedItems++;
+            if (processedItems % 5 === 0) {
+              setImportProgress(prev => ({ ...prev, current: processedItems }));
+              await new Promise(r => setTimeout(r, 0));
             }
 
-            const category: Category = {
-              id: cat.id || uuidv4(),
-              user_id: user.id,
-              name: cat.name,
-              icon: validatedIcon,
-              color: cat.color || "#6366f1",
-              type: cat.type || "expense",
-              parent_id: cat.parent_id,
-              active: 1,
-              deleted_at: null,
-              pendingSync: 1,
-            };
-            await db.categories.put(category);
-            importedCategories++;
+            // Check if context with same name exists
+            const existingCtx = await db.contexts
+              .where({ name: ctx.name, user_id: user.id })
+              .first();
+
+            if (existingCtx) {
+              // Map old ID to existing ID
+              if (ctx.id) contextIdMap.set(ctx.id, existingCtx.id);
+            } else {
+              // Create new
+              const newId = uuidv4();
+              if (ctx.id) contextIdMap.set(ctx.id, newId);
+
+              await db.contexts.put({
+                id: newId,
+                user_id: user.id,
+                name: ctx.name,
+                description: ctx.description,
+                active: 1,
+                deleted_at: null,
+                pendingSync: 1
+              });
+              importedContexts++;
+            }
           }
         }
 
-        // Import transactions
+        // 2. Import Categories (Merge by Name)
+        // First pass: create map and identify potential merges
+        // Second pass: insert new ones. 
+        // We do this in one loop if we are careful about parents. 
+        // Actually, for parents to work, we need to map all IDs first? 
+        // If "Merge by Name", we might need to check if parent exists too.
+        // Let's do a "Map Preparation" pass for Categories if we want to support self-referential parent_ids in random order.
+        // But typically imports are ordered or we can just do 2 passes.
+
+        // Let's stick to the robust 2-pass approach from previous step, but adding "Check DB"
+
+        // Pre-load all existing categories for fast lookup? Or query one by one? 
+        // Querying one by one is safer for memory if many cats, but slower. 
+        // Given < 100 cats usually, let's just query.
+
+        if (data.categories && Array.isArray(data.categories)) {
+          // Pass 1: Build Map (Check existing names)
+          for (const cat of data.categories) {
+            if (!cat.id) continue;
+
+            const existingCat = await db.categories
+              .where({ name: cat.name, user_id: user.id })
+              .first();
+
+            if (existingCat) {
+              categoryIdMap.set(cat.id, existingCat.id);
+            } else {
+              // Will need to create new
+              categoryIdMap.set(cat.id, uuidv4());
+            }
+          }
+
+          // Pass 2: Insert New
+          for (const cat of data.categories) {
+            processedItems++;
+            if (processedItems % 5 === 0) setImportProgress(prev => ({ ...prev, current: processedItems }));
+
+            const mappedId = categoryIdMap.get(cat.id);
+            if (!mappedId) continue; // Should not happen
+
+            // Check if it was mapped to existing DB item
+            const existsInDb = await db.categories.get(mappedId);
+
+            if (!existsInDb) {
+              // We need to insert it
+              // Validate icon
+              const originalIcon = cat.icon;
+              const validatedIcon = validateIcon(originalIcon);
+              if (originalIcon && originalIcon !== validatedIcon) {
+                iconsNotPreserved++;
+              }
+
+              // Resolve Parent
+              let newParentId = undefined;
+              if (cat.parent_id) {
+                newParentId = categoryIdMap.get(cat.parent_id);
+                // If not found in map, maybe it's in DB (orphaned reference?) 
+                // If not in map, we drop it.
+              }
+
+              await db.categories.put({
+                id: mappedId,
+                user_id: user.id,
+                name: cat.name,
+                icon: validatedIcon,
+                color: cat.color || "#6366f1",
+                type: cat.type || "expense",
+                parent_id: newParentId,
+                active: 1,
+                deleted_at: null,
+                pendingSync: 1,
+              });
+              importedCategories++;
+            }
+
+            validCategoryIds.add(mappedId);
+          }
+        }
+
+        // 3. Category Budgets
+        if (data.category_budgets && Array.isArray(data.category_budgets)) {
+          for (const budget of data.category_budgets) {
+            processedItems++;
+            setImportProgress(prev => ({ ...prev, current: processedItems }));
+
+            const mappedCatId = categoryIdMap.get(budget.category_id);
+            if (!mappedCatId) continue; // Skip if category not found
+
+            // Always create new budget entry to avoid complex merge logic for now, 
+            // unless we want to overwrite existing budget for that category?
+            // "Merge by Category" -> if budget exists for this cat, update it.
+            const existingBudget = await db.category_budgets
+              .where('category_id').equals(mappedCatId)
+              .first();
+
+            if (existingBudget) {
+              // Update existing
+              await db.category_budgets.update(existingBudget.id, {
+                amount: budget.amount,
+                period: budget.period,
+                pendingSync: 1,
+                updated_at: new Date().toISOString()
+              });
+              // We count this as imported? sure.
+              importedBudgets++;
+            } else {
+              // Create new
+              await db.category_budgets.put({
+                id: uuidv4(),
+                user_id: user.id,
+                category_id: mappedCatId,
+                amount: budget.amount,
+                period: budget.period,
+                deleted_at: null,
+                pendingSync: 1,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+              importedBudgets++;
+            }
+          }
+        }
+
+        // 4. Recurring Transactions
+        if (data.recurring_transactions && Array.isArray(data.recurring_transactions)) {
+          for (const rec of data.recurring_transactions) {
+            processedItems++;
+            setImportProgress(prev => ({ ...prev, current: processedItems }));
+
+            // Resolve FKs
+            const catId = categoryIdMap.get(rec.category_id);
+            // If category not found, use fallback
+            let finalCatId = catId;
+            if (!finalCatId) {
+              finalCatId = await ensureFallbackCategory();
+              orphansDetected++;
+            }
+
+            const ctxId = rec.context_id ? contextIdMap.get(rec.context_id) : undefined;
+
+            // Always create new recurring transaction (hard to merge by "similarity")
+            await db.recurring_transactions.put({
+              id: uuidv4(),
+              user_id: user.id,
+              category_id: finalCatId,
+              context_id: ctxId,
+              type: rec.type,
+              amount: parseFloat(rec.amount),
+              description: rec.description,
+              frequency: rec.frequency,
+              start_date: rec.start_date,
+              end_date: rec.end_date,
+              active: rec.active !== undefined ? rec.active : 1,
+              deleted_at: null,
+              pendingSync: 1,
+              // Group stuff?
+              group_id: null, // Reset group for safety
+              paid_by_member_id: null
+            });
+            importedRecurring++;
+          }
+        }
+
+        // 5. Transactions
         if (data.transactions && Array.isArray(data.transactions)) {
           for (const tx of data.transactions) {
+            processedItems++;
+            if (processedItems % 10 === 0) {
+              setImportProgress(prev => ({ ...prev, current: processedItems }));
+              await new Promise(r => setTimeout(r, 0));
+            }
+
+            // Resolve FKs
+            let finalCategoryId = "";
+            if (tx.category_id) {
+              const mapped = categoryIdMap.get(tx.category_id);
+              if (mapped) finalCategoryId = mapped;
+              else {
+                finalCategoryId = await ensureFallbackCategory();
+                orphansDetected++;
+              }
+            } else {
+              finalCategoryId = await ensureFallbackCategory();
+              orphansDetected++;
+            }
+
+            const finalContextId = tx.context_id ? contextIdMap.get(tx.context_id) : undefined;
+
             const transaction: Transaction = {
-              id: tx.id || uuidv4(),
+              id: uuidv4(), // Always new ID
               user_id: user.id,
-              category_id: tx.category_id || "",
+              category_id: finalCategoryId,
+              context_id: finalContextId,
               type: tx.type || "expense",
               amount: parseFloat(tx.amount) || 0,
               date: tx.date || new Date().toISOString().split("T")[0],
@@ -348,12 +691,12 @@ export function SettingsPage() {
                 tx.date?.substring(0, 7) ||
                 new Date().toISOString().substring(0, 7),
               description: tx.description || "",
-              context_id: tx.context_id,
-              group_id: tx.group_id,
-              paid_by_member_id: tx.paid_by_member_id,
+              group_id: null, // Reset group
+              paid_by_member_id: null,
               deleted_at: null,
               pendingSync: 1,
             };
+
             await db.transactions.put(transaction);
             importedTransactions++;
           }
@@ -362,21 +705,37 @@ export function SettingsPage() {
         setImportStats({
           categories: importedCategories,
           transactions: importedTransactions,
-          recurring: 0,
-          budgets: 0,
+          recurring: importedRecurring,
+          budgets: importedBudgets,
           iconsNotPreserved: iconsNotPreserved,
+          orphansDetected: orphansDetected,
           isVueMigration: false
         });
         setShowImportSuccess(true);
       }
 
+      // Update phase to syncing
+      // Recalculate pending sync count
+      const tables = [db.transactions, db.categories, db.contexts, db.recurring_transactions, db.category_budgets];
+      let pendingCount = 0;
+      for (const table of tables) {
+        pendingCount += await table.where('pendingSync').equals(1).count();
+      }
+
+      setImportProgress({ phase: 'syncing', current: 0, total: 0, pendingSync: pendingCount });
+
       // Sync to server
       await safeSync("handleImportData");
+      setImportProgress({ phase: 'complete', current: 0, total: 0, pendingSync: 0 });
     } catch (error: any) {
       console.error("Import error:", error);
       toast.error(t("import_error") || `Import failed: ${error.message}`);
     } finally {
       setImportingData(false);
+      // Reset progress after a short delay if not successful (success dialog handles its own flow)
+      if (!showImportSuccess) {
+        setImportProgress({ phase: 'idle', current: 0, total: 0, pendingSync: 0 });
+      }
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -399,6 +758,12 @@ export function SettingsPage() {
       const contexts = await db.contexts
         .filter((c) => c.user_id === user.id && !c.deleted_at)
         .toArray();
+      const recurring = await db.recurring_transactions
+        .filter((r) => r.user_id === user.id && !r.deleted_at)
+        .toArray();
+      const budgets = await db.category_budgets
+        .filter((b) => b.user_id === user.id && !b.deleted_at)
+        .toArray();
 
       const exportData = {
         exportDate: new Date().toISOString(),
@@ -410,6 +775,8 @@ export function SettingsPage() {
           ({ pendingSync, deleted_at, ...rest }) => rest
         ),
         contexts: contexts.map(({ pendingSync, deleted_at, ...rest }) => rest),
+        recurring_transactions: recurring.map(({ pendingSync, deleted_at, ...rest }) => rest),
+        category_budgets: budgets.map(({ pendingSync, deleted_at, ...rest }) => rest),
       };
 
       // Create blob and download
@@ -428,7 +795,7 @@ export function SettingsPage() {
 
       toast.success(
         t("export_success") ||
-        `Exported ${transactions.length} transactions, ${categories.length} categories, ${contexts.length} contexts`
+        `Exported ${transactions.length} tx, ${categories.length} cat, ${recurring.length} recurring`
       );
     } catch (error: any) {
       toast.error(t("export_error") || `Export failed: ${error.message}`);
@@ -848,6 +1215,17 @@ export function SettingsPage() {
                   </span>
                 </div>
               )}
+
+              {/* Warning for orphaned items */}
+              {importStats.orphansDetected > 0 && (
+                <div className="flex items-start gap-2 p-3 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded-lg text-sm">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>
+                    {t("orphaned_warning", { count: importStats.orphansDetected }) ||
+                      `Warning: ${importStats.orphansDetected} item(s) had missing categories and were moved to 'Uncategorized'.`}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -856,6 +1234,49 @@ export function SettingsPage() {
               {t("close") || "Close"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Progress Dialog */}
+      <Dialog open={importProgress.phase !== 'idle' && importProgress.phase !== 'complete'} onOpenChange={() => {
+        // Prevent closing while importing
+        if (importProgress.phase === 'complete') {
+          setImportProgress({ phase: 'idle', current: 0, total: 0, pendingSync: 0 });
+        }
+      }}>
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>
+              {importProgress.phase === 'syncing'
+                ? (t('syncing') || "Syncing data...")
+                : (t('import_data') || "Import Data")}
+            </DialogTitle>
+            <DialogDescription>
+              {importProgress.phase === 'parsing' && (t('loading') || "Loading...")}
+              {importProgress.phase === 'importing' && t('import_processing', {
+                current: importProgress.current,
+                total: importProgress.total,
+                defaultValue: `Importing... ${importProgress.current}/${importProgress.total}`
+              })}
+              {importProgress.phase === 'syncing' && t('sync_in_progress', {
+                pending: importProgress.pendingSync,
+                defaultValue: `Syncing with cloud... ${importProgress.pendingSync} items remaining`
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {importProgress.phase === 'importing' && (
+              <Progress value={importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0} />
+            )}
+            {importProgress.phase === 'syncing' && (
+              <div className="flex flex-col items-center justify-center py-4 space-y-4">
+                <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground text-center">
+                  {t('offline_banner_message') || "Changes will sync when connected"}
+                </p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

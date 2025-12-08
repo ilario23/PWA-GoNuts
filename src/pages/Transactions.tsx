@@ -630,7 +630,7 @@ export function TransactionsPage() {
             {filters.contextFilter !== "all" && (
               <span className="bg-muted px-2 py-1 rounded-md">
                 {filters.contextFilter === "none"
-                  ? t("no_context")
+                  ? t("no_contexts")
                   : contexts.find((c) => c.id === filters.contextFilter)?.name ||
                   filters.contextFilter}
               </span>

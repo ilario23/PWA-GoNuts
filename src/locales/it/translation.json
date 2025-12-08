@@ -287,7 +287,6 @@
   "export_json": "Esporta JSON",
   "export_success": "Dati esportati con successo",
   "export_error": "Esportazione fallita",
-  "no_context": "Senza contesto",
   "all_contexts": "Tutti i Contesti",
   "confirm_delete_transaction": "Eliminare la Transazione?",
   "confirm_delete_transaction_description": "Sei sicuro di voler eliminare questa transazione? Questa azione non può essere annullata.",
@@ -467,5 +466,14 @@
   "share_plan": "Condividi Piano",
   "unknown": "Sconosciuto",
   "more_options": "Altre Opzioni",
-  "icons_not_preserved_warning": "Attenzione: {{count}} categoria/e non hanno preservato l'icona (assegnata default)."
+  "icons_not_preserved_warning": "Attenzione: {{count}} categoria/e non hanno preservato l'icona (assegnata default).",
+  "import_success_title": "Importazione Completata",
+  "import_success_desc": "I tuoi dati sono stati importati con successo nell'applicazione.",
+  "import_processing": "Importazione dati... {{current}}/{{total}}",
+  "sync_in_progress": "Sincronizzazione col cloud... {{pending}} elementi rimanenti",
+  "orphaned_warning": "Attenzione: {{count}} elemento/i avevano categorie mancanti e sono stati spostati in 'Non categorizzato'.",
+  "no_recurring_transactions": "Nessuna transazione ricorrente trovata. Aggiungine una per automatizzare le tue spese.",
+  "no_contexts": "Nessun contesto, aggiungi uno per raggruppare le tue transazioni.",
+  "passwords_mismatch": "Le due password non coincidono",
+  "confirm_password": "Conferma Password"
 }

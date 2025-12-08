@@ -467,5 +467,13 @@
   "share_plan": "Share Plan",
   "unknown": "Unknown",
   "more_options": "More Options",
-  "icons_not_preserved_warning": "Warning: {{count}} category(s) could not preserve their icon (default icon assigned)."
+  "icons_not_preserved_warning": "Warning: {{count}} category(s) could not preserve their icon (default icon assigned).",
+  "import_success_title": "Import Successful",
+  "import_success_desc": "Your data has been successfully imported into the application.",
+  "import_processing": "Importing data... {{current}}/{{total}}",
+  "sync_in_progress": "Syncing with cloud... {{pending}} items remaining",
+  "orphaned_warning": "Warning: {{count}} item(s) had missing categories and were moved to 'Uncategorized'.",
+  "no_recurring_transactions": "No recurring transactions found. Add one to automate your expenses.",
+  "passwords_mismatch": "Passwords do not match",
+  "confirm_password": "Confirm Password"
 }

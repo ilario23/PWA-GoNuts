@@ -592,7 +592,7 @@ export function RecurringTransactionsPage() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none">
-                                  {t("no_context")}
+                                  {t("no_contexts")}
                                 </SelectItem>
                                 {contexts.map((ctx) => (
                                   <SelectItem key={ctx.id} value={ctx.id}>
@@ -631,6 +631,11 @@ export function RecurringTransactionsPage() {
             onClick={handleTransactionClick}
           />
         ))}
+        {(!recurringTransactions || recurringTransactions.length === 0) && (
+          <div className="text-center text-muted-foreground py-8">
+            {t("no_recurring_transactions")}
+          </div>
+        )}
       </div>
 
       {/* Desktop View: Table */}
@@ -647,44 +652,52 @@ export function RecurringTransactionsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {recurringTransactions?.map((t_item) => (
-              <TableRow key={t_item.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {getCategoryDisplay(t_item.category_id)}
-                    <SyncStatusBadge isPending={t_item.pendingSync === 1} />
-                  </div>
-                </TableCell>
-                <TableCell className="capitalize">
-                  {t(t_item.frequency)}
-                </TableCell>
-                <TableCell className="capitalize">{t(t_item.type)}</TableCell>
-                <TableCell className="text-right">
-                  €{t_item.amount.toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  {getNextOccurrence(t_item.start_date, t_item.frequency)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(t_item)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteClick(t_item.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+            {(!recurringTransactions || recurringTransactions.length === 0) ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  {t("no_recurring_transactions")}
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              recurringTransactions?.map((t_item) => (
+                <TableRow key={t_item.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {getCategoryDisplay(t_item.category_id)}
+                      <SyncStatusBadge isPending={t_item.pendingSync === 1} />
+                    </div>
+                  </TableCell>
+                  <TableCell className="capitalize">
+                    {t(t_item.frequency)}
+                  </TableCell>
+                  <TableCell className="capitalize">{t(t_item.type)}</TableCell>
+                  <TableCell className="text-right">
+                    €{t_item.amount.toFixed(2)}
+                  </TableCell>
+                  <TableCell>
+                    {getNextOccurrence(t_item.start_date, t_item.frequency)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(t_item)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteClick(t_item.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

@@ -118,8 +118,7 @@ function handleSessionExpired(signOutFn: () => Promise<any>): () => void {
 
   // Show toast with action to cancel logout
   const toastId = toast.warning(
-    `${t("session_expired") || "Session Expired"} - ${
-      t("logging_out_in") || "Logging out in"
+    `${t("session_expired") || "Session Expired"} - ${t("logging_out_in") || "Logging out in"
     } ${countdown}s`,
     {
       description:
@@ -141,8 +140,7 @@ function handleSessionExpired(signOutFn: () => Promise<any>): () => void {
     countdown--;
     if (countdown > 0 && !dismissed) {
       toast.warning(
-        `${t("session_expired") || "Session Expired"} - ${
-          t("logging_out_in") || "Logging out in"
+        `${t("session_expired") || "Session Expired"} - ${t("logging_out_in") || "Logging out in"
         } ${countdown}s`,
         {
           id: toastId,
@@ -211,6 +209,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await supabase.auth.signOut();
   }, []);
 
+  // Register logout handler with sync manager to handle 403s from sync
+  useEffect(() => {
+    syncManager.registerLogoutHandler(() => {
+      console.log("[AuthProvider] Received logout request from SyncManager (403 Forbidden)");
+      signOut();
+    });
+  }, [signOut]);
+
   useEffect(() => {
     let isSubscribed = true;
     let cleanupSessionExpired: (() => void) | null = null;
@@ -260,6 +266,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
             "[AuthProvider] Session validation error:",
             error.message
           );
+
+          // Handle 403 Forbidden specifically - immediate logout
+          if (error.status === 403) {
+            console.error("[AuthProvider] 403 Forbidden during init - immediate logout");
+            signOut();
+            return;
+          }
+
           // If we had a cached user but session is invalid, handle expiration
           if (cachedUser) {
             cleanupSessionExpired = handleSessionExpired(signOut);

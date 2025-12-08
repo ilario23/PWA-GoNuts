@@ -177,14 +177,15 @@ export function MobileRecurringTransactionRow({
           </div>
 
           {/* Recurrence Info */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Repeat className="h-3 w-3" />
-            <span className="capitalize">{t(transaction.frequency)}</span>
-            <span>•</span>
-            <span>
+          <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Repeat className="h-3 w-3" />
+              <span className="capitalize">{t(transaction.frequency)}</span>
+            </div>
+            <div>
               {t("next")}:{" "}
               {getNextOccurrence(transaction.start_date, transaction.frequency)}
-            </span>
+            </div>
           </div>
 
           {/* Badges */}

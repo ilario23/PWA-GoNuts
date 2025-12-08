@@ -443,7 +443,7 @@ export function TransactionDialog({
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="none">
-                                                            {t("no_context") || "No Context"}
+                                                            {t("no_contexts")}
                                                         </SelectItem>
                                                         {contexts.map((ctx) => (
                                                             <SelectItem key={ctx.id} value={ctx.id}>

@@ -13,10 +13,14 @@ import {
 } from "@/components/ui/card";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 export function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const { t } = useTranslation();
@@ -28,6 +32,12 @@ export function AuthPage() {
 
     try {
       if (isSignUp) {
+        if (password !== confirmPassword) {
+          toast.error(t("passwords_mismatch") || "Passwords do not match");
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -85,14 +95,69 @@ export function AuthPage() {
               <label htmlFor="password" className="text-sm font-medium">
                 {t("password")}
               </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className="sr-only">
+                    {showPassword ? "Hide password" : "Show password"}
+                  </span>
+                </Button>
+              </div>
             </div>
+
+            {isSignUp && (
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="text-sm font-medium">
+                  {t("confirm_password") || "Confirm Password"}
+                </label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <span className="sr-only">
+                      {showConfirmPassword
+                        ? "Hide confirm password"
+                        : "Show confirm password"}
+                    </span>
+                  </Button>
+                </div>
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? t("loading") : isSignUp ? t("sign_up") : t("sign_in")}
             </Button>
@@ -104,7 +169,7 @@ export function AuthPage() {
               >
                 {isSignUp
                   ? t("already_have_account") ||
-                    "Already have an account? Sign In"
+                  "Already have an account? Sign In"
                   : t("need_account") || "Need an account? Sign Up"}
               </button>
             </div>

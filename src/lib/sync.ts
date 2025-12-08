@@ -109,6 +109,7 @@ export class SyncManager {
   private errorMap: Map<string, SyncError> = new Map();
   private pushTimer: NodeJS.Timeout | null = null;
   private initialSyncComplete = false;
+  private onLogout: (() => void) | null = null;
 
   // ============================================================================
   // PUBLIC API
@@ -133,6 +134,14 @@ export class SyncManager {
   }
 
   /**
+   * Register a callback to be invoked when a 403 Forbidden error occurs.
+   * This allows the AuthProvider to handle the actual logout.
+   */
+  registerLogoutHandler(callback: () => void): void {
+    this.onLogout = callback;
+  }
+
+  /**
    * Main sync function - pushes local changes then pulls remote changes.
    * Implements retry logic with exponential backoff for failed items.
    */
@@ -154,7 +163,15 @@ export class SyncManager {
     try {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
+
+      if (authError && authError.status === 403) {
+        console.error("[Sync] 403 Forbidden during sync - triggering logout");
+        if (this.onLogout) this.onLogout();
+        return;
+      }
+
       if (!user) {
         console.log("[Sync] No user, skipping sync");
         return;
@@ -211,7 +228,15 @@ export class SyncManager {
     try {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
+
+      if (authError && authError.status === 403) {
+        console.error("[Sync] 403 Forbidden during push - triggering logout");
+        if (this.onLogout) this.onLogout();
+        return;
+      }
+
       if (!user) return;
 
       console.log("[Sync] Pushing pending changes...");
@@ -248,7 +273,15 @@ export class SyncManager {
     try {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
+
+      if (authError && authError.status === 403) {
+        console.error("[Sync] 403 Forbidden during full sync - triggering logout");
+        if (this.onLogout) this.onLogout();
+        return;
+      }
+
       if (!user) {
         console.log("[Sync] No user, skipping full sync");
         return;
@@ -964,13 +997,10 @@ export class SyncManager {
         .from("user_settings")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        // PGRST116 = no rows found, which is fine for new users
-        if (error.code !== "PGRST116") {
-          console.error("[Sync] Failed to pull user_settings:", error);
-        }
+        console.error("[Sync] Failed to pull user_settings:", error);
         return;
       }
 
