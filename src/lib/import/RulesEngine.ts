@@ -33,9 +33,9 @@ export class RulesEngine {
             if (tx.category_id) continue; // Skip if already categorized
 
             // Simple priority: First match wins.
-            // TODO: Add priority/ordering if needed.
             for (const rule of this.rules) {
                 if (this.isMatch(tx.description, rule)) {
+                    // "SKIP" is a special value handled by the UI to remove items
                     tx.category_id = rule.category_id;
                     matchCount++;
                     break;

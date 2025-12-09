@@ -43,6 +43,7 @@ export type CsvMapping = {
 
 export interface ImportOptions {
     csvMapping?: CsvMapping;
+    includeSavings?: boolean;
 }
 
 export interface TransactionParser {

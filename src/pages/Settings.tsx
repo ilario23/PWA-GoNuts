@@ -54,6 +54,7 @@ import { useTheme } from "next-themes";
 import { THEME_COLORS } from "@/lib/theme-colors";
 import { toast } from "sonner";
 import { ImportWizard } from "@/components/import/ImportWizard";
+import { ImportRulesManager } from "@/components/settings/ImportRulesManager";
 import { cn } from "@/lib/utils";
 
 export function SettingsPage() {
@@ -110,9 +111,12 @@ export function SettingsPage() {
     setClearingCache(false);
   };
 
-  const handleImportComplete = async () => {
+  const handleImportComplete = async (stats?: { transactions: number; categories: number }) => {
     await safeSync("handleImportComplete");
-    toast.success(t("import_success") || "Import successful");
+    toast.success(t("import_success", {
+      transactions: stats?.transactions || 0,
+      categories: stats?.categories || 0
+    }) || "Import successful");
   };
 
   const handleExportData = async () => {
@@ -399,6 +403,17 @@ export function SettingsPage() {
                   <div className="text-xs text-muted-foreground truncate">{t("import_data_desc")}</div>
                 </div>
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Import Rules Management */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Import Rules</CardTitle>
+              <CardDescription>Manage your auto-categorization rules.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ImportRulesManager />
             </CardContent>
           </Card>
         </TabsContent>

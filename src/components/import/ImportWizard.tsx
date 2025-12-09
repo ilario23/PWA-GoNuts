@@ -3,11 +3,12 @@ import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, FileJson, CheckCircle2, AlertTriangle, Loader2, ArrowRight, FileSpreadsheet, RefreshCw, Wand2, Trash2, Info, Download } from "lucide-react";
+import { Upload, FileJson, CheckCircle2, AlertTriangle, Loader2, ArrowRight, FileSpreadsheet, RefreshCw, Wand2, Trash2, Info, Download, Settings2 } from "lucide-react";
 
 import { AntigravityBackupParser } from '@/lib/import/parsers/AntigravityBackupParser';
 import { LegacyVueParser } from '@/lib/import/parsers/LegacyVueParser';
 import { GenericCsvParser } from '@/lib/import/parsers/GenericCsvParser';
+import { RevolutParser } from '@/lib/import/parsers/RevolutParser';
 import { ImportProcessor } from '@/lib/import/ImportProcessor';
 import { RulesEngine } from '@/lib/import/RulesEngine';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -18,16 +19,17 @@ import Papa from 'papaparse';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 
 interface ImportWizardProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onImportComplete: () => void;
+    onImportComplete: (stats?: { transactions: number; categories: number }) => void;
 }
 
-type WizardStep = 'select_type' | 'upload' | 'mapping' | 'preview' | 'reconciliation' | 'importing' | 'success';
+type WizardStep = 'select_type' | 'upload' | 'mapping' | 'revolut_config' | 'preview' | 'reconciliation' | 'importing' | 'success';
 type ImportType = 'backup' | 'bank_csv';
 
 export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWizardProps) {
@@ -54,6 +56,10 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         hasHeader: true
     });
 
+    // Revolut Specific State
+    const [revolutIncludeSavings, setRevolutIncludeSavings] = useState(false);
+    const [detectedParser, setDetectedParser] = useState<TransactionParser | null>(null);
+
     // Reconciliation State
     const categories = useLiveQuery(() => db.categories.where('user_id').equals(user?.id || 'missing').toArray(), [user?.id]);
     const activeCategories = categories?.filter(c => c.active === 1 && !c.deleted_at);
@@ -74,6 +80,8 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         setCsvHeaders([]);
         setCsvPreviewRows([]);
         setCsvMapping({ dateColumn: '', amountColumn: '', descriptionColumn: '', hasHeader: true });
+        setRevolutIncludeSavings(false);
+        setDetectedParser(null);
     };
 
     const handleOpenChange = (newOpen: boolean) => {
@@ -98,7 +106,12 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
             let parser: TransactionParser | null = null;
 
             // Detect Parser
-            const parsers = [new AntigravityBackupParser(), new LegacyVueParser(), new GenericCsvParser()];
+            const parsers = [
+                new AntigravityBackupParser(),
+                new LegacyVueParser(),
+                new RevolutParser(),
+                new GenericCsvParser()
+            ];
 
             for (const p of parsers) {
                 if (await p.canParse(file, text)) {
@@ -111,20 +124,25 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                 throw new Error("Unsupported file format or invalid content.");
             }
 
+            setDetectedParser(parser);
+            setCsvFile(file);
+            setCsvContent(text);
+
             if (parser instanceof GenericCsvParser) {
                 // Determine headers via PapaParse
                 const preview = Papa.parse(text, { preview: 5, header: true, skipEmptyLines: true });
                 if (preview.meta.fields && preview.meta.fields.length > 0) {
                     setCsvHeaders(preview.meta.fields);
                     setCsvPreviewRows(preview.data);
-                    setCsvFile(file);
-                    setCsvContent(text);
                     setStep('mapping');
                 } else {
                     throw new Error("Could not detect CSV headers. Please ensure the file has a header row.");
                 }
+            } else if (parser instanceof RevolutParser) {
+                // Show dedicated config
+                setStep('revolut_config');
             } else {
-                // Standard parsers
+                // Standard parsers (Backup, Vue)
                 const data = await parser.parse(file, text);
                 setParsedData(data);
                 setStep('preview');
@@ -135,6 +153,20 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         } finally {
             setIsProcessing(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+
+    const handleRevolutConfigComplete = async () => {
+        if (!detectedParser || !csvFile || !csvContent) return;
+        setIsProcessing(true);
+        try {
+            const data = await detectedParser.parse(csvFile, csvContent, { includeSavings: revolutIncludeSavings });
+            setParsedData(data);
+            setStep('preview');
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -172,8 +204,22 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         setIsProcessing(true);
         try {
             await rulesEngine.loadRules();
+
+            // 1. Apply rules (modifies transactions in-place)
             const matched = rulesEngine.applyRules(parsedData.transactions);
-            toast.success(`Auto - categorized ${matched} transactions based on your rules.`);
+
+            // 2. Filter out SKIPPED transactions
+            // We create a new list excluding the skipped ones
+            const activeTransactions = parsedData.transactions.filter(t => t.category_id !== 'SKIP');
+            const skippedCount = parsedData.transactions.length - activeTransactions.length;
+
+            if (skippedCount > 0) {
+                setParsedData({ ...parsedData, transactions: activeTransactions });
+                toast.success(`Matched ${matched} rules. Removed ${skippedCount} ignored items.`);
+            } else {
+                toast.success(`Auto-categorized ${matched} transactions based on your rules.`);
+            }
+
             setStep('reconciliation');
         } catch (e) {
             console.error(e);
@@ -184,17 +230,30 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
     };
 
     const handleCreateRule = async (tx: ParsedTransaction, categoryId: string) => {
-        if (!rulesEngine || !categoryId) return;
+        if (!rulesEngine) return;
         // Simple "Contains" rule on the description
         try {
             await rulesEngine.createRule(tx.description, categoryId, 'contains');
-            toast.success("Rule created!");
 
-            // Re-run rules on remaining
-            if (parsedData) {
-                const matched = rulesEngine.applyRules(parsedData.transactions);
-                if (matched > 0) toast.info(`Applied new rule to ${matched} other items.`);
-                setForceUpdate(p => p + 1);
+            if (categoryId === 'SKIP') {
+                toast.success("Ignore rule created! Transaction removed.");
+                // Immediately remove this and any other matching items from the current view
+                // to give instant feedback
+                if (parsedData) {
+                    // Re-run rules or just filter manually for speed
+                    const newTransactions = parsedData.transactions.filter(t =>
+                        !t.description.toLowerCase().includes(tx.description.toLowerCase())
+                    );
+                    setParsedData({ ...parsedData, transactions: newTransactions });
+                }
+            } else {
+                toast.success("Rule created!");
+                // Re-run rules on remaining
+                if (parsedData) {
+                    const matched = rulesEngine.applyRules(parsedData.transactions);
+                    if (matched > 0) toast.info(`Applied new rule to ${matched} other items.`);
+                    setForceUpdate(p => p + 1);
+                }
             }
         } catch (e) {
             toast.error("Failed to create rule");
@@ -229,7 +288,10 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
             });
 
             setStep('success');
-            onImportComplete();
+            onImportComplete({
+                transactions: parsedData.transactions.length,
+                categories: parsedData.categories?.length || 0
+            });
         } catch (err: any) {
             setError(err.message || "Import failed during processing");
             setStep('preview');
@@ -250,6 +312,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                         {step === 'select_type' && "Choose what kind of data you want to import."}
                         {step === 'upload' && "Select the file from your computer."}
                         {step === 'mapping' && "Map columns from your CSV to transaction fields."}
+                        {step === 'revolut_config' && "Configure specific options for Revolut import."}
                         {step === 'preview' && "Review the data found in the file."}
                         {step === 'reconciliation' && "Categorize transactions and create rules."}
                         {step === 'importing' && "Importing your data..."}
@@ -445,6 +508,40 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                         </div>
                     )}
 
+                    {/* STEP 2.75: REVOLUT CONFIG */}
+                    {step === 'revolut_config' && (
+                        <div className="flex flex-col items-center justify-center p-8 space-y-6">
+                            <div className="h-16 w-16 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                <Settings2 className="h-8 w-8" />
+                            </div>
+                            <div className="text-center">
+                                <h3 className="text-lg font-semibold">Revolut Import Settings</h3>
+                                <p className="text-muted-foreground text-sm max-w-md mt-2">
+                                    We detected a Revolut export. Would you like to import transfers to/from your savings accounts and pockets?
+                                </p>
+                            </div>
+
+                            <Card className="w-full max-w-md">
+                                <CardContent className="pt-6">
+                                    <div className="flex items-center justify-between space-x-2">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="include-savings" className="text-base">Include Savings & Pockets</Label>
+                                            <p className="text-xs text-muted-foreground">
+                                                If enabled, transfers to Vaults/Pockets are imported as expenses or income.
+                                                If disabled, they are ignored to avoid duplicates or noise.
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            id="include-savings"
+                                            checked={revolutIncludeSavings}
+                                            onCheckedChange={setRevolutIncludeSavings}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+
                     {/* STEP 3: PREVIEW */}
                     {step === 'preview' && parsedData && (
                         <div className="space-y-4">
@@ -546,6 +643,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                                 <SelectItem value="uncategorized" className="text-muted-foreground">Uncategorized</SelectItem>
+                                                                <SelectItem value="SKIP" className="text-red-500 font-medium">⛔ Ignore (Skip)</SelectItem>
                                                                 {activeCategories?.map(c => ( // Use activeCategories here
                                                                     <SelectItem key={c.id} value={c.id}>
                                                                         <span className="flex items-center gap-2">
@@ -634,6 +732,12 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
 
                     {step === 'mapping' && (
                         <Button onClick={handleCsvMappingComplete} disabled={isProcessing || !isMappingValid}>
+                            Next <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                    )}
+
+                    {step === 'revolut_config' && (
+                        <Button onClick={handleRevolutConfigComplete} disabled={isProcessing}>
                             Next <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     )}
