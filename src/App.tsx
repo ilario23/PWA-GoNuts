@@ -198,6 +198,32 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [settings?.theme]);
 
+  // Separate effect for favicon that ONLY listens to system theme
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const updateFavicon = () => {
+      const isSystemDark = mediaQuery.matches;
+      // Always use system theme for favicon, regardless of app theme
+      const iconPath = isSystemDark ? "/vite-dark.svg" : "/vite.svg";
+
+      const existingFavicons = document.querySelectorAll("link[rel='icon']");
+      existingFavicons.forEach((link) => link.remove());
+
+      const link = document.createElement("link");
+      link.rel = "icon";
+      link.type = "image/svg+xml";
+      link.href = iconPath;
+      document.head.appendChild(link);
+    };
+
+    updateFavicon(); // Initial call
+
+    mediaQuery.addEventListener("change", updateFavicon);
+    return () => mediaQuery.removeEventListener("change", updateFavicon);
+  }, []);
+
+
   return <>{children}</>;
 }
 

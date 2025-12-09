@@ -1139,10 +1139,23 @@ export function useStatistics(params?: UseStatisticsParams) {
     if (previousMonthTransactions && categories) {
       const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
+      // Point-in-time comparison logic
+      const today = new Date();
+      const isCurrentMonthSelected = currentMonth === format(today, "yyyy-MM");
+      const currentDay = today.getDate();
+
       previousMonthTransactions.forEach((t) => {
         if (t.deleted_at) return;
 
-        const amount = Number(t.amount);
+        // If comparing with current month, only include transactions up to the current day
+        // This handles shorter months automatically (e.g. if today is March 30, and prev month is Feb,
+        // we include all Feb transactions since their days (1-28/29) are all <= 30)
+        if (isCurrentMonthSelected) {
+          const tDay = new Date(t.date).getDate();
+          if (tDay > currentDay) return;
+        }
+
+        const amount = getEffectiveAmount(t);
         if (t.type === "income") stats.income += amount;
         else if (t.type === "expense") stats.expense += amount;
         else if (t.type === "investment") stats.investment += amount;
@@ -1165,7 +1178,7 @@ export function useStatistics(params?: UseStatisticsParams) {
       });
     }
     return stats;
-  }, [previousMonthTransactions, categories]);
+  }, [previousMonthTransactions, categories, currentMonth, getEffectiveAmount]);
 
   // Previous year statistics
   const previousYearStats = useMemo(() => {
@@ -1179,10 +1192,29 @@ export function useStatistics(params?: UseStatisticsParams) {
     if (previousYearTransactions && categories) {
       const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
+      // Point-in-time comparison logic
+      const today = new Date();
+      const isCurrentYearSelected = currentYear === format(today, "yyyy");
+      const currentDay = today.getDate();
+      const currentMonthIndex = today.getMonth(); // 0-11
+
       previousYearTransactions.forEach((t) => {
         if (t.deleted_at) return;
 
-        const amount = Number(t.amount);
+        // If comparing with current year, only include transactions up to the current date
+        if (isCurrentYearSelected) {
+          const tDate = new Date(t.date);
+          const tMonth = tDate.getMonth();
+          const tDay = tDate.getDate();
+
+          // Skip if month is in the future
+          if (tMonth > currentMonthIndex) return;
+
+          // If same month, check day
+          if (tMonth === currentMonthIndex && tDay > currentDay) return;
+        }
+
+        const amount = getEffectiveAmount(t);
         if (t.type === "income") stats.income += amount;
         else if (t.type === "expense") stats.expense += amount;
         else if (t.type === "investment") stats.investment += amount;
@@ -1205,7 +1237,7 @@ export function useStatistics(params?: UseStatisticsParams) {
       });
     }
     return stats;
-  }, [previousYearTransactions, categories]);
+  }, [previousYearTransactions, categories, currentYear, getEffectiveAmount]);
 
   // Monthly comparison (current vs previous month)
   const monthlyComparison = useMemo(() => {
