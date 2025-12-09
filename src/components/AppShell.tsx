@@ -28,26 +28,28 @@ function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 md:px-0 bg-background/80 backdrop-blur-lg border-b border-border/40">
-      <div className="flex items-center gap-2 px-4 safe-x md:px-4 relative w-full pt-2 md:pt-0">
-        <SidebarTrigger className="ml-1 text-primary" />
-        {isMobile && !isDashboard && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleBack}
-            className="text-primary"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        )}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 mt-1">
-          <Squirrel className="size-5 text-primary" />
-          <h1 className="font-semibold text-lg">{t("app_title")}</h1>
-        </div>
-        {/* Pending Changes Indicator */}
-        <div className="ml-auto">
-          <PendingChangesIndicator />
+    <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-lg border-b border-border/40 pt-[env(safe-area-inset-top)]">
+      <div className="flex h-16 shrink-0 items-center gap-2 transition-[height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 md:px-0">
+        <div className="flex items-center gap-2 px-4 safe-x md:px-4 relative w-full pt-2 md:pt-0">
+          <SidebarTrigger className="ml-1 text-primary" />
+          {isMobile && !isDashboard && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBack}
+              className="text-primary"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 mt-1">
+            <Squirrel className="size-5 text-primary" />
+            <h1 className="font-semibold text-lg">{t("app_title")}</h1>
+          </div>
+          {/* Pending Changes Indicator */}
+          <div className="ml-auto">
+            <PendingChangesIndicator />
+          </div>
         </div>
       </div>
     </header>
@@ -72,7 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="pt-0">
         <AppHeader />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-6xl space-y-6 min-w-0">{children}</div>

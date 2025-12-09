@@ -217,13 +217,13 @@ export function Dashboard() {
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{t("dashboard")}</h1>
+    <div className="flex flex-col md:block h-[calc(100dvh-6rem-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
+      <h1 className="text-2xl font-bold shrink-0">{t("dashboard")}</h1>
 
       {/* Mobile Summary Stats - Smart FlipCard Carousel */}
-      <div className="md:hidden">
+      <div className="md:hidden shrink-0">
         <FlipCard
-          className="h-[max(100px,12vh)]"
+          className="h-[12vh] min-h-[100px]"
           isFlipped={isStatsFlipped}
           onSwipe={handleStatSwipe}
           rotation={statsRotation}
@@ -234,10 +234,10 @@ export function Dashboard() {
       </div>
 
       {/* Chart and Summary Cards Layout */}
-      <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+      <div className="flex-1 min-h-0 grid gap-4 md:grid-cols-[1fr_auto]">
         {/* Cumulative Expenses Chart - FlipCard with 3 states */}
         <FlipCard
-          className="h-[max(280px,55vh)] md:h-[50vh] md:min-h-[400px]"
+          className="h-full md:h-[50vh] md:min-h-[400px]"
           isFlipped={isChartFlipped}
           onSwipe={handleChartSwipe}
           rotation={chartRotation}
