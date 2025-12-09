@@ -1380,7 +1380,7 @@ export function StatisticsPage() {
         <StatsContextAnalytics contextStats={contextStats} />
 
         {/* Burn Rate / Spending Projection Card - Yearly */}
-        {settings?.monthly_budget && settings.monthly_budget > 0 && (
+        {activeTab === "yearly" && settings?.monthly_budget && settings.monthly_budget > 0 && (
           <StatsBurnRateCard
             spending={yearlyStats.expense}
             budget={settings.monthly_budget * 12}

@@ -31,13 +31,13 @@ function AppHeader() {
     <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-lg border-b border-border/40 pt-[env(safe-area-inset-top)]">
       <div className="flex h-16 shrink-0 items-center gap-2 transition-[height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 md:px-0">
         <div className="flex items-center gap-2 px-4 safe-x md:px-4 relative w-full pt-2 md:pt-0">
-          <SidebarTrigger className="ml-1 text-primary" />
+          <SidebarTrigger className="ml-1" />
           {isMobile && !isDashboard && (
             <Button
               variant="ghost"
               size="icon"
               onClick={handleBack}
-              className="text-primary"
+              className=""
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>

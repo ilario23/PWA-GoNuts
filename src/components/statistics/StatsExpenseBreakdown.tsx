@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import {
     Card,
@@ -99,147 +100,158 @@ export function StatsExpenseBreakdown({
                     </div>
                 ) : (
                     <>
-                        {visibleData.map((item) => {
-                            const isExpanded = expandedItems.has(item.rootName);
-                            const percentage = totalExpense > 0
-                                ? (item.total / totalExpense) * 100
-                                : 0;
-                            const hasChildren = item._children.length > 1;
+                        <AnimatePresence initial={false}>
+                            {visibleData.map((item) => {
+                                const isExpanded = expandedItems.has(item.rootName);
+                                const percentage = totalExpense > 0
+                                    ? (item.total / totalExpense) * 100
+                                    : 0;
+                                const hasChildren = item._children.length > 1;
 
-                            return (
-                                <div
-                                    key={item.rootName}
-                                    className="rounded-lg border bg-card overflow-hidden transition-all duration-200"
-                                >
-                                    {/* Parent Category Header */}
-                                    <button
-                                        onClick={() => hasChildren && toggleExpand(item.rootName)}
-                                        disabled={!hasChildren}
-                                        className={cn(
-                                            "w-full flex items-center gap-3 p-3 text-left transition-colors",
-                                            hasChildren && "hover:bg-accent/50 cursor-pointer",
-                                            !hasChildren && "cursor-default"
-                                        )}
+                                return (
+                                    <motion.div
+                                        key={item.rootName}
+                                        layout
+                                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                        animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+                                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                        className="rounded-lg border bg-card overflow-hidden"
                                     >
-                                        {/* Color indicator */}
-                                        <div
-                                            className="w-3 h-3 rounded-full shrink-0"
-                                            style={{ backgroundColor: item.rootColor }}
-                                        />
+                                        {/* Parent Category Header */}
+                                        <button
+                                            onClick={() => hasChildren && toggleExpand(item.rootName)}
+                                            disabled={!hasChildren}
+                                            className={cn(
+                                                "w-full flex items-center gap-3 p-3 text-left transition-colors",
+                                                hasChildren && "hover:bg-accent/50 cursor-pointer",
+                                                !hasChildren && "cursor-default"
+                                            )}
+                                        >
+                                            {/* Color indicator */}
+                                            <div
+                                                className="w-3 h-3 rounded-full shrink-0"
+                                                style={{ backgroundColor: item.rootColor }}
+                                            />
 
-                                        {/* Category info */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className="font-medium truncate text-sm">
-                                                    {item.rootName}
-                                                </span>
-                                                <span className="font-semibold text-sm ml-2 shrink-0">
-                                                    €{item.total.toFixed(2)}
-                                                </span>
-                                            </div>
-
-                                            {/* Progress bar */}
-                                            <div className="w-full bg-muted rounded-full h-2">
-                                                <div
-                                                    className="h-2 rounded-full transition-all duration-500 ease-out"
-                                                    style={{
-                                                        width: `${Math.max(percentage, 1)}%`,
-                                                        backgroundColor: item.rootColor,
-                                                    }}
-                                                />
-                                            </div>
-
-                                            {/* Percentage */}
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                                {percentage.toFixed(1)}%
-                                                {hasChildren && (
-                                                    <span className="ml-1">
-                                                        · {item._children.length} {t("subcategories")}
+                                            {/* Category info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="font-medium truncate text-sm">
+                                                        {item.rootName}
                                                     </span>
-                                                )}
+                                                    <span className="font-semibold text-sm ml-2 shrink-0">
+                                                        €{item.total.toFixed(2)}
+                                                    </span>
+                                                </div>
+
+                                                {/* Progress bar */}
+                                                <div className="w-full bg-muted rounded-full h-2">
+                                                    <div
+                                                        className="h-2 rounded-full transition-all duration-500 ease-out"
+                                                        style={{
+                                                            width: `${Math.max(percentage, 1)}%`,
+                                                            backgroundColor: item.rootColor,
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                {/* Percentage */}
+                                                <div className="text-xs text-muted-foreground mt-1">
+                                                    {percentage.toFixed(1)}%
+                                                    {hasChildren && (
+                                                        <span className="ml-1">
+                                                            · {item._children.length} {t("subcategories")}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        {/* Expand/Collapse indicator */}
-                                        {hasChildren && (
-                                            <div className="shrink-0 text-muted-foreground">
-                                                {isExpanded ? (
-                                                    <ChevronDown className="h-4 w-4" />
-                                                ) : (
-                                                    <ChevronRight className="h-4 w-4" />
-                                                )}
-                                            </div>
-                                        )}
-                                    </button>
+                                            {/* Expand/Collapse indicator */}
+                                            {hasChildren && (
+                                                <div className="shrink-0 text-muted-foreground">
+                                                    {isExpanded ? (
+                                                        <ChevronDown className="h-4 w-4" />
+                                                    ) : (
+                                                        <ChevronRight className="h-4 w-4" />
+                                                    )}
+                                                </div>
+                                            )}
+                                        </button>
 
-                                    {/* Children - Expandable Section */}
-                                    <div
-                                        className={cn(
-                                            "overflow-hidden transition-all duration-300 ease-in-out",
-                                            isExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
-                                        )}
-                                    >
-                                        <div className="border-t bg-accent/20 px-3 py-2 space-y-2">
-                                            {item._children
-                                                .sort((a, b) => b.amount - a.amount)
-                                                .map((child, index) => {
-                                                    const childPercentage = item.total > 0
-                                                        ? (child.amount / item.total) * 100
-                                                        : 0;
+                                        {/* Children - Expandable Section */}
+                                        <AnimatePresence>
+                                            {isExpanded && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: "auto", opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.3 }}
+                                                >
+                                                    <div className="border-t bg-accent/20 px-3 py-2 space-y-2">
+                                                        {item._children
+                                                            .sort((a, b) => b.amount - a.amount)
+                                                            .map((child, index) => {
+                                                                const childPercentage = item.total > 0
+                                                                    ? (child.amount / item.total) * 100
+                                                                    : 0;
 
-                                                    return (
-                                                        <div
-                                                            key={child.name}
-                                                            className="flex items-center gap-3 py-1.5 pl-6"
-                                                            style={{
-                                                                animationDelay: `${index * 50}ms`,
-                                                            }}
-                                                        >
-                                                            {/* Tree connector */}
-                                                            <div className="absolute left-6 w-3 border-l-2 border-b-2 border-muted-foreground/20 h-4 rounded-bl-sm" />
+                                                                return (
+                                                                    <div
+                                                                        key={child.name}
+                                                                        className="flex items-center gap-3 py-1.5 pl-6"
+                                                                        style={{
+                                                                            animationDelay: `${index * 50}ms`,
+                                                                        }}
+                                                                    >
+                                                                        {/* Tree connector */}
+                                                                        <div className="absolute left-6 w-3 border-l-2 border-b-2 border-muted-foreground/20 h-4 rounded-bl-sm" />
 
-                                                            {/* Color dot */}
-                                                            <div
-                                                                className="w-2 h-2 rounded-full shrink-0 opacity-70"
-                                                                style={{ backgroundColor: item.rootColor }}
-                                                            />
-
-                                                            {/* Child info */}
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="text-sm truncate text-muted-foreground">
-                                                                        {child.name}
-                                                                    </span>
-                                                                    <span className="text-sm ml-2 shrink-0">
-                                                                        €{child.amount.toFixed(2)}
-                                                                    </span>
-                                                                </div>
-
-                                                                {/* Mini progress bar */}
-                                                                <div className="flex items-center gap-2 mt-0.5">
-                                                                    <div className="flex-1 bg-muted rounded-full h-1">
+                                                                        {/* Color dot */}
                                                                         <div
-                                                                            className="h-1 rounded-full transition-all duration-300"
-                                                                            style={{
-                                                                                width: `${Math.max(childPercentage, 1)}%`,
-                                                                                backgroundColor: item.rootColor,
-                                                                                opacity: 0.6,
-                                                                            }}
+                                                                            className="w-2 h-2 rounded-full shrink-0 opacity-70"
+                                                                            style={{ backgroundColor: item.rootColor }}
                                                                         />
+
+                                                                        {/* Child info */}
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex justify-between items-center">
+                                                                                <span className="text-sm truncate text-muted-foreground">
+                                                                                    {child.name}
+                                                                                </span>
+                                                                                <span className="text-sm ml-2 shrink-0">
+                                                                                    €{child.amount.toFixed(2)}
+                                                                                </span>
+                                                                            </div>
+
+                                                                            {/* Mini progress bar */}
+                                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                                <div className="flex-1 bg-muted rounded-full h-1">
+                                                                                    <div
+                                                                                        className="h-1 rounded-full transition-all duration-300"
+                                                                                        style={{
+                                                                                            width: `${Math.max(childPercentage, 1)}%`,
+                                                                                            backgroundColor: item.rootColor,
+                                                                                            opacity: 0.6,
+                                                                                        }}
+                                                                                    />
+                                                                                </div>
+                                                                                <span className="text-xs text-muted-foreground shrink-0 w-12 text-right">
+                                                                                    {childPercentage.toFixed(1)}%
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
-                                                                    <span className="text-xs text-muted-foreground shrink-0 w-12 text-right">
-                                                                        {childPercentage.toFixed(1)}%
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                                                );
+                                                            })}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
 
                         {/* Show more/less button */}
                         {hasMoreCategories && (
