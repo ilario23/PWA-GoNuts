@@ -482,13 +482,14 @@ export function useStatistics(params?: UseStatisticsParams) {
       }
     });
 
-    // Convert to array and add colors
+    // Convert to array and add colors + amount
     return Array.from(rootCategoryTotals.values()).map((cat, index) => ({
       name: cat.name,
       value:
         totalMonthlyExpense > 0
           ? Math.round((cat.value / totalMonthlyExpense) * 100)
           : 0,
+      amount: Math.round(cat.value * 100) / 100,
       fill: `hsl(var(--chart-${(index % 5) + 1}))`,
     }));
   }, [monthlyStats, categories, transactions, mode, getEffectiveAmount]);
@@ -542,13 +543,14 @@ export function useStatistics(params?: UseStatisticsParams) {
       }
     });
 
-    // Convert to array and add colors
+    // Convert to array and add colors + amount
     return Array.from(rootCategoryTotals.values()).map((cat, index) => ({
       name: cat.name,
       value:
         totalYearlyExpense > 0
           ? Math.round((cat.value / totalYearlyExpense) * 100)
           : 0,
+      amount: Math.round(cat.value * 100) / 100,
       fill: `hsl(var(--chart-${(index % 5) + 1}))`,
     }));
   }, [yearlyStats, categories, yearlyTransactions, mode, getEffectiveAmount]);

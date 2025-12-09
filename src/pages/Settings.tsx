@@ -274,7 +274,7 @@ export function SettingsPage() {
               <CardTitle className="text-base">{t("accent_color")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
+              <div className="grid grid-cols-5 sm:grid-cols-7 gap-2">
                 {Object.values(THEME_COLORS).map((color) => {
                   const isSelected = (settings.accentColor || "slate") === color.name;
                   return (
@@ -282,9 +282,9 @@ export function SettingsPage() {
                       key={color.name}
                       onClick={() => updateSettings({ accentColor: color.name })}
                       className={cn(
-                        "relative h-12 w-full rounded-lg border-2 transition-all touch-manipulation hover:scale-105 active:scale-95",
+                        "relative h-8 w-full rounded-md border-2 transition-all touch-manipulation hover:scale-105 active:scale-95",
                         isSelected
-                          ? "border-foreground ring-2 ring-offset-2 ring-foreground"
+                          ? "border-foreground ring-2 ring-offset-1 ring-foreground"
                           : "border-transparent hover:border-muted-foreground/50"
                       )}
                       style={{
@@ -293,7 +293,7 @@ export function SettingsPage() {
                       title={t(color.name)}
                     >
                       {isSelected && (
-                        <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-md" />
+                        <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow-md" />
                       )}
                     </button>
                   );

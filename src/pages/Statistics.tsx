@@ -58,6 +58,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { StatsSummaryCards } from "@/components/statistics/StatsSummaryCards";
 import { StatsBurnRateCard } from "@/components/statistics/StatsBurnRateCard";
 import { StatsContextAnalytics } from "@/components/statistics/StatsContextAnalytics";
+import { StatsCategoryDistribution } from "@/components/statistics/StatsCategoryDistribution";
 
 export function StatisticsPage() {
   const { t, i18n } = useTranslation();
@@ -238,17 +239,7 @@ export function StatisticsPage() {
     },
   ].filter((item) => item.value > 0);
 
-  // Create dynamic config for category charts (for legend)
-  const categoryChartConfig = currentCategoryPercentages.reduce(
-    (acc, item, index) => {
-      acc[item.name] = {
-        label: item.name,
-        color: `hsl(var(--chart-${(index % 5) + 1}))`,
-      };
-      return acc;
-    },
-    {} as ChartConfig
-  );
+
 
   // Generate years for selector (last 5 years + current + next)
   const currentYearNum = new Date().getFullYear();
@@ -445,45 +436,11 @@ export function StatisticsPage() {
                 </CardContent>
               </Card>
 
-              {/* Radial Chart - Category Distribution */}
-              <Card className="flex flex-col min-w-0">
-                <CardHeader className="items-center pb-0">
-                  <CardTitle>{t("category_distribution")}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 pb-0 min-w-0">
-                  <LazyChart height={300} isLoading={isLoading}>
-                    {currentCategoryPercentages.length > 0 ? (
-                      <ChartContainer
-                        config={categoryChartConfig}
-                        className="mx-auto aspect-square max-w-full md:max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
-                      >
-                        <PieChart>
-                          <ChartTooltip
-                            cursor={false}
-                            content={<ChartTooltipContent hideLabel />}
-                          />
-                          <Pie
-                            data={currentCategoryPercentages}
-                            dataKey="value"
-                            nameKey="name"
-                            innerRadius={60}
-                            strokeWidth={5}
-                          />
-                          <ChartLegend
-                            content={
-                              <ChartLegendContent className="flex-wrap gap-2" />
-                            }
-                          />
-                        </PieChart>
-                      </ChartContainer>
-                    ) : (
-                      <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                        {t("no_data")}
-                      </div>
-                    )}
-                  </LazyChart>
-                </CardContent>
-              </Card>
+              {/* Category Distribution - Hybrid Component */}
+              <StatsCategoryDistribution
+                categoryData={currentCategoryPercentages}
+                isLoading={isLoading}
+              />
 
               {/* Horizontal Stacked Bar Chart - Expense Breakdown by Category Hierarchy */}
               <Card className="md:col-span-2 min-w-0">
@@ -1050,54 +1007,11 @@ export function StatisticsPage() {
 
             {/* Category Distribution & Expense Breakdown Row */}
             <div className="grid gap-4 md:grid-cols-2 min-w-0">
-              {/* Radial Chart - Category Distribution (Yearly) */}
-              <Card className="flex flex-col min-w-0">
-                <CardHeader className="items-center pb-0">
-                  <CardTitle>{t("category_distribution")}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 pb-0 min-w-0">
-                  {yearlyCategoryPercentages.length > 0 ? (
-                    <LazyChart height={300}>
-                      <ChartContainer
-                        config={yearlyCategoryPercentages.reduce(
-                          (acc, item, index) => {
-                            acc[item.name] = {
-                              label: item.name,
-                              color: `hsl(var(--chart-${(index % 5) + 1}))`,
-                            };
-                            return acc;
-                          },
-                          {} as ChartConfig
-                        )}
-                        className="mx-auto aspect-square max-w-full md:max-w-[280px] max-h-[300px] min-h-[250px] w-full [&_.recharts-text]:fill-foreground"
-                      >
-                        <PieChart>
-                          <ChartTooltip
-                            cursor={false}
-                            content={<ChartTooltipContent hideLabel />}
-                          />
-                          <Pie
-                            data={yearlyCategoryPercentages}
-                            dataKey="value"
-                            nameKey="name"
-                            innerRadius={60}
-                            strokeWidth={5}
-                          />
-                          <ChartLegend
-                            content={
-                              <ChartLegendContent className="flex-wrap gap-2" />
-                            }
-                          />
-                        </PieChart>
-                      </ChartContainer>
-                    </LazyChart>
-                  ) : (
-                    <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                      {t("no_data")}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              {/* Category Distribution - Hybrid Component (Yearly) */}
+              <StatsCategoryDistribution
+                categoryData={yearlyCategoryPercentages}
+                isLoading={false}
+              />
 
               {/* Horizontal Stacked Bar Chart - Expense Breakdown (Yearly) */}
               <Card className="flex flex-col min-w-0">
