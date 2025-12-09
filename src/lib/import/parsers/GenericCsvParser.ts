@@ -10,7 +10,7 @@ export class GenericCsvParser implements TransactionParser {
         return file.name.toLowerCase().endsWith('.csv');
     }
 
-    async parse(file: File, content: string, options?: ImportOptions): Promise<ParsedData> {
+    async parse(_file: File, content: string, options?: ImportOptions): Promise<ParsedData> {
         if (!options?.csvMapping) {
             throw new Error("CSV Mapping options are required for CSV import");
         }

@@ -4,7 +4,6 @@ import { useOnlineSync } from "@/hooks/useOnlineSync";
 import { useAuth } from "@/contexts/AuthProvider";
 import { db } from "@/lib/db";
 import { safeSync, syncManager } from "@/lib/sync";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -31,9 +30,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SyncIndicator } from "@/components/SyncStatus";
 import { ContentLoader } from "@/components/ui/content-loader";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import {
   RefreshCw,
@@ -43,35 +42,34 @@ import {
   AlertTriangle,
   Upload,
   Download,
-  FileJson,
   Monitor,
   X,
+  Palette,
+  Database,
+  Wrench,
+  Check,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
 import { THEME_COLORS } from "@/lib/theme-colors";
 import { toast } from "sonner";
 import { ImportWizard } from "@/components/import/ImportWizard";
-
-// Removed ImportStats interface as it is now handled within the Wizard/Processor
+import { cn } from "@/lib/utils";
 
 export function SettingsPage() {
   const { settings, updateSettings } = useSettings();
   const { isOnline } = useOnlineSync();
   const { user } = useAuth();
   const { t } = useTranslation();
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [lastSyncTime, setLastSyncTime] = useState<Date | undefined>();
   const [manualSyncing, setManualSyncing] = useState(false);
   const [fullSyncing, setFullSyncing] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
   const [exportingData, setExportingData] = useState(false);
-
-  // New state for Import Wizard
   const [isImportWizardOpen, setIsImportWizardOpen] = useState(false);
 
-  // Avoid hydration mismatch
   React.useEffect(() => {
     setMounted(true);
   }, []);
@@ -100,26 +98,19 @@ export function SettingsPage() {
 
   const handleClearCache = async () => {
     setClearingCache(true);
-    // Use window.confirm for now as per codebase pattern
-    if (window.confirm(t("clear_cache_confirm_desc"))) {
-      try {
-        await db.delete(); // Clears the entire IndexedDB database
-        await db.open(); // Re-opens the database, creating it if it doesn't exist
-        toast.success(t("cache_cleared"));
-        // Trigger a sync to repopulate from server
-        await safeSync("handleClearCache");
-      } catch (error) {
-        console.error("Failed to clear cache:", error);
-        toast.error(t("cache_clear_error") || "Failed to clear cache.");
-      }
+    try {
+      await db.delete();
+      await db.open();
+      toast.success(t("cache_cleared"));
+      await safeSync("handleClearCache");
+    } catch (error) {
+      console.error("Failed to clear cache:", error);
+      toast.error(t("cache_clear_error") || "Failed to clear cache.");
     }
     setClearingCache(false);
   };
 
   const handleImportComplete = async () => {
-    // Optionally trigger a sync after import here if not done by the processor
-    // The processor marks items as pendingSync: 1
-    // We can trigger a background sync
     await safeSync("handleImportComplete");
     toast.success(t("import_success") || "Import successful");
   };
@@ -129,7 +120,6 @@ export function SettingsPage() {
 
     setExportingData(true);
     try {
-      // Fetch all data
       const transactions = await db.transactions
         .filter((t) => t.user_id === user.id && !t.deleted_at)
         .toArray();
@@ -160,15 +150,13 @@ export function SettingsPage() {
         category_budgets: budgets.map(({ pendingSync, deleted_at, ...rest }) => rest),
       };
 
-      // Create blob and download
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `expense-tracker-export-${new Date().toISOString().split("T")[0]
-        }.json`;
+      link.download = `expense-tracker-export-${new Date().toISOString().split("T")[0]}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -185,7 +173,10 @@ export function SettingsPage() {
     }
   };
 
-
+  const handleThemeChange = (theme: string) => {
+    updateSettings({ theme });
+    setTheme(theme);
+  };
 
   if (!settings) {
     return (
@@ -196,21 +187,38 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 pb-10">
-      <div className="space-y-0.5">
+    <div className="space-y-4 pb-10">
+      {/* Header */}
+      <div className="space-y-1">
         <h2 className="text-2xl font-bold tracking-tight">{t("settings")}</h2>
-        <p className="text-muted-foreground">{t("settings_general_desc")}</p>
+        <p className="text-sm text-muted-foreground">{t("settings_general_desc")}</p>
       </div>
-      <div className="grid gap-6">
-        {/* 1. General */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("settings_general")}</CardTitle>
-            <CardDescription>{t("settings_general_desc")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="language">{t("language")}</Label>
+
+      {/* Tab Navigation */}
+      <Tabs defaultValue="appearance" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3 h-13">
+          <TabsTrigger value="appearance" className="gap-2 text-xs sm:text-sm">
+            <Palette className="h-4 w-4 hidden sm:block" />
+            {t("tab_appearance")}
+          </TabsTrigger>
+          <TabsTrigger value="data" className="gap-2 text-xs sm:text-sm">
+            <Database className="h-4 w-4 hidden sm:block" />
+            {t("tab_data")}
+          </TabsTrigger>
+          <TabsTrigger value="advanced" className="gap-2 text-xs sm:text-sm">
+            <Wrench className="h-4 w-4 hidden sm:block" />
+            {t("tab_advanced")}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab: Appearance */}
+        <TabsContent value="appearance" className="space-y-4 animate-fade-in">
+          {/* Language */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t("language")}</CardTitle>
+            </CardHeader>
+            <CardContent>
               <Select
                 value={settings.language || "en"}
                 onValueChange={(value) => {
@@ -220,118 +228,97 @@ export function SettingsPage() {
                   });
                 }}
               >
-                <SelectTrigger id="language" className="max-w-[200px]">
+                <SelectTrigger className="w-full h-12 touch-manipulation">
                   <SelectValue placeholder={t("select_language")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="it">Italiano</SelectItem>
+                  <SelectItem value="en">🇬🇧 English</SelectItem>
+                  <SelectItem value="it">🇮🇹 Italiano</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <Separator />
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                {mounted && resolvedTheme === "dark" ? (
-                  <Moon className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <Sun className="h-4 w-4 text-muted-foreground" />
-                )}
-                <Label className="text-sm font-medium">
-                  {t("theme")} & {t("accent_color")}
-                </Label>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="theme"
-                    className="text-xs text-muted-foreground"
-                  >
-                    {t("theme")}
-                  </Label>
-                  <Select
-                    value={settings.theme}
-                    onValueChange={(value) => updateSettings({ theme: value })}
-                  >
-                    <SelectTrigger id="theme" className="h-12 touch-manipulation">
-                      <SelectValue placeholder={t("select_theme")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">
-                        <div className="flex items-center gap-2">
-                          <Sun className="h-4 w-4" />
-                          {t("light")}
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="dark">
-                        <div className="flex items-center gap-2">
-                          <Moon className="h-4 w-4" />
-                          {t("dark")}
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="system">
-                        <div className="flex items-center gap-2">
-                          <Monitor className="h-4 w-4" />
-                          {t("system")}
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="accentColor"
-                    className="text-xs text-muted-foreground"
-                  >
-                    {t("accent_color")}
-                  </Label>
-                  <Select
-                    value={settings.accentColor || "slate"}
-                    onValueChange={(value) =>
-                      updateSettings({ accentColor: value })
-                    }
-                  >
-                    <SelectTrigger id="accentColor" className="h-12 touch-manipulation">
-                      <SelectValue placeholder={t("select_accent_color")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(THEME_COLORS).map((color) => (
-                        <SelectItem key={color.name} value={color.name}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="h-4 w-4 rounded-full border"
-                              style={{
-                                backgroundColor: `hsl(${color.light.primary})`,
-                              }}
-                            />
-                            {t(color.name)}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* 2. Monthly Budget */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {t("monthly_budget")}
-            </CardTitle>
-            <CardDescription>{t("monthly_budget_desc")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="monthly-budget">{t("monthly_budget")}</Label>
+          {/* Theme Toggle */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t("theme")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                {[
+                  { value: "light", icon: Sun, label: t("light") },
+                  { value: "dark", icon: Moon, label: t("dark") },
+                  { value: "system", icon: Monitor, label: t("system") },
+                ].map(({ value, icon: Icon, label }) => (
+                  <Button
+                    key={value}
+                    variant={settings.theme === value ? "default" : "outline"}
+                    className={cn(
+                      "flex-1 h-12 gap-2 transition-all touch-manipulation",
+                      settings.theme === value && "ring-2 ring-primary ring-offset-2"
+                    )}
+                    onClick={() => handleThemeChange(value)}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{label}</span>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Accent Color Palette */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t("accent_color")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
+                {Object.values(THEME_COLORS).map((color) => {
+                  const isSelected = (settings.accentColor || "slate") === color.name;
+                  return (
+                    <button
+                      key={color.name}
+                      onClick={() => updateSettings({ accentColor: color.name })}
+                      className={cn(
+                        "relative h-12 w-full rounded-lg border-2 transition-all touch-manipulation hover:scale-105 active:scale-95",
+                        isSelected
+                          ? "border-foreground ring-2 ring-offset-2 ring-foreground"
+                          : "border-transparent hover:border-muted-foreground/50"
+                      )}
+                      style={{
+                        backgroundColor: `hsl(${mounted && resolvedTheme === "dark" ? color.dark.primary : color.light.primary})`,
+                      }}
+                      title={t(color.name)}
+                    >
+                      {isSelected && (
+                        <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-md" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3 text-center">
+                {t((settings.accentColor || "slate"))}
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Data */}
+        <TabsContent value="data" className="space-y-4 animate-fade-in">
+          {/* Monthly Budget */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t("monthly_budget")}</CardTitle>
+              <CardDescription>{t("monthly_budget_desc")}</CardDescription>
+            </CardHeader>
+            <CardContent>
               <div className="flex gap-2 items-center">
-                <span className="text-muted-foreground">€</span>
+                <span className="text-lg font-medium text-muted-foreground">€</span>
                 <Input
                   key={settings.monthly_budget ?? "empty"}
-                  id="monthly-budget"
                   type="number"
                   step="1"
                   min="0"
@@ -353,114 +340,137 @@ export function SettingsPage() {
                       e.preventDefault();
                     }
                   }}
-                  className="max-w-[200px]"
+                  className="flex-1 h-12 touch-manipulation text-lg"
                 />
                 {settings.monthly_budget !== null &&
                   settings.monthly_budget !== undefined && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      className="h-10 w-10 text-muted-foreground hover:text-destructive"
                       onClick={() => updateSettings({ monthly_budget: null })}
                     >
                       <X className="h-4 w-4" />
                     </Button>
                   )}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground mt-2">
                 {settings.monthly_budget
-                  ? `€${settings.monthly_budget.toFixed(2)} / ${t(
-                    "monthly"
-                  ).toLowerCase()}`
+                  ? `€${settings.monthly_budget.toFixed(2)} / ${t("monthly").toLowerCase()}`
                   : t("budget_not_set")}
               </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* 3. Synchronization */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("sync")}</CardTitle>
-            <CardDescription>{t("sync_desc")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {/* Export & Import */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t("data_management")}</CardTitle>
+              <CardDescription>{t("data_management_desc")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Export */}
+              <Button
+                variant="outline"
+                className="w-full h-14 justify-start gap-3 touch-manipulation"
+                onClick={handleExportData}
+                disabled={exportingData}
+              >
+                {exportingData ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Download className="h-5 w-5 text-primary" />
+                )}
+                <div className="text-left">
+                  <div className="font-medium">{t("export_data")}</div>
+                  <div className="text-xs text-muted-foreground">{t("export_data_desc")}</div>
+                </div>
+              </Button>
+
+              {/* Import */}
+              <Button
+                variant="outline"
+                className="w-full h-14 justify-start gap-3 touch-manipulation"
+                onClick={() => setIsImportWizardOpen(true)}
+              >
+                <Upload className="h-5 w-5 text-primary" />
+                <div className="text-left">
+                  <div className="font-medium">{t("import_data")}</div>
+                  <div className="text-xs text-muted-foreground">{t("import_data_desc")}</div>
+                </div>
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Advanced */}
+        <TabsContent value="advanced" className="space-y-4 animate-fade-in">
+          {/* Sync */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t("sync")}</CardTitle>
+              <CardDescription>{t("sync_desc")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <SyncIndicator
                 isSyncing={isSyncing}
                 isOnline={isOnline}
                 lastSyncTime={lastSyncTime}
               />
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={handleManualSync}
                   disabled={isSyncing || !isOnline}
-                  size="sm"
                   variant="outline"
-                  className="flex-1 sm:flex-none"
+                  className="h-12 touch-manipulation"
                 >
                   <RefreshCw
-                    className={`mr-2 h-4 w-4 ${manualSyncing ? "animate-spin" : ""
-                      }`}
+                    className={cn("mr-2 h-4 w-4", manualSyncing && "animate-spin")}
                   />
                   {t("sync_now")}
                 </Button>
                 <Button
                   onClick={handleFullSync}
                   disabled={isSyncing || !isOnline}
-                  size="sm"
                   variant="secondary"
-                  className="flex-1 sm:flex-none"
-                  title={
-                    t("full_sync_desc") || "Re-download all data from server"
-                  }
+                  className="h-12 touch-manipulation"
+                  title={t("full_sync_desc") || "Re-download all data from server"}
                 >
                   <RefreshCw
-                    className={`mr-2 h-4 w-4 ${fullSyncing ? "animate-spin" : ""
-                      }`}
+                    className={cn("mr-2 h-4 w-4", fullSyncing && "animate-spin")}
                   />
-                  {t("full_sync") || "Full Sync"}
+                  {t("full_sync")}
                 </Button>
               </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t("full_sync_hint") ||
-                "Use 'Full Sync' if data seems out of sync after direct database changes."}
-            </p>
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground">
+                {t("full_sync_hint")}
+              </p>
+            </CardContent>
+          </Card>
 
-        {/* 4. Data Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("data_management")}</CardTitle>
-            <CardDescription>{t("data_management_desc")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Clear Local Cache */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <Label className="text-base flex items-center gap-2">
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
-                  {t("clear_local_cache")}
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  {t("clear_local_cache_desc")}
-                </p>
-              </div>
+          {/* Danger Zone */}
+          <Card className="border-destructive/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                {t("danger_zone")}
+              </CardTitle>
+              <CardDescription>{t("danger_zone_desc")}</CardDescription>
+            </CardHeader>
+            <CardContent>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="destructive"
-                    size="sm"
+                    className="w-full h-12 touch-manipulation"
                     disabled={clearingCache}
-                    className="w-full sm:w-auto"
                   >
                     {clearingCache ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
                     ) : (
-                      t("clear")
+                      <Trash2 className="h-4 w-4 mr-2" />
                     )}
+                    {t("clear_local_cache")}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -484,67 +494,13 @@ export function SettingsPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </div>
-
-            <Separator />
-
-            {/* Export Data */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <Label className="text-base flex items-center gap-2">
-                  <Download className="h-4 w-4 text-muted-foreground" />
-                  {t("export_data")}
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  {t("export_data_desc")}
-                </p>
-              </div>
-              <div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportData}
-                  disabled={exportingData}
-                  className="w-full sm:w-auto"
-                >
-                  {exportingData ? (
-                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <FileJson className="h-4 w-4 mr-2" />
-                  )}
-                  {t("export_json")}
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Import Data */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <Label className="text-base flex items-center gap-2">
-                  <Upload className="h-4 w-4 text-muted-foreground" />
-                  {t("import_data")}
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  {t("import_data_desc") || "Restore data from a backup or import from other apps."}
-                </p>
-              </div>
-              <div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsImportWizardOpen(true)}
-                  className="w-full sm:w-auto"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {t("import_data")}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {t("clear_local_cache_desc")}
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <ImportWizard
         open={isImportWizardOpen}

@@ -1,5 +1,5 @@
 import { db, ImportRule as DbRule } from '../db';
-import { ParsedTransaction, ImportRule } from './types';
+import { ParsedTransaction } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class RulesEngine {

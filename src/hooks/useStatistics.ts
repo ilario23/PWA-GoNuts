@@ -3,7 +3,6 @@ import { db, Category, Transaction, GroupMember } from "../lib/db";
 import { useTranslation } from "react-i18next";
 import { format, subMonths } from "date-fns";
 import { useMemo, useCallback } from "react";
-import { Locale } from "date-fns";
 
 /**
  * Parameters for configuring the statistics hook.
