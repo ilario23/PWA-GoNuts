@@ -1,31 +1,10 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ChartConfig } from "@/components/ui/chart";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useStatistics } from "@/hooks/useStatistics";
 import { useSettings } from "@/hooks/useSettings";
 import { useTranslation } from "react-i18next";
-import { TransactionList } from "@/components/TransactionList";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { format } from "date-fns";
-import {
-  TrendingUp,
-  TrendingDown,
-  Plus,
-  PiggyBank,
-  ArrowUpRight,
-  ArrowDownRight,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   TransactionDialog,
   TransactionFormData,
@@ -34,11 +13,10 @@ import { useState, useCallback, useMemo } from "react";
 import { useCategories } from "@/hooks/useCategories";
 import { FlipCard, type SwipeDirection } from "@/components/ui/flip-card";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthProvider";
-import { SmoothLoader } from "@/components/ui/smooth-loader";
-import { ContentLoader } from "@/components/ui/content-loader";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardChartCard } from "@/components/dashboard/DashboardChartCard";
+import { DashboardStatCard } from "@/components/dashboard/DashboardStatCard";
+import { DashboardSummaryCards } from "@/components/dashboard/DashboardSummaryCards";
 
 export function Dashboard() {
   const { transactions, addTransaction } = useTransactions();
@@ -129,15 +107,9 @@ export function Dashboard() {
 
   // Handle chart flip with direction (circular navigation)
   const handleChartSwipe = useCallback((direction: SwipeDirection) => {
-    // Calculate new rotation based on swipe direction
-    // Swipe Left (next) -> Rotate negative (e.g. 0 -> -180)
-    // Swipe Right (prev) -> Rotate positive (e.g. 0 -> 180)
     const newRotation = direction === "left" ? chartRotation - 180 : chartRotation + 180;
     setChartRotation(newRotation);
 
-    // Navigation logic:
-    // Swipe right = show PREVIOUS card
-    // Swipe left = show NEXT card
     const nextIndex = direction === "right"
       ? (currentChartVisibleIndex - 1 + chartViewsCount) % chartViewsCount
       : (currentChartVisibleIndex + 1) % chartViewsCount;
@@ -147,317 +119,19 @@ export function Dashboard() {
       : (nextIndex + 1) % chartViewsCount;
 
     if (isChartFlipped) {
-      // Currently showing faceB (Back), will transition to faceA (Front)
       setChartFaceAIndex(nextIndex);
       setTimeout(() => {
         setChartFaceBIndex(afterNextIndex);
       }, 350);
     } else {
-      // Currently showing faceA (Front), will transition to faceB (Back)
       setChartFaceBIndex(nextIndex);
       setTimeout(() => {
         setChartFaceAIndex(afterNextIndex);
       }, 350);
     }
-    // No need to toggle boolean, rotation update handles it
   }, [currentChartVisibleIndex, isChartFlipped, chartRotation, chartViewsCount]);
 
-  const renderChartCard = useCallback(
-    (index: number) => {
-      const dotIndicators = (
-        <div className="flex gap-1.5 ml-auto">
-          {Array.from({ length: chartViewsCount }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 w-1.5 rounded-full transition-colors ${i === index ? "bg-primary" : "bg-muted-foreground/30"
-                }`}
-            />
-          ))}
-        </div>
-      );
-
-      switch (index) {
-        case 0: // Chart
-          return (
-            <Card className="h-full flex flex-col">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="flex flex-col space-y-1.5">
-                  <CardTitle>{t("monthly_expenses_trend")}</CardTitle>
-                  <CardDescription>
-                    {t("cumulative_daily_expenses")} -{" "}
-                    {format(now, "MMMM yyyy")}
-                  </CardDescription>
-                </div>
-                {dotIndicators}
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col min-h-0">
-                <SmoothLoader
-                  isLoading={isStatsLoading}
-                  skeleton={<ContentLoader variant="chart" />}
-                  className="flex-1 w-full min-h-0"
-                >
-                  {dailyCumulativeExpenses.length > 0 ? (
-                    <div className="items-center justify-center flex w-full h-full">
-                      {/* Note: Recharts needs container dimensions. We wrap it to be safe */}
-                      <ChartContainer
-                        config={chartConfig}
-                        className="h-full w-full"
-                      >
-                        <AreaChart
-                          accessibilityLayer
-                          data={dailyCumulativeExpenses}
-                          margin={{
-                            left: -5,
-                            right: 12,
-                            top: 12,
-                            bottom: 12,
-                          }}
-                        >
-                          <defs>
-                            <linearGradient
-                              id="cumulativeGradient"
-                              x1="0"
-                              y1="0"
-                              x2="0"
-                              y2="1"
-                            >
-                              <stop
-                                offset="5%"
-                                stopColor="var(--color-cumulative)"
-                                stopOpacity={0.8}
-                              />
-                              <stop
-                                offset="95%"
-                                stopColor="var(--color-cumulative)"
-                                stopOpacity={0.1}
-                              />
-                            </linearGradient>
-                            <linearGradient
-                              id="projectionGradient"
-                              x1="0"
-                              y1="0"
-                              x2="0"
-                              y2="1"
-                            >
-                              <stop
-                                offset="5%"
-                                stopColor="var(--color-projection)"
-                                stopOpacity={0.6}
-                              />
-                              <stop
-                                offset="95%"
-                                stopColor="var(--color-projection)"
-                                stopOpacity={0.1}
-                              />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid vertical={false} />
-                          <XAxis
-                            dataKey="day"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            tickFormatter={(value) => `${value}`}
-                          />
-                          <YAxis
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            tickFormatter={(value) => `€${value}`}
-                          />
-                          <ChartTooltip
-                            cursor={false}
-                            content={
-                              <ChartTooltipContent
-                                indicator="line"
-                                valueFormatter={(value) =>
-                                  `€${Number(value).toLocaleString()}`
-                                }
-                              />
-                            }
-                          />
-                          <Area
-                            dataKey="cumulative"
-                            type="monotone"
-                            fill="url(#cumulativeGradient)"
-                            stroke="var(--color-cumulative)"
-                          />
-                          <Area
-                            dataKey="projection"
-                            type="monotone"
-                            fill="url(#projectionGradient)"
-                            stroke="var(--color-projection)"
-                            strokeDasharray="5 5"
-                          />
-                        </AreaChart>
-                      </ChartContainer>
-                    </div>
-                  ) : (
-                    <div className="flex flex-1 items-center justify-center text-muted-foreground h-full">
-                      {t("no_data")}
-                    </div>
-                  )}
-                </SmoothLoader>
-                {/* Chart Legend */}
-                <div className="flex flex-wrap items-center gap-4 mt-auto pt-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <div
-                      className="w-3 h-3 rounded-sm"
-                      style={{ backgroundColor: "hsl(0 84.2% 60.2%)" }}
-                    />
-                    <span>{t("chart_legend_actual")}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div
-                      className="w-3 h-0.5 border-t-2 border-dashed"
-                      style={{ borderColor: "#eb630fff", width: "12px" }}
-                    />
-                    <span>{t("chart_legend_projection")}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        case 1: // Recent Transactions (Moved to index 1)
-          return (
-            <Card className="h-full flex flex-col">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="flex flex-col space-y-1.5">
-                  <CardTitle>{t("recent_transactions")}</CardTitle>
-                </div>
-                {dotIndicators}
-              </CardHeader>
-              <CardContent className="flex-1 overflow-hidden">
-                <div className="space-y-2">
-                  <TransactionList
-                    transactions={recentTransactions}
-                    categories={categories}
-                    showActions={false}
-                    isLoading={transactions === undefined}
-                    hideContext={true}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          );
-        case 2: // Budget (only shown if budget is set)
-          if (!monthlyBudget) return null;
-          return (
-            <Card className="h-full flex flex-col">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="flex flex-col space-y-1.5">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    {t("monthly_budget")}
-                  </CardTitle>
-                  <CardDescription>{format(now, "MMMM yyyy")}</CardDescription>
-                </div>
-                {dotIndicators}
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col justify-center space-y-6">
-                <div className="space-y-6">
-                  {/* Budget Overview */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground text-sm">
-                        {t("spent")}
-                      </span>
-                      <span className="text-3xl font-bold text-red-600">
-                        €{totalExpense.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground text-sm">
-                        {t("budget")}
-                      </span>
-                      <span className="text-3xl font-bold">
-                        €{monthlyBudget.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="h-6 w-full bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-500 rounded-full ${isOverBudget
-                          ? "bg-red-500"
-                          : budgetUsedPercentage > 80
-                            ? "bg-yellow-500"
-                            : "bg-green-500"
-                          }`}
-                        style={{
-                          width: `${Math.min(budgetUsedPercentage, 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-base">
-                      <span
-                        className={`font-medium ${isOverBudget
-                          ? "text-red-600"
-                          : budgetUsedPercentage > 80
-                            ? "text-yellow-600"
-                            : "text-green-600"
-                          }`}
-                      >
-                        {budgetUsedPercentage.toFixed(0)}% {t("used")}
-                      </span>
-                      <span
-                        className={
-                          isOverBudget
-                            ? "text-red-600 font-medium"
-                            : "text-green-600 font-medium"
-                        }
-                      >
-                        {isOverBudget
-                          ? `+€${Math.abs(budgetRemaining).toFixed(2)} ${t(
-                            "over"
-                          )}`
-                          : `€${budgetRemaining.toFixed(2)} ${t("remaining")}`}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Daily Average Info */}
-                  <div className="pt-4 border-t">
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>{t("daily_average")}</span>
-                      <span>
-                        €
-                        {(
-                          totalExpense / Math.max(new Date().getDate(), 1)
-                        ).toFixed(2)}
-                        /{t("day")}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-auto flex justify-end"></div>
-              </CardContent>
-            </Card>
-          );
-        default:
-          return null;
-      }
-    },
-    [
-      t,
-      dailyCumulativeExpenses,
-      chartConfig,
-      now,
-      monthlyBudget,
-      totalExpense,
-      isOverBudget,
-      budgetUsedPercentage,
-      budgetRemaining,
-      recentTransactions,
-      categories,
-      transactions,
-      chartViewsCount,
-    ]
-  );
-
   // Track which card index is on which face
-  // faceA starts with card 0, faceB starts with card 1
   const [faceAIndex, setFaceAIndex] = useState(0);
   const [faceBIndex, setFaceBIndex] = useState(1);
 
@@ -466,13 +140,9 @@ export function Dashboard() {
 
   // Handle stat flip with direction (circular navigation)
   const handleStatSwipe = useCallback((direction: SwipeDirection) => {
-    // Calculate new rotation based on swipe direction
     const newRotation = direction === "left" ? statsRotation - 180 : statsRotation + 180;
     setStatsRotation(newRotation);
 
-    // Navigation logic:
-    // Swipe right = show PREVIOUS card
-    // Swipe left = show NEXT card
     const nextIndex = direction === "right"
       ? (currentVisibleIndex - 1 + statsCount) % statsCount
       : (currentVisibleIndex + 1) % statsCount;
@@ -482,219 +152,17 @@ export function Dashboard() {
       : (nextIndex + 1) % statsCount;
 
     if (isStatsFlipped) {
-      // Currently showing faceB (Back), will transition to faceA (Front)
       setFaceAIndex(nextIndex);
       setTimeout(() => {
         setFaceBIndex(afterNextIndex);
       }, 350);
     } else {
-      // Currently showing faceA (Front), will transition to faceB (Back)
       setFaceBIndex(nextIndex);
       setTimeout(() => {
         setFaceAIndex(afterNextIndex);
       }, 350);
     }
   }, [currentVisibleIndex, isStatsFlipped, statsRotation, statsCount]);
-
-  // Render a stat card by index
-  const renderStatCard = useCallback(
-    (index: number) => {
-      const dotIndicators = (
-        <div className="flex gap-1.5">
-          {Array.from({ length: statsCount }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 w-1.5 rounded-full transition-colors ${i === index
-                ? index === 0
-                  ? "bg-red-500"
-                  : index === 1
-                    ? "bg-green-500"
-                    : index === 2
-                      ? balance >= 0
-                        ? "bg-emerald-500"
-                        : "bg-red-500"
-                      : isOverBudget
-                        ? "bg-red-500"
-                        : budgetUsedPercentage > 80
-                          ? "bg-amber-500"
-                          : "bg-blue-500"
-                : "bg-muted-foreground/30"
-                }`}
-            />
-          ))}
-        </div>
-      );
-
-      switch (index) {
-        case 0: // Expenses
-          return (
-            <div className="relative overflow-hidden rounded-xl p-4 h-full border">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-md bg-red-500/15 text-red-500">
-                    <ArrowDownRight className="h-5 w-5" />
-                  </div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t("expenses")}
-                  </span>
-                </div>
-                {dotIndicators}
-              </div>
-              <SmoothLoader
-                isLoading={isStatsLoading}
-                skeleton={<Skeleton className="h-9 w-32" />}
-              >
-                <p className="text-3xl font-bold tracking-tight text-red-500">
-                  -€{totalExpense.toFixed(2)}
-                </p>
-              </SmoothLoader>
-
-              <div className="absolute -right-4 -bottom-4 opacity-[0.07] text-red-500">
-                <TrendingDown className="h-24 w-24" />
-              </div>
-            </div>
-          );
-        case 1: // Income
-          return (
-            <div className="relative overflow-hidden rounded-xl p-4 h-full border">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-md bg-green-500/15 text-green-500">
-                    <ArrowUpRight className="h-5 w-5" />
-                  </div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t("income")}
-                  </span>
-                </div>
-                {dotIndicators}
-              </div>
-              <SmoothLoader
-                isLoading={isStatsLoading}
-                skeleton={<Skeleton className="h-9 w-32" />}
-              >
-                <p className="text-3xl font-bold tracking-tight text-green-500">
-                  +€{totalIncome.toFixed(2)}
-                </p>
-              </SmoothLoader>
-
-              <div className="absolute -right-4 -bottom-4 opacity-[0.07] text-green-500">
-                <TrendingUp className="h-24 w-24" />
-              </div>
-            </div>
-          );
-        case 2: // Balance
-          return (
-            <div className="relative overflow-hidden rounded-xl p-4 h-full border">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`p-1.5 rounded-md ${balance >= 0
-                      ? "bg-emerald-500/15 text-green-500"
-                      : "bg-red-500/15 text-red-500"
-                      }`}
-                  >
-                    <PiggyBank className="h-5 w-5" />
-                  </div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t("balance")}
-                  </span>
-                </div>
-                {dotIndicators}
-              </div>
-              <SmoothLoader
-                isLoading={isStatsLoading}
-                skeleton={<Skeleton className="h-9 w-32" />}
-              >
-                <p
-                  className={`text-3xl font-bold tracking-tight ${balance >= 0 ? "text-green-500" : "text-red-500"
-                    }`}
-                >
-                  {balance >= 0 ? "+" : "-"}€{Math.abs(balance).toFixed(2)}
-                </p>
-              </SmoothLoader>
-
-              <div
-                className={`absolute -right-4 -bottom-4 opacity-[0.07] ${balance >= 0 ? "text-green-500" : "text-red-500"
-                  }`}
-              >
-                <PiggyBank className="h-24 w-24" />
-              </div>
-            </div>
-          );
-        case 3: // Budget (only if monthlyBudget exists)
-          if (!monthlyBudget) return null;
-          return (
-            <div className="relative overflow-hidden rounded-xl p-4 h-full border">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`p-1.5 rounded-md ${isOverBudget
-                      ? "bg-red-500/20 text-red-600"
-                      : budgetUsedPercentage > 80
-                        ? "bg-amber-500/20 text-amber-600"
-                        : "bg-blue-500/20 text-blue-600"
-                      }`}
-                  ></div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t("budget")}
-                  </span>
-                </div>
-                {dotIndicators}
-              </div>
-              <div className="flex items-baseline gap-2">
-                <p
-                  className={`text-3xl font-bold tracking-tight ${isOverBudget
-                    ? "text-red-600"
-                    : budgetUsedPercentage > 80
-                      ? "text-amber-600"
-                      : "text-blue-600"
-                    }`}
-                >
-                  {budgetUsedPercentage.toFixed(0)}%
-                </p>
-                <span className="text-sm text-muted-foreground">
-                  / €{monthlyBudget.toFixed(0)}
-                </span>
-              </div>
-              <div className="mt-2 h-2 w-full bg-muted/50 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-500 rounded-full ${isOverBudget
-                    ? "bg-red-500"
-                    : budgetUsedPercentage > 80
-                      ? "bg-amber-500"
-                      : "bg-blue-500"
-                    }`}
-                  style={{
-                    width: `${Math.min(budgetUsedPercentage, 100)}%`,
-                  }}
-                />
-              </div>
-
-              <div
-                className={`absolute -right-4 -bottom-4 opacity-[0.07] ${isOverBudget
-                  ? "text-red-500"
-                  : budgetUsedPercentage > 80
-                    ? "text-amber-500"
-                    : "text-blue-500"
-                  }`}
-              ></div>
-            </div>
-          );
-        default:
-          return null;
-      }
-    },
-    [
-      t,
-      totalExpense,
-      totalIncome,
-      balance,
-      monthlyBudget,
-      isOverBudget,
-      budgetUsedPercentage,
-      statsCount,
-    ]
-  );
 
   // Transaction dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -720,6 +188,34 @@ export function Dashboard() {
     [user, addTransaction]
   );
 
+  // Shared props for chart cards
+  const chartCardProps = {
+    chartViewsCount,
+    dailyCumulativeExpenses,
+    chartConfig,
+    isStatsLoading,
+    monthlyBudget,
+    totalExpense,
+    isOverBudget,
+    budgetUsedPercentage,
+    budgetRemaining,
+    recentTransactions,
+    categories,
+    transactions,
+  };
+
+  // Shared props for stat cards
+  const statCardProps = {
+    statsCount,
+    totalExpense,
+    totalIncome,
+    balance,
+    monthlyBudget,
+    isOverBudget,
+    budgetUsedPercentage,
+    isStatsLoading,
+  };
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t("dashboard")}</h1>
@@ -732,10 +228,11 @@ export function Dashboard() {
           onSwipe={handleStatSwipe}
           rotation={statsRotation}
           disableGlobalClick
-          frontContent={renderStatCard(faceAIndex)}
-          backContent={renderStatCard(faceBIndex)}
+          frontContent={<DashboardStatCard index={faceAIndex} {...statCardProps} />}
+          backContent={<DashboardStatCard index={faceBIndex} {...statCardProps} />}
         />
       </div>
+
       {/* Chart and Summary Cards Layout */}
       <div className="grid gap-4 md:grid-cols-[1fr_auto]">
         {/* Cumulative Expenses Chart - FlipCard with 3 states */}
@@ -745,98 +242,28 @@ export function Dashboard() {
           onSwipe={handleChartSwipe}
           rotation={chartRotation}
           disableGlobalClick
-          frontContent={renderChartCard(chartFaceAIndex)}
-          backContent={renderChartCard(chartFaceBIndex)}
+          frontContent={<DashboardChartCard index={chartFaceAIndex} {...chartCardProps} />}
+          backContent={<DashboardChartCard index={chartFaceBIndex} {...chartCardProps} />}
         />
 
         {/* Summary Cards - Hidden on mobile, stacked vertically on desktop */}
-        <div className="hidden md:flex md:flex-col gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t("total_expenses")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SmoothLoader
-                isLoading={isStatsLoading}
-                skeleton={<Skeleton className="h-8 w-28" />}
-              >
-                <div className="text-2xl font-bold text-red-600">
-                  -€{totalExpense.toFixed(2)}
-                </div>
-              </SmoothLoader>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t("total_income")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SmoothLoader
-                isLoading={isStatsLoading}
-                skeleton={<Skeleton className="h-8 w-28" />}
-              >
-                <div className="text-2xl font-bold text-green-600">
-                  +€{totalIncome.toFixed(2)}
-                </div>
-              </SmoothLoader>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t("total_balance")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SmoothLoader
-                isLoading={isStatsLoading}
-                skeleton={<Skeleton className="h-8 w-28" />}
-              >
-                <div
-                  className={`text-2xl font-bold ${balance >= 0 ? "text-green-600" : "text-red-600"
-                    }`}
-                >
-                  €{balance.toFixed(2)}
-                </div>
-              </SmoothLoader>
-            </CardContent>
-          </Card>
-        </div>
+        <DashboardSummaryCards
+          totalExpense={totalExpense}
+          totalIncome={totalIncome}
+          balance={balance}
+          isStatsLoading={isStatsLoading}
+        />
       </div>
 
-      <div className="grid gap-4 hidden md:block">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("recent_transactions")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[350px] pr-4 sm:h-[400px] lg:h-[300px]">
-              <TransactionList
-                transactions={recentTransactions}
-                categories={categories}
-                showActions={false}
-                isLoading={transactions === undefined}
-                hideContext={true}
-              />
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Floating Action Button - Mobile Only */}
+      {/* Floating Action Button */}
       <Button
+        size="lg"
+        className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg md:hidden z-50"
         onClick={() => setIsDialogOpen(true)}
-        className="md:hidden fixed bottom-[max(1.5rem,calc(env(safe-area-inset-bottom)+0.5rem))] right-6 h-14 w-14 rounded-full shadow-lg z-50"
-        size="icon"
       >
         <Plus className="h-6 w-6" />
       </Button>
 
-      {/* Add Transaction Dialog */}
       <TransactionDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
@@ -845,3 +272,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+export default Dashboard;
