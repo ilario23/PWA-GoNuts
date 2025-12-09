@@ -187,7 +187,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="space-y-4 pb-10">
+    <div className="space-y-4 pb-10 overflow-x-hidden">
       {/* Header */}
       <div className="space-y-1">
         <h2 className="text-2xl font-bold tracking-tight">{t("settings")}</h2>
@@ -377,13 +377,13 @@ export function SettingsPage() {
                 disabled={exportingData}
               >
                 {exportingData ? (
-                  <RefreshCw className="h-5 w-5 animate-spin" />
+                  <RefreshCw className="h-5 w-5 shrink-0 animate-spin" />
                 ) : (
-                  <Download className="h-5 w-5 text-primary" />
+                  <Download className="h-5 w-5 shrink-0 text-primary" />
                 )}
-                <div className="text-left">
-                  <div className="font-medium">{t("export_data")}</div>
-                  <div className="text-xs text-muted-foreground">{t("export_data_desc")}</div>
+                <div className="text-left overflow-hidden min-w-0 flex-1">
+                  <div className="font-medium truncate">{t("export_data")}</div>
+                  <div className="text-xs text-muted-foreground truncate">{t("export_data_desc")}</div>
                 </div>
               </Button>
 
@@ -393,10 +393,10 @@ export function SettingsPage() {
                 className="w-full h-14 justify-start gap-3 touch-manipulation"
                 onClick={() => setIsImportWizardOpen(true)}
               >
-                <Upload className="h-5 w-5 text-primary" />
-                <div className="text-left">
-                  <div className="font-medium">{t("import_data")}</div>
-                  <div className="text-xs text-muted-foreground">{t("import_data_desc")}</div>
+                <Upload className="h-5 w-5 shrink-0 text-primary" />
+                <div className="text-left overflow-hidden min-w-0 flex-1">
+                  <div className="font-medium truncate">{t("import_data")}</div>
+                  <div className="text-xs text-muted-foreground truncate">{t("import_data_desc")}</div>
                 </div>
               </Button>
             </CardContent>

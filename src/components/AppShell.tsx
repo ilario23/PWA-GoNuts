@@ -74,8 +74,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <div className="mx-auto max-w-6xl space-y-6">{children}</div>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="mx-auto max-w-6xl space-y-6 min-w-0">{children}</div>
         </main>
       </SidebarInset>
     </SidebarProvider>
