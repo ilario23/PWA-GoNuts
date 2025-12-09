@@ -257,11 +257,11 @@ export function Dashboard() {
 
       {/* Floating Action Button */}
       <Button
-        size="lg"
-        className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg md:hidden z-50"
+        size="icon"
+        className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg md:hidden z-50 animate-glow"
         onClick={() => setIsDialogOpen(true)}
       >
-        <Plus className="h-6 w-6" />
+        <Plus className="h-6 w-6 shrink-0" />
       </Button>
 
       <TransactionDialog
