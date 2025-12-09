@@ -14,10 +14,18 @@ export interface ParsedTransaction {
 }
 
 // Assuming ParsedCategory, ParsedContext, ParsedRecurringTransaction are new types the user intends to introduce or already exist elsewhere.
+import { Category } from "@/lib/db";
+
 // For now, I'll define them as `any` to ensure the file remains syntactically correct.
-type ParsedCategory = any;
+type ParsedCategory = { id: string; name: string; type: "income" | "expense" | "investment";[key: string]: any };
 type ParsedContext = any;
 type ParsedRecurringTransaction = any;
+
+export interface PotentialMerge {
+    imported: ParsedCategory;
+    existing: Category;
+    score: number;
+}
 
 export interface ParsedData {
     source: ImportSource; // Changed to use the updated ImportSource

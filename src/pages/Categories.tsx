@@ -400,13 +400,25 @@ export function CategoriesPage() {
     return categories.filter((c) => c.active !== 0);
   }, [categories, showInactive]);
 
+  // Sort categories: Active first, then Alphabetical
+  const sortedCategories = useMemo(() => {
+    return [...filteredCategories].sort((a, b) => {
+      // 1. Sort by Active status (Active=1 first, Inactive=0 last)
+      if (a.active !== b.active) {
+        return b.active - a.active;
+      }
+      // 2. Sort by Name
+      return a.name.localeCompare(b.name);
+    });
+  }, [filteredCategories]);
+
   // Build a map of parent_id -> children for quick lookup
   const childrenMap = useMemo(() => {
-    if (!filteredCategories.length) return new Map<string, Category[]>();
+    if (!sortedCategories.length) return new Map<string, Category[]>();
 
     const map = new Map<string | undefined, Category[]>();
 
-    filteredCategories.forEach((cat) => {
+    sortedCategories.forEach((cat) => {
       const parentId = cat.parent_id || undefined;
       const siblings = map.get(parentId) || [];
       siblings.push(cat);
@@ -414,11 +426,26 @@ export function CategoriesPage() {
     });
 
     return map;
-  }, [filteredCategories]);
+  }, [sortedCategories]);
 
   const rootCategories = useMemo(() => {
-    return childrenMap.get(undefined) || [];
-  }, [childrenMap]);
+    const roots: Category[] = [];
+    const visibleIds = new Set(sortedCategories.map((c) => c.id));
+
+    sortedCategories.forEach((c) => {
+      // It is a root if:
+      // 1. No parent_id
+      // 2. OR parent_id exists but parent is NOT in the visible set (Orphan)
+      //    (This happens if parent is deleted, or filtered out e.g. by group)
+      const isOrphan = c.parent_id && !visibleIds.has(c.parent_id);
+
+      if (!c.parent_id || isOrphan) {
+        roots.push(c);
+      }
+    });
+
+    return roots;
+  }, [sortedCategories]);
 
   const getChildren = (categoryId: string) => {
     return childrenMap.get(categoryId) || [];
@@ -468,19 +495,19 @@ export function CategoriesPage() {
           {/* Show Inactive Toggle */}
           <Button
             variant="outline"
-            size={showInactive ? undefined : "icon"}
+            size="icon"
             onClick={() => setShowInactive(!showInactive)}
-            className={`transition-colors ${showInactive
-                ? "bg-primary/10 text-primary border-primary/20 px-3"
-                : "text-muted-foreground w-9 h-9 px-0"
+            className={`transition-colors md:w-auto md:px-4 md:h-10 ${showInactive
+              ? "bg-primary/10 text-primary border-primary/20"
+              : ""
               }`}
           >
             {showInactive ? (
-              <Eye className="h-4 w-4" />
+              <Eye className="h-4 w-4 md:mr-2" />
             ) : (
-              <EyeOff className="h-4 w-4" />
+              <EyeOff className="h-4 w-4 md:mr-2" />
             )}
-            <span className="sr-only sm:not-sr-only sm:ml-2">
+            <span className="hidden md:inline">
               {t("show_inactive")}
             </span>
           </Button>

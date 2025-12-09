@@ -120,7 +120,8 @@ export function CategorySelector({
 
   const filteredCategories = React.useMemo(() => {
     if (!categories) return [];
-    let cats = categories.filter((c) => c.active !== 0);
+    // Use strict check for active status to ensure inactive categories (0) are excluded
+    let cats = categories.filter((c) => c.active === 1);
     if (type) {
       cats = cats.filter((c) => c.type === type);
     }

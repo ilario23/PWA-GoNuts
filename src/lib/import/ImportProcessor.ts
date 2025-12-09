@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
-import { ParsedData } from "./types";
+import { ParsedData, PotentialMerge } from "./types";
 import { v4 as uuidv4 } from "uuid";
 import { AVAILABLE_ICONS } from "@/lib/icons";
+import { findBestMatch } from "../stringUtils";
 
 // Helpers
 const VALID_ICON_NAMES = new Set(AVAILABLE_ICONS.map(i => i.name));
@@ -23,7 +24,7 @@ export class ImportProcessor {
         this.userId = userId;
     }
 
-    async process(data: ParsedData, onProgress?: ImportProgressCallback): Promise<{
+    async process(data: ParsedData, onProgress?: ImportProgressCallback, mergedCategoryIds?: Map<string, string>): Promise<{
         categories: number;
         transactions: number;
         recurring: number;
@@ -31,12 +32,50 @@ export class ImportProcessor {
         if (data.source === 'legacy_vue') {
             return this.processVueImport(data, onProgress);
         } else {
-            return this.processStandardImport(data, onProgress);
+            return this.processStandardImport(data, onProgress, mergedCategoryIds);
         }
     }
 
+    // --- CONFLICT ANALYSIS ---
+    async analyzeCategoryConflicts(data: ParsedData): Promise<PotentialMerge[]> {
+        if (!data.categories || data.categories.length === 0) return [];
+
+        const conflicts: PotentialMerge[] = [];
+        const existingCategories = await db.categories.where('user_id').equals(this.userId).toArray();
+        const existingNames = existingCategories.map(c => c.name);
+        const existingMap = new Map(existingCategories.map(c => [c.name.toLowerCase(), c]));
+
+        for (const importedCat of data.categories) {
+            // Skip if exact match exists (logic already handles this as auto-merge)
+            if (existingMap.has(importedCat.name.toLowerCase())) {
+                continue;
+            }
+
+            // Check for fuzzy match
+            const bestMatch = findBestMatch(importedCat.name, existingNames);
+
+            // Threshold: length <= 3 -> distance 0 (exact only, handled above)
+            // length > 3 -> distance <= 1
+            // length > 6 -> distance <= 2
+            let threshold = 1;
+            if (importedCat.name.length > 6) threshold = 2;
+
+            if (bestMatch && bestMatch.distance > 0 && bestMatch.distance <= threshold) {
+                const existing = existingCategories.find(c => c.name === bestMatch.match);
+                if (existing) {
+                    conflicts.push({
+                        imported: importedCat,
+                        existing: existing,
+                        score: bestMatch.distance
+                    });
+                }
+            }
+        }
+        return conflicts;
+    }
+
     // --- STANDARD IMPORT STRATEGY ---
-    private async processStandardImport(data: ParsedData, onProgress?: ImportProgressCallback) {
+    private async processStandardImport(data: ParsedData, onProgress?: ImportProgressCallback, mergedCategoryIds?: Map<string, string>) {
         let importedCategories = 0;
         let importedTransactions = 0;
         let importedRecurring = 0;
@@ -45,12 +84,18 @@ export class ImportProcessor {
         // For standard backups, we might trust IDs if they match UUID format, 
         // but strict safety suggests checking collisions or using map.
         // For now, let's assume standard backup restores IDs if possible, or generates new if collision.
-        // To simplify: We will try to RESTORE IDs from backup to allow "Sync" to work better?
         // Actually, if we import on top of existing data, we should probably generate NEW IDs to avoid conflicts.
         // Let's stick to "Merge/New" approach.
 
         const categoryIdMap = new Map<string, string>();
         const contextIdMap = new Map<string, string>();
+
+        // Pre-fill map with user validated merges
+        if (mergedCategoryIds) {
+            mergedCategoryIds.forEach((targetId, sourceId) => {
+                categoryIdMap.set(sourceId, targetId);
+            });
+        }
 
         const totalSteps = (data.categories?.length || 0) + (data.contexts?.length || 0) + (data.transactions?.length || 0);
         let currentStep = 0;
@@ -84,7 +129,19 @@ export class ImportProcessor {
             // Two pass for parents
             // Pass 1: IDs
             for (const cat of data.categories) {
-                const existing = await db.categories.where({ name: cat.name, user_id: this.userId }).first();
+                // If already mapped (via merge), skip ID generation
+                if (categoryIdMap.has(cat.id)) continue;
+
+                // Check exact match (Auto-merge)
+                // Note: Dexie case-sensitivity depends on collation, usually strictly case sensitive by default, 
+                // but we might want case-insensitive logic here too? 
+                // For now, consistent with legacy logic: exact name match.
+                // We do a manual case-insensitive check to be safe and consistent with "Normalizing" plan.
+                const existing = await db.categories
+                    .where('user_id').equals(this.userId)
+                    .filter(c => c.name.toLowerCase() === cat.name.toLowerCase())
+                    .first();
+
                 if (existing) {
                     categoryIdMap.set(cat.id, existing.id);
                 } else {
@@ -94,6 +151,11 @@ export class ImportProcessor {
             // Pass 2: Insert
             for (const cat of data.categories) {
                 onProgress?.(++currentStep, totalSteps, `Importing Category: ${cat.name}`);
+
+                // If it was merged (either manually or auto-exact), we don't CREATE it.
+                // But we check if it was "auto-merged" (exact match) vs "manual merge" (different ID but mapped).
+                // Actually, if mapped, we just need to ensure we don't overwrite if it exists.
+
                 const newId = categoryIdMap.get(cat.id);
                 if (!newId) continue;
 
