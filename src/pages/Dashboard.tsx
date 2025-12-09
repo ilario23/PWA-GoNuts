@@ -217,13 +217,13 @@ export function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col md:block h-[calc(100dvh-6rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
+    <div className="flex flex-col md:block h-[calc(100dvh-7.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
       <h1 className="text-2xl font-bold shrink-0">{t("dashboard")}</h1>
 
       {/* Mobile Summary Stats - Smart FlipCard Carousel */}
       <div className="md:hidden shrink-0">
         <FlipCard
-          className="h-[12vh] min-h-[100px]"
+          className="h-[12vh] min-h-[90px]"
           isFlipped={isStatsFlipped}
           onSwipe={handleStatSwipe}
           rotation={statsRotation}
