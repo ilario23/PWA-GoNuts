@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, FileJson, CheckCircle2, AlertTriangle, Loader2, ArrowRight, FileSpreadsheet, RefreshCw, Wand2, Trash2, Info, Download, Settings2 } from "lucide-react";
+import { Upload, FileJson, CheckCircle2, AlertTriangle, Loader2, ArrowRight, FileSpreadsheet, RefreshCw, Wand2, Trash2, Info, Download, Settings2, Turtle } from "lucide-react";
 
 import { AntigravityBackupParser } from '@/lib/import/parsers/AntigravityBackupParser';
 import { LegacyVueParser } from '@/lib/import/parsers/LegacyVueParser';
@@ -23,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
+import { useTranslation } from 'react-i18next';
 
 interface ImportWizardProps {
     open: boolean;
@@ -35,6 +36,7 @@ type ImportType = 'backup' | 'bank_csv';
 
 export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWizardProps) {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [step, setStep] = useState<WizardStep>('select_type');
@@ -342,17 +344,17 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Import Data</DialogTitle>
+                    <DialogTitle>{t("import.title", "Import Data")}</DialogTitle>
                     <DialogDescription>
-                        {step === 'select_type' && "Choose what kind of data you want to import."}
-                        {step === 'upload' && "Select the file from your computer."}
-                        {step === 'mapping' && "Map columns from your CSV to transaction fields."}
-                        {step === 'revolut_config' && "Configure specific options for Revolut import."}
-                        {step === 'preview' && "Review the data found in the file."}
-                        {step === 'resolving_conflicts' && "Similar categories found. Please review."}
-                        {step === 'reconciliation' && "Categorize transactions and create rules."}
-                        {step === 'importing' && "Importing your data..."}
-                        {step === 'success' && "Import completed successfully!"}
+                        {step === 'select_type' && t("import.step_select_type", "Choose what kind of data you want to import.")}
+                        {step === 'upload' && t("import.step_upload", "Select the file from your computer.")}
+                        {step === 'mapping' && t("import.step_mapping", "Map columns from your CSV to transaction fields.")}
+                        {step === 'revolut_config' && t("import.step_revolut_config", "Configure specific options for Revolut import.")}
+                        {step === 'preview' && t("import.step_preview", "Review the data found in the file.")}
+                        {step === 'resolving_conflicts' && t("import.step_resolving_conflicts", "Similar categories found. Please review.")}
+                        {step === 'reconciliation' && t("import.step_reconciliation", "Categorize transactions and create rules.")}
+                        {step === 'importing' && t("import.step_importing", "Importing your data...")}
+                        {step === 'success' && t("import.step_success", "Import completed successfully!")}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -366,9 +368,9 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                             >
                                 <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
                                     <FileJson className="h-10 w-10 mb-4 text-blue-500" />
-                                    <h3 className="font-semibold text-lg mb-1">System Backup</h3>
+                                    <h3 className="font-semibold text-lg mb-1">{t("import.type_backup", "System Backup")}</h3>
                                     <p className="text-sm text-muted-foreground">
-                                        Restore from an Antigravity backup or migrate from the old Vue app.
+                                        {t("import.type_backup_desc", "Restore from an Antigravity backup or migrate from the old Turtlet app.")}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -384,8 +386,8 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                         className="h-6 w-6"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            toast.info("Supported: Revolut, Intesa, N26, and any bank with standard CSV export.", {
-                                                description: "Maps Date, Amount, and Description columns manually."
+                                            toast.info(t("import.bank_supported_info", "Supported: Revolut, Intesa, N26, and any bank with standard CSV export."), {
+                                                description: t("import.bank_supported_desc", "Maps Date, Amount, and Description columns manually.")
                                             });
                                         }}
                                     >
@@ -394,9 +396,9 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                 </div>
                                 <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
                                     <FileSpreadsheet className="h-10 w-10 mb-4 text-green-500" />
-                                    <h3 className="font-semibold text-lg mb-1">Bank Export</h3>
+                                    <h3 className="font-semibold text-lg mb-1">{t("import.type_bank", "Bank Export")}</h3>
                                     <p className="text-sm text-muted-foreground">
-                                        Import transactions from CSV/Excel files (Revolut, Intesa, etc).
+                                        {t("import.type_bank_desc", "Import transactions from CSV/Excel files (Revolut, Intesa, etc).")}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -414,10 +416,10 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                         size="sm"
                                         onClick={handleDownloadTemplate}
                                         className="text-xs flex items-center gap-2 h-8"
-                                        title="Download a CSV template"
+                                        title={t("import.template_download", "Download a CSV template")}
                                     >
                                         <Download className="h-3.5 w-3.5" />
-                                        Template
+                                        {t("import.template_download", "Template")}
                                     </Button>
                                 </div>
                             )}
@@ -425,7 +427,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                             {isProcessing ? (
                                 <div className="flex flex-col items-center">
                                     <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                                    <p className="text-sm text-muted-foreground">Analyzing file...</p>
+                                    <p className="text-sm text-muted-foreground">{t("import.analyzing_file", "Analyzing file...")}</p>
                                 </div>
                             ) : (
                                 <>
@@ -436,11 +438,11 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                     )}
                                     <p className="text-sm text-muted-foreground mb-4 text-center">
                                         {importType === 'bank_csv'
-                                            ? "Select a .csv file from your bank."
-                                            : "Select a .json file to restore your backup."}
+                                            ? t("import.select_csv_bank", "Select a .csv file from your bank.")
+                                            : t("import.select_json_backup", "Select a .json file to restore your backup.")}
                                     </p>
                                     <Button onClick={() => fileInputRef.current?.click()}>
-                                        Choose File
+                                        {t("import.choose_file", "Choose File")}
                                     </Button>
                                     <input
                                         type="file"
@@ -465,54 +467,54 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Date Column</Label>
+                                    <Label>{t("import.col_date", "Date Column")}</Label>
                                     <Select
                                         value={csvMapping.dateColumn}
                                         onValueChange={(v) => setCsvMapping(p => ({ ...p, dateColumn: v }))}
                                     >
-                                        <SelectTrigger><SelectValue placeholder="Select column" /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder={t("import.col_select_placeholder", "Select column")} /></SelectTrigger>
                                         <SelectContent>
                                             {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Amount Column</Label>
+                                    <Label>{t("import.col_amount", "Amount Column")}</Label>
                                     <Select
                                         value={csvMapping.amountColumn}
                                         onValueChange={(v) => setCsvMapping(p => ({ ...p, amountColumn: v }))}
                                     >
-                                        <SelectTrigger><SelectValue placeholder="Select column" /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder={t("import.col_select_placeholder", "Select column")} /></SelectTrigger>
                                         <SelectContent>
                                             {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Fee Column (Optional)</Label>
+                                    <Label>{t("import.col_fee", "Fee Column (Optional)")}</Label>
                                     <Select
                                         value={csvMapping.feeColumn || ""}
                                         onValueChange={(v) => setCsvMapping(p => ({ ...p, feeColumn: v === "none" ? undefined : v }))}
                                     >
-                                        <SelectTrigger><SelectValue placeholder="Select column" /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder={t("import.col_select_placeholder", "Select column")} /></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="none" className="text-muted-foreground font-light">None</SelectItem>
+                                            <SelectItem value="none" className="text-muted-foreground font-light">{t("import.col_none", "None")}</SelectItem>
                                             {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                     {csvMapping.feeColumn && (
                                         <p className="text-[10px] text-blue-600 dark:text-blue-400">
-                                            Note: Tax will be added to the amount (Amount + Fee).
+                                            {t("import.fee_note", "Note: Tax will be added to the amount (Amount + Fee).")}
                                         </p>
                                     )}
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Description Column</Label>
+                                    <Label>{t("import.col_description", "Description Column")}</Label>
                                     <Select
                                         value={csvMapping.descriptionColumn}
                                         onValueChange={(v) => setCsvMapping(p => ({ ...p, descriptionColumn: v }))}
                                     >
-                                        <SelectTrigger><SelectValue placeholder="Select column" /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder={t("import.col_select_placeholder", "Select column")} /></SelectTrigger>
                                         <SelectContent>
                                             {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                                         </SelectContent>
@@ -540,7 +542,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                     </TableBody>
                                 </Table>
                             </div>
-                            <p className="text-xs text-muted-foreground">Showing first 5 rows for preview.</p>
+                            <p className="text-xs text-muted-foreground">{t("import.preview_rows", "Showing first 5 rows for preview.")}</p>
                         </div>
                     )}
 
@@ -551,9 +553,9 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                 <Settings2 className="h-8 w-8" />
                             </div>
                             <div className="text-center">
-                                <h3 className="text-lg font-semibold">Revolut Import Settings</h3>
+                                <h3 className="text-lg font-semibold">{t("import.revolut_title", "Revolut Import Settings")}</h3>
                                 <p className="text-muted-foreground text-sm max-w-md mt-2">
-                                    We detected a Revolut export. Would you like to import transfers to/from your savings accounts and pockets?
+                                    {t("import.revolut_desc", "We detected a Revolut export. Would you like to import transfers to/from your savings accounts and pockets?")}
                                 </p>
                             </div>
 
@@ -561,10 +563,9 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                 <CardContent className="pt-6">
                                     <div className="flex items-center justify-between space-x-2">
                                         <div className="space-y-0.5">
-                                            <Label htmlFor="include-savings" className="text-base">Include Savings & Pockets</Label>
+                                            <Label htmlFor="include-savings" className="text-base">{t("import.include_savings", "Include Savings & Pockets")}</Label>
                                             <p className="text-xs text-muted-foreground">
-                                                If enabled, transfers to Vaults/Pockets are imported as expenses or income.
-                                                If disabled, they are ignored to avoid duplicates or noise.
+                                                {t("import.include_savings_desc", "If enabled, transfers to Vaults/Pockets are imported as expenses or income. If disabled, they are ignored to avoid duplicates or noise.")}
                                             </p>
                                         </div>
                                         <Switch
@@ -582,41 +583,41 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                     {step === 'preview' && parsedData && (
                         <div className="space-y-4">
                             <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-lg">
-                                <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider mb-3">Found Data</h3>
+                                <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider mb-3">{t("import.found_data", "Found Data")}</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-white dark:bg-slate-800 p-3 rounded border">
                                         <span className="text-2xl font-bold block">{parsedData.transactions.length}</span>
-                                        <span className="text-xs text-muted-foreground">Transactions</span>
+                                        <span className="text-xs text-muted-foreground">{t("transactions", "Transactions")}</span>
                                     </div>
                                     <div className="bg-white dark:bg-slate-800 p-3 rounded border">
                                         <span className="text-2xl font-bold block">{parsedData.categories?.length || 0}</span>
-                                        <span className="text-xs text-muted-foreground">Categories</span>
+                                        <span className="text-xs text-muted-foreground">{t("categories", "Categories")}</span>
                                     </div>
                                     {parsedData.recurring && parsedData.recurring.length > 0 && (
                                         <div className="bg-white dark:bg-slate-800 p-3 rounded border">
                                             <span className="text-2xl font-bold block">{parsedData.recurring.length}</span>
-                                            <span className="text-xs text-muted-foreground">Recurring</span>
+                                            <span className="text-xs text-muted-foreground">{t("recurring_transactions", "Recurring")}</span>
                                         </div>
                                     )}
                                     <div className="bg-white dark:bg-slate-800 p-3 rounded border">
-                                        <span className="text-2xl font-bold block capitalize">
-                                            {parsedData.source === 'legacy_vue' ? 'Vue App' :
+                                        <span className="text-2xl font-bold block capitalize flex items-center gap-2">
+                                            {parsedData.source === 'legacy_vue' ? <><Turtle className="w-6 h-6 text-green-500" /> {t("import.turtlet_app", "Turtlet App")}</> :
                                                 parsedData.source === 'antigravity_backup' ? 'Antigravity' : 'CSV Export'}
                                         </span>
-                                        <span className="text-xs text-muted-foreground">Source</span>
+                                        <span className="text-xs text-muted-foreground">{t("import.source", "Source")}</span>
                                     </div>
                                 </div>
                             </div>
 
                             {parsedData.source === 'legacy_vue' && (
                                 <div className="text-sm p-3 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded border border-blue-100 dark:border-blue-900">
-                                    <p><strong>Migration Mode:</strong> We will automatically migrate your categories to the new structure.</p>
+                                    <p><strong>{t("import.migration_mode", "Migration Mode")}:</strong> {t("import.migration_mode_desc", "We will automatically migrate your categories to the new structure.")}</p>
                                 </div>
                             )}
 
                             {parsedData.source === 'generic_csv' && (
                                 <div className="text-sm p-3 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded border border-blue-100 dark:border-blue-900">
-                                    <p><strong>Note:</strong> Transactions will be set to 'Uncategorized' initially. Use the rules engine in the next step to categorize them.</p>
+                                    <p><strong>{t("import.csv_note", "Note")}:</strong> {t("import.csv_note_desc", "Transactions will be set to 'Uncategorized' initially. Use the rules engine in the next step to categorize them.")}</p>
                                 </div>
                             )}
                         </div>
@@ -816,6 +817,6 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                     )}
                 </DialogFooter>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 }

@@ -106,7 +106,7 @@ const ICON_MAPPING: Record<string, string> = {
 };
 
 export class LegacyVueParser implements TransactionParser {
-    name = "Legacy Vue App Export";
+    name = "Legacy Turtlet App Export";
     fileExtensions = ["json"];
 
     async canParse(_file: File, content: string): Promise<boolean> {
