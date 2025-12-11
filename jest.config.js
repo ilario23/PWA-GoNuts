@@ -6,6 +6,7 @@ export default {
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
         '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+        '^uuid$': '<rootDir>/src/__mocks__/uuid.ts',
     },
     setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
     collectCoverageFrom: [
@@ -24,14 +25,23 @@ export default {
         },
     },
     transform: {
-        '^.+\\.tsx?$': ['ts-jest', {
+        '^.+\\.[tj]sx?$': ['ts-jest', {
             tsconfig: {
                 jsx: 'react-jsx',
                 module: 'esnext',
                 moduleResolution: 'bundler',
+                allowJs: true,
+                baseUrl: '.',
+                paths: {
+                    '@/*': ['./src/*']
+                },
+                esModuleInterop: true,
             },
         }],
     },
+    transformIgnorePatterns: [
+        'node_modules/(?!(uuid)/)'
+    ],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
     testEnvironmentOptions: {
         customExportConditions: [''],
