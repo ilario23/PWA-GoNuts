@@ -1,5 +1,5 @@
 
-import Papa from 'papaparse';
+import * as Papa from 'papaparse';
 import { TransactionParser, ParsedData, ParsedTransaction, ImportOptions } from '../types';
 
 export class RevolutParser implements TransactionParser {

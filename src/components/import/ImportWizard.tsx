@@ -1,28 +1,29 @@
 
-import React, { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import * as React from 'react';
+import { useState, useRef } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Card, CardContent } from "../ui/card";
 import { Upload, FileJson, CheckCircle2, AlertTriangle, Loader2, ArrowRight, FileSpreadsheet, RefreshCw, Wand2, Trash2, Info, Download, Settings2, Turtle } from "lucide-react";
 
-import { AntigravityBackupParser } from '@/lib/import/parsers/AntigravityBackupParser';
-import { LegacyVueParser } from '@/lib/import/parsers/LegacyVueParser';
-import { GenericCsvParser } from '@/lib/import/parsers/GenericCsvParser';
-import { RevolutParser } from '@/lib/import/parsers/RevolutParser';
-import { ImportProcessor } from '@/lib/import/ImportProcessor';
-import { RulesEngine } from '@/lib/import/RulesEngine';
-import { useAuth } from '@/contexts/AuthProvider';
-import { ParsedData, TransactionParser, CsvMapping, ParsedTransaction, PotentialMerge, RecurringConflict } from '@/lib/import/types';
+import { AntigravityBackupParser } from '../../lib/import/parsers/AntigravityBackupParser';
+import { LegacyVueParser } from '../../lib/import/parsers/LegacyVueParser';
+import { GenericCsvParser } from '../../lib/import/parsers/GenericCsvParser';
+import { RevolutParser } from '../../lib/import/parsers/RevolutParser';
+import { ImportProcessor } from '../../lib/import/ImportProcessor';
+import { RulesEngine } from '../../lib/import/RulesEngine';
+import { useAuth } from '../../contexts/AuthProvider';
+import { ParsedData, TransactionParser, CsvMapping, ParsedTransaction, PotentialMerge, RecurringConflict } from '../../lib/import/types';
 import { ImportConflictResolver } from './ImportConflictResolver';
 import { toast } from 'sonner';
-import { Progress } from "@/components/ui/progress";
-import Papa from 'papaparse';
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
+import { Progress } from "../ui/progress";
+import * as Papa from 'papaparse';
+import { Label } from "../ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { Switch } from "../ui/switch";
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/db';
+import { db } from '../../lib/db';
 import { useTranslation } from 'react-i18next';
 
 interface ImportWizardProps {
