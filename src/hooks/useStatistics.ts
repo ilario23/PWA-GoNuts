@@ -486,7 +486,7 @@ export function useStatistics(params?: UseStatisticsParams) {
     return Array.from(rootCategoryTotals.values()).map((cat, index) => ({
       name: cat.name,
       value:
-        totalMonthlyExpense > 0
+        totalMonthlyExpense !== 0
           ? Math.round((cat.value / totalMonthlyExpense) * 100)
           : 0,
       amount: Math.round(cat.value * 100) / 100,
@@ -547,7 +547,7 @@ export function useStatistics(params?: UseStatisticsParams) {
     return Array.from(rootCategoryTotals.values()).map((cat, index) => ({
       name: cat.name,
       value:
-        totalYearlyExpense > 0
+        totalYearlyExpense !== 0
           ? Math.round((cat.value / totalYearlyExpense) * 100)
           : 0,
       amount: Math.round(cat.value * 100) / 100,

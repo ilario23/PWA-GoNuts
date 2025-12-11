@@ -10,6 +10,9 @@ import { useTranslation } from "react-i18next";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
+import { CountUp } from "@/components/ui/count-up";
+import { useEffect, useState } from "react";
+
 interface StatsBurnRateCardProps {
     spending: number;
     budget: number | null;
@@ -101,7 +104,7 @@ export function StatsBurnRateCard({
                             "text-2xl font-bold font-mono tracking-tight",
                             hasBudget && !isOnTrack ? "text-destructive" : "text-foreground"
                         )}>
-                            €{projectedTotal.toFixed(0)}
+                            €<CountUp value={projectedTotal} />
                         </div>
                         {hasBudget && (
                             <div className="text-xs text-muted-foreground mt-1">
@@ -118,16 +121,16 @@ export function StatsBurnRateCard({
                         {hasBudget ? (
                             isOverBudget ? (
                                 <div className="text-2xl font-bold text-destructive font-mono tracking-tight">
-                                    €{(spending - budgetAmount).toFixed(0)}
+                                    €<CountUp value={spending - budgetAmount} />
                                 </div>
                             ) : (
                                 <div className="text-2xl font-bold text-green-600 font-mono tracking-tight">
-                                    €{safeDailyLimit.toFixed(0)}<span className="text-sm font-sans text-muted-foreground">/{t("day_short")}</span>
+                                    €<CountUp value={safeDailyLimit} /><span className="text-sm font-sans text-muted-foreground">/{t("day_short")}</span>
                                 </div>
                             )
                         ) : (
                             <div className="text-2xl font-bold text-foreground font-mono tracking-tight">
-                                €{dailyAverage.toFixed(0)}<span className="text-sm font-sans text-muted-foreground">/{t("day_short")}</span>
+                                €<CountUp value={dailyAverage} /><span className="text-sm font-sans text-muted-foreground">/{t("day_short")}</span>
                             </div>
                         )}
                         {hasBudget && !isOverBudget && (
@@ -145,9 +148,9 @@ export function StatsBurnRateCard({
                         <div className="space-y-1">
                             <div className="flex justify-between text-xs">
                                 <span>{t("budget_used")} ({(moneyProgress).toFixed(0)}%)</span>
-                                <span className="font-medium">€{spending.toFixed(0)}</span>
+                                <span className="font-medium">€<CountUp value={spending} /></span>
                             </div>
-                            <Progress value={moneyProgress} className={cn("h-2", isOverBudget ? "bg-red-100 [&>div]:bg-red-500" : "")} />
+                            <AnimatedProgress value={moneyProgress} className={cn("h-2", isOverBudget ? "bg-red-100 [&>div]:bg-red-500" : "")} />
                         </div>
 
                         {/* Time Elapsed (Context) */}
@@ -156,7 +159,7 @@ export function StatsBurnRateCard({
                                 <span>{t("time_elapsed")} ({timeProgress.toFixed(0)}%)</span>
                                 <span>{daysRemaining} {t("days_left")}</span>
                             </div>
-                            <Progress value={timeProgress} className="h-1.5 bg-secondary" />
+                            <AnimatedProgress value={timeProgress} className="h-1.5 bg-secondary" />
                         </div>
                     </div>
                 )}
@@ -171,4 +174,15 @@ export function StatsBurnRateCard({
             </CardContent>
         </Card>
     );
+}
+
+function AnimatedProgress({ value, className }: { value: number; className?: string }) {
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setProgress(value), 100);
+        return () => clearTimeout(timer);
+    }, [value]);
+
+    return <Progress value={progress} className={className} />;
 }
