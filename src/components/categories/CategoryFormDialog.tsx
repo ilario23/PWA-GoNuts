@@ -66,7 +66,7 @@ export function CategoryFormDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md w-[95vw] rounded-lg">
+            <DialogContent className="sm:max-w-[600px] w-[95vw] rounded-lg">
                 <DialogHeader>
                     <DialogTitle>
                         {editingId ? t("edit_category") : t("add_category")}
@@ -130,8 +130,8 @@ export function CategoryFormDialog({
                                             type="button"
                                             variant="outline"
                                             className={`w-full ${formData.type === "expense"
-                                                    ? "bg-red-500 hover:bg-red-600 text-white"
-                                                    : ""
+                                                ? "bg-red-500 hover:bg-red-600 text-white"
+                                                : ""
                                                 }`}
                                             onClick={() =>
                                                 setFormData({ ...formData, type: "expense" })
@@ -143,8 +143,8 @@ export function CategoryFormDialog({
                                             type="button"
                                             variant="outline"
                                             className={`w-full ${formData.type === "income"
-                                                    ? "bg-green-500 hover:bg-green-600 text-white"
-                                                    : ""
+                                                ? "bg-green-500 hover:bg-green-600 text-white"
+                                                : ""
                                                 }`}
                                             onClick={() =>
                                                 setFormData({ ...formData, type: "income" })
@@ -156,8 +156,8 @@ export function CategoryFormDialog({
                                             type="button"
                                             variant="outline"
                                             className={`w-full ${formData.type === "investment"
-                                                    ? "bg-blue-500 hover:bg-blue-600 text-white"
-                                                    : ""
+                                                ? "bg-blue-500 hover:bg-blue-600 text-white"
+                                                : ""
                                                 }`}
                                             onClick={() =>
                                                 setFormData({ ...formData, type: "investment" })

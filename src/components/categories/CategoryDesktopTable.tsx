@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, MoreVertical } from "lucide-react";
+import { ChevronRight, Edit, Trash2 } from "lucide-react";
 import { getIconComponent } from "@/lib/icons";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { SmoothLoader } from "@/components/ui/smooth-loader";
@@ -26,6 +26,8 @@ interface CategoryListProps {
     onCategoryClick: (category: Category) => void;
     t: (key: string) => string;
     groups: Group[];
+    onEdit: (category: Category) => void;
+    onDelete: (id: string) => void;
 }
 
 // Recursive Desktop Category Rows Component
@@ -39,8 +41,10 @@ function DesktopCategoryRows({
     onCategoryClick,
     t,
     groups,
+    onEdit,
+    onDelete,
 }: CategoryListProps) {
-    const maxDepth = 5; // Prevent infinite recursion
+    const maxDepth = 10; // Prevent infinite recursion
 
     if (depth > maxDepth) return null;
 
@@ -57,10 +61,10 @@ function DesktopCategoryRows({
                     <React.Fragment key={c.id}>
                         <TableRow
                             className={`${isRoot && index < 20
-                                    ? "animate-slide-in-up opacity-0 fill-mode-forwards"
-                                    : !isRoot
-                                        ? "animate-fade-in"
-                                        : ""
+                                ? "animate-slide-in-up opacity-0 fill-mode-forwards"
+                                : !isRoot
+                                    ? "animate-fade-in"
+                                    : ""
                                 } ${children.length > 0 ? "cursor-pointer hover:bg-muted/50" : ""
                                 } ${!isRoot ? "bg-muted/20" : ""} ${isInactive ? "opacity-50" : ""
                                 }`}
@@ -96,6 +100,9 @@ function DesktopCategoryRows({
                                     className="flex items-center gap-2"
                                     style={{ paddingLeft: `${indentPx}px` }}
                                 >
+                                    {!isRoot && (
+                                        <div className="absolute top-0 bottom-1/2 left-0 w-4 border-l-2 border-muted-foreground/30 -ml-4" />
+                                    )}
                                     {!isRoot && (
                                         <div className="w-4 h-4 border-l-2 border-b-2 border-muted-foreground/30 rounded-bl shrink-0" />
                                     )}
@@ -151,14 +158,30 @@ function DesktopCategoryRows({
                                 )}
                             </TableCell>
                             <TableCell>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={isRoot ? "" : "h-7 w-7"}
-                                    onClick={() => onCategoryClick(c)}
-                                >
-                                    <MoreVertical className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
-                                </Button>
+                                <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={isRoot ? "h-8 w-8" : "h-7 w-7"}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onEdit(c);
+                                        }}
+                                    >
+                                        <Edit className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={isRoot ? "h-8 w-8" : "h-7 w-7"}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDelete(c.id);
+                                        }}
+                                    >
+                                        <Trash2 className={`${isRoot ? "h-4 w-4" : "h-3 w-3"} text-destructive`} />
+                                    </Button>
+                                </div>
                             </TableCell>
                         </TableRow>
 
@@ -174,6 +197,8 @@ function DesktopCategoryRows({
                                 onCategoryClick={onCategoryClick}
                                 t={t}
                                 groups={groups}
+                                onEdit={onEdit}
+                                onDelete={onDelete}
                             />
                         )}
                     </React.Fragment>
@@ -193,6 +218,8 @@ interface CategoryDesktopTableProps {
     groups: Group[];
     isLoading: boolean;
     t: (key: string) => string;
+    onEdit: (category: Category) => void;
+    onDelete: (id: string) => void;
 }
 
 export function CategoryDesktopTable({
@@ -205,6 +232,8 @@ export function CategoryDesktopTable({
     groups,
     isLoading,
     t,
+    onEdit,
+    onDelete,
 }: CategoryDesktopTableProps) {
     return (
         <SmoothLoader
@@ -237,6 +266,8 @@ export function CategoryDesktopTable({
                         onCategoryClick={onCategoryClick}
                         t={t}
                         groups={groups}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
                     />
                 </TableBody>
             </Table>

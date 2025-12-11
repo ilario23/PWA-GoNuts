@@ -74,7 +74,7 @@ export function CategoryMobileList({
             >
                 <div
                     style={{
-                        marginLeft: depth > 0 ? `${depth * 16}px` : "0",
+                        marginLeft: depth > 0 ? `${depth * 10}px` : "0",
                         paddingLeft: depth > 0 ? "8px" : "0",
                         borderLeft:
                             depth > 0 ? "2px solid hsl(var(--muted))" : "none",

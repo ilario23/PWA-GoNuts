@@ -601,6 +601,8 @@ export function CategoriesPage() {
         groups={groups}
         isLoading={isLoading}
         t={t}
+        onEdit={handleEdit}
+        onDelete={handleDeleteClick}
       />
 
       {/* Form Dialog */}
