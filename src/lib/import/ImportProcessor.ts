@@ -1,11 +1,11 @@
-import { db } from "@/lib/db";
+import { db } from "../db";
 import {
     ParsedData,
     PotentialMerge,
     RecurringConflict
 } from "./types";
 import { v4 as uuidv4 } from "uuid";
-import { AVAILABLE_ICONS } from "@/lib/icons";
+import { AVAILABLE_ICONS } from "../icons";
 import { findBestMatch } from "../stringUtils";
 
 // Helpers
@@ -502,22 +502,34 @@ export class ImportProcessor {
     }
 
     // --- HELPERS ---
+    /**
+     * Creates or retrieves the local-only "Uncategorized" category.
+     * 
+     * This category:
+     * - Uses a reserved UUID (UNCATEGORIZED_CATEGORY.ID)
+     * - Has pendingSync: 0 (never syncs to Supabase)
+     * - Transactions referencing it will fail FK constraint on sync
+     * - This forces users to categorize properly before syncing
+     */
     private async ensureFallbackCategory(): Promise<string> {
-        const existing = await db.categories.where('name').equalsIgnoreCase('Uncategorized').first();
+        const { UNCATEGORIZED_CATEGORY } = await import('../constants');
+
+        // Check if already exists (by reserved ID, not name)
+        const existing = await db.categories.get(UNCATEGORIZED_CATEGORY.ID);
         if (existing) return existing.id;
 
-        const newId = uuidv4();
+        // Create local-only category
         await db.categories.put({
-            id: newId,
+            id: UNCATEGORIZED_CATEGORY.ID,
             user_id: this.userId,
-            name: "Uncategorized",
-            icon: "HelpCircle",
-            color: "#94a3b8",
+            name: UNCATEGORIZED_CATEGORY.NAME,
+            icon: UNCATEGORIZED_CATEGORY.ICON,
+            color: UNCATEGORIZED_CATEGORY.COLOR,
             type: "expense",
             active: 1,
             deleted_at: null,
-            pendingSync: 1
+            pendingSync: 0  // NEVER sync - local only
         });
-        return newId;
+        return UNCATEGORIZED_CATEGORY.ID;
     }
 }

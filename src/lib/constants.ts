@@ -4,6 +4,30 @@
  */
 
 // =============================================================================
+// RESERVED CATEGORIES (LOCAL-ONLY)
+// =============================================================================
+
+/**
+ * The "Uncategorized" category is a LOCAL-ONLY placeholder.
+ * - It is NEVER synced to Supabase (pendingSync: 0)
+ * - Transactions using this category_id will fail to sync (FK constraint)
+ * - This forces users to properly categorize before syncing
+ */
+export const UNCATEGORIZED_CATEGORY = {
+  /** Reserved UUID - never changes, used for consistent identification */
+  ID: "00000000-0000-0000-0000-000000000000",
+
+  /** Category name */
+  NAME: "Uncategorized",
+
+  /** Icon to display */
+  ICON: "HelpCircle",
+
+  /** Color (slate/gray) */
+  COLOR: "#94a3b8",
+} as const;
+
+// =============================================================================
 // TIMING CONSTANTS (in milliseconds)
 // =============================================================================
 

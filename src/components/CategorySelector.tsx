@@ -34,6 +34,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { Category } from "@/lib/db";
 import { getIconComponent } from "@/lib/icons";
 import { useTranslation } from "react-i18next";
+import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 
 interface CategorySelectorProps {
   value?: string;
@@ -122,6 +123,10 @@ export function CategorySelector({
     if (!categories) return [];
     // Use strict check for active status to ensure inactive categories (0) are excluded
     let cats = categories.filter((c) => c.active === 1);
+
+    // Exclude the local-only "Uncategorized" placeholder category
+    cats = cats.filter((c) => c.id !== UNCATEGORIZED_CATEGORY.ID);
+
     if (type) {
       cats = cats.filter((c) => c.type === type);
     }

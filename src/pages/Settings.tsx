@@ -56,6 +56,7 @@ import { toast } from "sonner";
 import { ImportWizard } from "@/components/import/ImportWizard";
 import { ImportRulesManager } from "@/components/settings/ImportRulesManager";
 import { cn } from "@/lib/utils";
+import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 
 export function SettingsPage() {
   const { settings, updateSettings } = useSettings();
@@ -128,7 +129,7 @@ export function SettingsPage() {
         .filter((t) => t.user_id === user.id && !t.deleted_at)
         .toArray();
       const categories = await db.categories
-        .filter((c) => c.user_id === user.id && !c.deleted_at)
+        .filter((c) => c.user_id === user.id && !c.deleted_at && c.id !== UNCATEGORIZED_CATEGORY.ID)
         .toArray();
       const contexts = await db.contexts
         .filter((c) => c.user_id === user.id && !c.deleted_at)
@@ -406,16 +407,7 @@ export function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Import Rules Management */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Import Rules</CardTitle>
-              <CardDescription>Manage your auto-categorization rules.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ImportRulesManager />
-            </CardContent>
-          </Card>
+          <ImportRulesManager />
         </TabsContent>
 
         {/* Tab: Advanced */}

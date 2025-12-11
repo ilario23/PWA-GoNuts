@@ -8,6 +8,7 @@ import {
   validate,
 } from "../lib/validation";
 import { useTranslation } from "react-i18next";
+import { UNCATEGORIZED_CATEGORY } from "../lib/constants";
 
 /**
  * Hook for managing expense/income categories with hierarchical support.
@@ -45,10 +46,13 @@ export function useCategories(groupId?: string | null) {
   const { t } = useTranslation();
   const categories = useLiveQuery(() => db.categories.toArray());
 
-  // Filter out deleted items and optionally by group
+  // Filter out deleted items, the local-only placeholder, and optionally by group
   const filteredCategories =
     categories?.filter((c) => {
       if (c.deleted_at) return false;
+
+      // Exclude local-only "Uncategorized" placeholder category
+      if (c.id === UNCATEGORIZED_CATEGORY.ID) return false;
 
       if (groupId === undefined) {
         // Return all categories (no group_id filter)
