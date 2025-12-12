@@ -1,6 +1,6 @@
 # Hooks & Development Guide
 
-This guide explains how to develop new features using the Antigravity hook ecosystem. 
+This guide explains how to develop new features using the GoNuts hook ecosystem. 
 
 ## The Golden Rule
 **"Read from Disk, Sync in Background."**

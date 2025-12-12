@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers how to deploy the Antigravity PWA to production.
+This guide covers how to deploy the GoNuts PWA to production.
 
 ## Prerequisites
 *   Supabase Project (for Backend)

@@ -8,7 +8,7 @@ export interface ParsedTransaction {
     currency?: string;
     description: string;
     category_id?: string;
-    context_id?: string; // For Antigravity backups
+    context_id?: string; // For GoNuts backups
     type?: "expense" | "income" | "investment"; // Often missing in CSVs
     group_id?: string; // For group expenses
     user_id?: string; // For checking ownership

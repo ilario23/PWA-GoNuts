@@ -145,7 +145,7 @@ export class ImportProcessor {
         let groupTransactionCount = 0;
         if (data.transactions) {
             groupTransactionCount = data.transactions.filter(t => {
-                // Check raw_data for common group fields from various sources (though mainly Antigravity/Turtlet)
+                // Check raw_data for common group fields from various sources (though mainly GoNuts/Turtlet)
                 const raw = t.raw_data || {};
                 return !!(raw.group_id || raw.groupId || t.raw_data?.groupId || t.raw_data?.group_id);
             }).length;

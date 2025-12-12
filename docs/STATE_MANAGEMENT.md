@@ -1,6 +1,6 @@
 # State Management Strategy
 
-Understanding where data lives is crucial for debugging and extending Antigravity. We effectively have three layers of state.
+Understanding where data lives is crucial for debugging and extending GoNuts. We effectively have three layers of state.
 
 ## Layer 1: Global Auth State (Memory)
 *   **Managed By**: `AuthProvider.tsx`

@@ -1,7 +1,7 @@
 import { TransactionParser, ParsedData, ParsedTransaction } from "../types";
 
 export class AntigravityBackupParser implements TransactionParser {
-    name = "Antigravity Backup";
+    name = "GoNuts Backup";
     fileExtensions = ["json"];
 
     async canParse(_file: File, content: string): Promise<boolean> {

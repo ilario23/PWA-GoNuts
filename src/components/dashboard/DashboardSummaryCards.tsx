@@ -7,6 +7,7 @@ import {
 import { SmoothLoader } from "@/components/ui/smooth-loader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
+import { CountUp } from "@/components/ui/count-up";
 
 interface DashboardSummaryCardsProps {
     totalExpense: number;
@@ -23,6 +24,21 @@ export function DashboardSummaryCards({
 }: DashboardSummaryCardsProps) {
     const { t } = useTranslation();
 
+    // Helper to render value or placeholder
+    const renderAnimatedValue = (value: number, prefix: string = "", suffix: string = "", decimals: number = 2) => {
+        if (value === 0) {
+            return <span>-</span>;
+        }
+        return (
+            <CountUp
+                value={value}
+                decimals={decimals}
+                prefix={prefix}
+                suffix={suffix}
+            />
+        );
+    };
+
     return (
         <div className="hidden md:flex md:flex-col gap-4">
             <Card>
@@ -37,7 +53,7 @@ export function DashboardSummaryCards({
                         skeleton={<Skeleton className="h-8 w-28" />}
                     >
                         <div className="text-2xl font-bold text-red-600">
-                            -€{totalExpense.toFixed(2)}
+                            {renderAnimatedValue(totalExpense, "-€")}
                         </div>
                     </SmoothLoader>
                 </CardContent>
@@ -54,7 +70,7 @@ export function DashboardSummaryCards({
                         skeleton={<Skeleton className="h-8 w-28" />}
                     >
                         <div className="text-2xl font-bold text-green-600">
-                            +€{totalIncome.toFixed(2)}
+                            {renderAnimatedValue(totalIncome, "+€")}
                         </div>
                     </SmoothLoader>
                 </CardContent>
@@ -74,7 +90,7 @@ export function DashboardSummaryCards({
                             className={`text-2xl font-bold ${balance >= 0 ? "text-green-600" : "text-red-600"
                                 }`}
                         >
-                            {balance >= 0 ? "+" : "-"}€{Math.abs(balance).toFixed(2)}
+                            {renderAnimatedValue(balance, balance >= 0 ? "+€" : "€")}
                         </div>
                     </SmoothLoader>
                 </CardContent>

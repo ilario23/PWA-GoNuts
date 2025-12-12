@@ -2,7 +2,7 @@
 
 ## Philosophy: Local-First & Offline-Capable
 
-PWA Antigravity is built on the **Local-First** principle. This means the application behaves as if the local database is the *primary* database, and the server is merely a backup/synchronization point.
+PWA GoNuts is built on the **Local-First** principle. This means the application behaves as if the local database is the *primary* database, and the server is merely a backup/synchronization point.
 
 ### Why Local-First?
 1.  **Zero Latency**: UI interactions (adding a transaction, changing a category) are instant because they only write to IndexedDB.

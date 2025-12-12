@@ -29,8 +29,8 @@ export function CountUp({
     const ref = useRef<HTMLSpanElement>(null);
     const motionValue = useMotionValue(0);
     const springValue = useSpring(motionValue, {
-        damping: 30,
-        stiffness: 100,
+        damping: 25,
+        stiffness: 200,
     });
     const isInView = useInView(ref, { once: true, margin: "0px 0px -50px 0px" });
 

@@ -1,9 +1,9 @@
-# PWA Antigravity - Developer Documentation (v2)
+# PWA GoNuts - Developer Documentation (v2)
 
 > **Status**: Current Source of Truth  
 > **Last Updated**: December 2025
 
-Welcome to the definitive documentation for **PWA Antigravity**, a local-first Progressive Web App for expense tracking. This documentation ("The Bible") details the architecture, data structures, and logic flows that power the application.
+Welcome to the definitive documentation for **PWA GoNuts**, a local-first Progressive Web App for expense tracking. This documentation ("The Bible") details the architecture, data structures, and logic flows that power the application.
 
 ## Table of Contents
 

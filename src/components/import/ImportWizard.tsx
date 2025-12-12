@@ -428,7 +428,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                     <FileJson className="h-10 w-10 mb-4 text-blue-500" />
                                     <h3 className="font-semibold text-lg mb-1">{t("import.type_backup", "System Backup")}</h3>
                                     <p className="text-sm text-muted-foreground">
-                                        {t("import.type_backup_desc", "Restore from an Antigravity backup or migrate from the old Turtlet app.")}
+                                        {t("import.type_backup_desc", "Restore from an GoNuts backup or migrate from the old Turtlet app.")}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -726,7 +726,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                     <div className="bg-white dark:bg-slate-800 p-3 rounded border">
                                         <span className="text-2xl font-bold block capitalize flex items-center gap-2">
                                             {parsedData.source === 'legacy_vue' ? <><Turtle className="w-6 h-6 text-green-500" /> {t("import.turtlet_app", "Turtlet App")}</> :
-                                                parsedData.source === 'antigravity_backup' ? 'Antigravity' : 'CSV Export'}
+                                                parsedData.source === 'antigravity_backup' ? 'GoNuts' : 'CSV Export'}
                                         </span>
                                         <span className="text-xs text-muted-foreground">{t("import.source", "Source")}</span>
                                     </div>
