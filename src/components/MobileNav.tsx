@@ -11,7 +11,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
+import { useSafeLogout } from "@/hooks/useSafeLogout";
+import { SafeLogoutDialog } from "@/components/SafeLogoutDialog";
 import { useOnlineSync } from "@/hooks/useOnlineSync";
 import packageJson from "../../package.json";
 
@@ -28,16 +29,11 @@ interface MobileNavProps {
 
 export function MobileNav({ navigation }: MobileNavProps) {
   const { t } = useTranslation();
-  const { signOut } = useAuth();
+  const { handleLogout, isDialogOpen, setIsDialogOpen, confirmLogout, pendingCount } = useSafeLogout();
   const navigate = useNavigate();
   const location = useLocation();
   const { isOnline } = useOnlineSync();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/auth");
-  };
 
   const handleNavClick = (href: string) => {
     navigate(href);
@@ -102,7 +98,10 @@ export function MobileNav({ navigation }: MobileNavProps) {
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-                onClick={handleSignOut}
+                onClick={() => {
+                  setIsSheetOpen(false);
+                  handleLogout(false);
+                }}
                 aria-label={t("logout")}
               >
                 <LogOut className="h-4 w-4" aria-hidden="true" />
@@ -122,6 +121,13 @@ export function MobileNav({ navigation }: MobileNavProps) {
       </div>
       {/* Placeholder for right side actions if needed, e.g. profile or add */}
       <div className="w-9" aria-hidden="true" />
+
+      <SafeLogoutDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onConfirm={confirmLogout}
+        pendingCount={pendingCount}
+      />
     </header>
   );
 }

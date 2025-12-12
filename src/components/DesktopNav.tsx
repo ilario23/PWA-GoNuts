@@ -1,9 +1,10 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LogOut, Squirrel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
+import { useSafeLogout } from "@/hooks/useSafeLogout";
+import { SafeLogoutDialog } from "@/components/SafeLogoutDialog";
 import { useOnlineSync } from "@/hooks/useOnlineSync";
 import packageJson from "../../package.json";
 
@@ -19,15 +20,9 @@ interface DesktopNavProps {
 
 export function DesktopNav({ navigation }: DesktopNavProps) {
   const { t } = useTranslation();
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
+  const { handleLogout, isDialogOpen, setIsDialogOpen, confirmLogout, pendingCount } = useSafeLogout();
   const location = useLocation();
   const { isOnline } = useOnlineSync();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/auth");
-  };
 
   return (
     <aside
@@ -74,13 +69,20 @@ export function DesktopNav({ navigation }: DesktopNavProps) {
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-          onClick={handleSignOut}
+          onClick={() => handleLogout(false)}
           aria-label={t("logout")}
         >
           <LogOut className="h-4 w-4" aria-hidden="true" />
           {t("logout")}
         </Button>
       </div>
+
+      <SafeLogoutDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onConfirm={confirmLogout}
+        pendingCount={pendingCount}
+      />
     </aside>
   );
 }

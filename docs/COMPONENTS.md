@@ -35,6 +35,7 @@ src/components/
     ├── TransactionList.tsx
     ├── TransactionDialog.tsx
     ├── CategorySelector.tsx
+    ├── SafeLogoutDialog.tsx
     └── ...
 ```
 

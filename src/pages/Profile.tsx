@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useUpdateProfile, useProfile } from "@/hooks/useProfiles";
 import { useAuth } from "@/contexts/AuthProvider";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,22 +14,13 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, LogOut, User2 } from "lucide-react";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { useSafeLogout } from "@/hooks/useSafeLogout";
+import { SafeLogoutDialog } from "@/components/SafeLogoutDialog";
 
 export function ProfilePage() {
     const { t } = useTranslation();
-    const { user, signOut } = useAuth();
-    const navigate = useNavigate();
+    const { user } = useAuth();
+    const { handleLogout, isDialogOpen, setIsDialogOpen, confirmLogout, pendingCount } = useSafeLogout();
     const { updateProfile } = useUpdateProfile();
     const profile = useProfile(user?.id);
     const [fullName, setFullName] = useState(profile?.full_name || "");
@@ -59,10 +49,6 @@ export function ProfilePage() {
         }
     };
 
-    const handleSignOut = async () => {
-        await signOut();
-        navigate("/auth");
-    };
 
     return (
         <div className="space-y-6 pb-10">
@@ -147,38 +133,24 @@ export function ProfilePage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" className="w-full sm:w-auto">
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    {t("logout")}
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                        {t("confirm_logout", { defaultValue: "Confirm Logout" })}
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        {t("confirm_logout_desc", {
-                                            defaultValue: "Are you sure you want to logout? Any pending changes will be synced when you login again."
-                                        })}
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        onClick={handleSignOut}
-                                        className="bg-destructive text-destructive-foreground"
-                                    >
-                                        {t("logout")}
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                        <Button
+                            variant="destructive"
+                            className="w-full sm:w-auto"
+                            onClick={() => handleLogout(true)}
+                        >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            {t("logout")}
+                        </Button>
                     </CardContent>
                 </Card>
             </div>
+
+            <SafeLogoutDialog
+                open={isDialogOpen}
+                onOpenChange={setIsDialogOpen}
+                onConfirm={confirmLogout}
+                pendingCount={pendingCount}
+            />
         </div>
     );
 }

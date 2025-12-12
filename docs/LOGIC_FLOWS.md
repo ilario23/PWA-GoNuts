@@ -72,8 +72,11 @@ This document details the exact sequence of events for critical application proc
 **File**: `src/lib/db.ts` -> `clearLocalCache()`
 
 1.  User clicks Logout.
-2.  `AuthProvider` calls `db.clearLocalCache()`.
-3.  **Dexie Truncate**: Runs `table.clear()` on ALL tables.
+2.  **Safety Check**: `useSafeLogout` checks `pendingCount` from Sync Manager.
+    *   *Pending Changes*: Shows `SafeLogoutDialog` warning user they will lose unsynced data.
+    *   *No Changes*: Proceeds to logout.
+3.  If confirmed, `AuthProvider` calls `db.clearLocalCache()`.
+4.  **Dexie Truncate**: Runs `table.clear()` on ALL tables.
     *   *Note*: This wipes IndexedDB but leaves Supabase untouched.
-4.  `localStorage` cache is cleared.
-5.  Redirect to `/auth`.
+5.  `localStorage` cache is cleared.
+6.  Redirect to `/auth`.

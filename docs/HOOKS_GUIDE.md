@@ -58,6 +58,11 @@ Access user preferences.
 *   **Returns**: `isOnline` boolean.
 *   **Usage**: Show "Offline" badges or disable features that strictly require network (though most shouldn't).
 
+### `useSafeLogout()`
+*   **Returns**: `handleLogout`, `isDialogOpen`, `confirmLogout`, `pendingCount`.
+*   **Purpose**: Prevents data loss by checking for unsynced changes before logging out.
+*   **Usage**: Use this instead of `signOut` from `useAuth` in UI components.
+
 ---
 
 ## Creating New Data Hooks
