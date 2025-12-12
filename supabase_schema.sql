@@ -12,7 +12,7 @@ begin
   new.updated_at := now();
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = public;
 
 
 -- ============================================================================
@@ -69,7 +69,7 @@ begin
       and group_members.removed_at is null
   );
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 -- Helper function: check if user is the creator of the group
 create or replace function is_group_creator(group_id uuid)
@@ -81,25 +81,25 @@ begin
       and groups.created_by = auth.uid()
   );
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 
 -- Groups RLS Policies
 create policy "Members can view their groups"
   on public.groups for select
-  using (is_group_member(id) or created_by = auth.uid());
+  using (is_group_member(id) or created_by = (select auth.uid()));
 
 create policy "Authenticated users can create groups"
   on public.groups for insert
-  with check (auth.uid() = created_by);
+  with check ((select auth.uid()) = created_by);
 
 create policy "Only creator can update group"
   on public.groups for update
-  using (auth.uid() = created_by);
+  using ((select auth.uid()) = created_by);
 
 create policy "Only creator can delete group"
   on public.groups for delete
-  using (auth.uid() = created_by);
+  using ((select auth.uid()) = created_by);
 
 create trigger update_groups_sync_token
   before update on public.groups
@@ -157,21 +157,21 @@ alter table public.categories enable row level security;
 create policy "Users can view their own personal categories"
   on public.categories for select
   using (
-    (group_id is null and auth.uid() = user_id)
+    (group_id is null and (select auth.uid()) = user_id)
     or (group_id is not null and is_group_member(group_id))
   );
 
 create policy "Users can insert personal or group categories"
   on public.categories for insert
   with check (
-    auth.uid() = user_id
+    (select auth.uid()) = user_id
     and (group_id is null or is_group_member(group_id))
   );
 
 create policy "Users can update their own or group categories"
   on public.categories for update
   using (
-    (group_id is null and auth.uid() = user_id)
+    (group_id is null and (select auth.uid()) = user_id)
     or (group_id is not null and is_group_member(group_id))
   );
 
@@ -197,15 +197,15 @@ alter table public.contexts enable row level security;
 
 create policy "Users can view their own contexts"
   on public.contexts for select
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 create policy "Users can insert their own contexts"
   on public.contexts for insert
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 create policy "Users can update their own contexts"
   on public.contexts for update
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 create trigger update_contexts_sync_token
   before update on public.contexts
@@ -242,21 +242,21 @@ alter table public.transactions enable row level security;
 create policy "Users can view their own or group transactions"
   on public.transactions for select
   using (
-    (group_id is null and auth.uid() = user_id)
+    (group_id is null and (select auth.uid()) = user_id)
     or (group_id is not null and is_group_member(group_id))
   );
 
 create policy "Users can insert personal or group transactions"
   on public.transactions for insert
   with check (
-    auth.uid() = user_id
+    (select auth.uid()) = user_id
     and (group_id is null or is_group_member(group_id))
   );
 
 create policy "Users can update their own or group transactions"
   on public.transactions for update
   using (
-    (group_id is null and auth.uid() = user_id)
+    (group_id is null and (select auth.uid()) = user_id)
     or (group_id is not null and is_group_member(group_id))
   );
 
@@ -298,21 +298,21 @@ alter table public.recurring_transactions enable row level security;
 create policy "Users can view their own or group recurring transactions"
   on public.recurring_transactions for select
   using (
-    (group_id is null and auth.uid() = user_id)
+    (group_id is null and (select auth.uid()) = user_id)
     or (group_id is not null and is_group_member(group_id))
   );
 
 create policy "Users can insert personal or group recurring transactions"
   on public.recurring_transactions for insert
   with check (
-    auth.uid() = user_id
+    (select auth.uid()) = user_id
     and (group_id is null or is_group_member(group_id))
   );
 
 create policy "Users can update their own or group recurring transactions"
   on public.recurring_transactions for update
   using (
-    (group_id is null and auth.uid() = user_id)
+    (group_id is null and (select auth.uid()) = user_id)
     or (group_id is not null and is_group_member(group_id))
   );
 
@@ -342,15 +342,15 @@ alter table public.user_settings enable row level security;
 
 create policy "Users can view their own settings"
   on public.user_settings for select
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 create policy "Users can insert their own settings"
   on public.user_settings for insert
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 create policy "Users can update their own settings"
   on public.user_settings for update
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 
 -- 6. Category Budgets Table
@@ -371,15 +371,15 @@ alter table public.category_budgets enable row level security;
 
 create policy "Users can view their own category budgets"
   on public.category_budgets for select
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 create policy "Users can insert their own category budgets"
   on public.category_budgets for insert
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 create policy "Users can update their own category budgets"
   on public.category_budgets for update
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 create trigger update_category_budgets_sync_token
   before update on public.category_budgets
@@ -413,6 +413,18 @@ create index idx_recurring_transactions_group_id on public.recurring_transaction
 create index idx_category_budgets_user_id on public.category_budgets(user_id);
 create index idx_category_budgets_category_id on public.category_budgets(category_id);
 
+-- Unindexed Foreign Keys (Performance Fixes)
+create index idx_categories_parent_id on public.categories(parent_id) where parent_id is not null;
+create index idx_categories_user_id on public.categories(user_id);
+create index idx_contexts_user_id on public.contexts(user_id);
+create index idx_transactions_category_id on public.transactions(category_id);
+create index idx_transactions_context_id on public.transactions(context_id) where context_id is not null;
+create index idx_transactions_user_id on public.transactions(user_id);
+create index idx_recurring_transactions_category_id on public.recurring_transactions(category_id);
+create index idx_recurring_transactions_context_id on public.recurring_transactions(context_id) where context_id is not null;
+create index idx_recurring_transactions_paid_by on public.recurring_transactions(paid_by_member_id) where paid_by_member_id is not null;
+create index idx_recurring_transactions_user_id on public.recurring_transactions(user_id);
+
 
 -- ============================================================================
 -- REALTIME PUBLICATIONS
@@ -443,6 +455,7 @@ begin
   );
 end;
 $$;
+alter function public.check_user_exists(user_id uuid) set search_path = public;
 -- ============================================================================
 -- PUBLIC PROFILES
 -- ============================================================================
@@ -469,12 +482,12 @@ create policy "Public profiles are viewable by everyone"
 -- Users can only insert their own profile
 create policy "Users can insert their own profile" 
   on public.profiles for insert 
-  with check (auth.uid() = id);
+  with check ((select auth.uid()) = id);
 
 -- Users can only update their own profile
 create policy "Users can update own profile" 
   on public.profiles for update 
-  using (auth.uid() = id);
+  using ((select auth.uid()) = id);
 
 -- 4. Triggers for Sync Token
 create trigger update_profiles_sync_token
@@ -495,7 +508,7 @@ begin
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 -- Trigger the function every time a user is created
 drop trigger if exists on_auth_user_created on auth.users;
