@@ -230,7 +230,7 @@ export class ImportProcessor {
                         color: cat.color,
                         type: cat.type,
                         parent_id: cat.parent_id ? categoryIdMap.get(cat.parent_id) : undefined,
-                        active: 1,
+                        active: cat.active !== undefined ? Number(cat.active) : 1,
                         deleted_at: null,
                         pendingSync: 1
                     });

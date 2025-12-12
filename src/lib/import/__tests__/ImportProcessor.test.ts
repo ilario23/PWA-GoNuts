@@ -149,5 +149,40 @@ describe('ImportProcessor', () => {
                 category_id: UNCATEGORIZED_CATEGORY.ID
             }));
         });
+
+        it('should respect active status from imported category', async () => {
+            const data: any = {
+                source: 'standard',
+                categories: [
+                    { id: 'cat-active', name: 'Active Cat', active: 1 },
+                    { id: 'cat-inactive', name: 'Inactive Cat', active: 0 }
+                ],
+                transactions: []
+            };
+
+            // Mock checks
+            (db.categories.where as jest.Mock).mockReturnValue({
+                equals: jest.fn().mockReturnValue({
+                    filter: jest.fn().mockReturnValue({
+                        first: jest.fn().mockResolvedValue(null)
+                    })
+                })
+            });
+            (db.categories.get as jest.Mock).mockResolvedValue(null);
+
+            await processor.process(data);
+
+            // Check active category
+            expect(db.categories.put).toHaveBeenCalledWith(expect.objectContaining({
+                name: 'Active Cat',
+                active: 1
+            }));
+
+            // Check inactive category
+            expect(db.categories.put).toHaveBeenCalledWith(expect.objectContaining({
+                name: 'Inactive Cat',
+                active: 0
+            }));
+        });
     });
 });
