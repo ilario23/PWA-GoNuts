@@ -29,6 +29,7 @@ import { supabase } from "./supabase";
 import { Tables, TablesInsert } from "../types/supabase";
 import { toast } from "sonner";
 import i18n from "@/i18n";
+import { UNCATEGORIZED_CATEGORY } from "./constants";
 
 const TABLES = [
   "profiles",
@@ -420,6 +421,21 @@ export class SyncManager {
       // Special handling for categories: Ensure topological sort (Parents before Children)
       if (tableName === "categories") {
         pendingItems = this.sortCategoriesTopologically(pendingItems as Category[]);
+      }
+
+      // Guard: Filter out transactions/recurring with UNCATEGORIZED_CATEGORY
+      // These cannot sync as the category doesn't exist in remote DB
+      if (tableName === "transactions" || tableName === "recurring_transactions") {
+        const originalCount = pendingItems.length;
+        pendingItems = pendingItems.filter(
+          (item: any) => item.category_id !== UNCATEGORIZED_CATEGORY.ID
+        );
+        const skippedCount = originalCount - pendingItems.length;
+        if (skippedCount > 0) {
+          console.log(
+            `[Sync] Skipping ${skippedCount} ${tableName} with uncategorized category (need user review)`
+          );
+        }
       }
 
       console.log(

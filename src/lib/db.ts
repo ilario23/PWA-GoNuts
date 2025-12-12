@@ -421,6 +421,8 @@ export class AppDatabase extends Dexie {
       profiles: "id, pendingSync",
       import_rules: "id, user_id, match_type, pendingSync, deleted_at",
     });
+
+    // Version 8: Schema maintained for compatibility (needs_review removed)
   }
 
   /**

@@ -31,6 +31,9 @@ import {
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { TransactionDialog, TransactionFormData } from "@/components/TransactionDialog";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { AlertCircle } from "lucide-react";
+import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 
 import { format } from "date-fns";
 
@@ -108,6 +111,7 @@ export function TransactionsPage() {
     type: "all",
     groupFilter: "all" as "all" | "personal" | "group" | string, // 'all', 'personal', 'group', or specific group id
     contextFilter: "all" as "all" | "none" | string, // 'all', 'none' (no context), or specific context id
+    needsReview: false,
   });
 
   const editingTransaction = useMemo(() => {
@@ -185,6 +189,7 @@ export function TransactionsPage() {
       type: "all",
       groupFilter: "all",
       contextFilter: "all",
+      needsReview: false,
     });
   };
 
@@ -264,6 +269,9 @@ export function TransactionsPage() {
             if (transaction.context_id !== filters.contextFilter) return false;
           }
         }
+
+        // Needs Review (uncategorized transactions)
+        if (filters.needsReview && transaction.category_id !== UNCATEGORIZED_CATEGORY.ID) return false;
 
         return true;
       }) || []
@@ -464,6 +472,20 @@ export function TransactionsPage() {
         </div>
       </div>
 
+      {/* Needs Review Toggle - simple style like other filters */}
+      <div className="flex items-center justify-between">
+        <label htmlFor="needs-review" className="text-sm font-medium cursor-pointer">
+          {t("needs_review") || "Needs Review"}
+        </label>
+        <Switch
+          id="needs-review"
+          checked={filters.needsReview}
+          onCheckedChange={(checked) =>
+            setFilters({ ...filters, needsReview: checked })
+          }
+        />
+      </div>
+
       <Button
         variant="outline"
         onClick={handleResetFilters}
@@ -610,7 +632,9 @@ export function TransactionsPage() {
         filters.categoryId !== "all" ||
         filters.type !== "all" ||
         filters.groupFilter !== "all" ||
-        filters.contextFilter !== "all") && (
+        filters.groupFilter !== "all" ||
+        filters.contextFilter !== "all" ||
+        filters.needsReview) && (
           <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
             <span>{t("active_filters")}:</span>
             {filters.text && (
@@ -639,6 +663,12 @@ export function TransactionsPage() {
                   ? t("no_contexts")
                   : contexts.find((c) => c.id === filters.contextFilter)?.name ||
                   filters.contextFilter}
+              </span>
+            )}
+            {filters.needsReview && (
+              <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-md flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {t("needs_review") || "Needs Review"}
               </span>
             )}
             <Button

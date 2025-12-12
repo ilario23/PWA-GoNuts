@@ -27,6 +27,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
 import { useTranslation } from 'react-i18next';
 import { Building2, Command } from 'lucide-react';
+import { syncManager } from '../../lib/sync';
 
 interface ImportWizardProps {
     open: boolean;
@@ -54,6 +55,13 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
     const [error, setError] = useState<string | null>(null);
     const [conflicts, setConflicts] = useState<PotentialMerge[]>([]);
     const [recurringConflicts, setRecurringConflicts] = useState<RecurringConflict[]>([]);
+    const [importResult, setImportResult] = useState<{
+        categories: number;
+        transactions: number;
+        recurring: number;
+        orphanCount: number;
+    } | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     // CSV Specific State
     const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -94,6 +102,8 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         setCsvMapping({ dateColumn: '', amountColumn: '', descriptionColumn: '', hasHeader: true });
         setRevolutIncludeSavings(false);
         setDetectedParser(null);
+        setImportResult(null);
+        setIsSyncing(false);
     };
 
     const handleOpenChange = (newOpen: boolean) => {
@@ -375,16 +385,27 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         const processor = new ImportProcessor(user.id);
 
         try {
-            await processor.process(parsedData, (current, total, msg) => {
+            const result = await processor.process(parsedData, (current, total, msg) => {
                 const pct = Math.round((current / total) * 100);
                 setProgress(pct);
                 setProgressMessage(msg);
             }, mergeMap, skippedRecurringIds);
 
+            setImportResult(result);
             setStep('success');
+
+            // Trigger sync in background
+            setIsSyncing(true);
+            setProgressMessage(t("import.syncing", "Syncing to cloud..."));
+            try {
+                await syncManager.pushOnly();
+            } finally {
+                setIsSyncing(false);
+            }
+
             onImportComplete({
-                transactions: parsedData.transactions.length,
-                categories: parsedData.categories?.length || 0
+                transactions: result.transactions,
+                categories: result.categories
             });
         } catch (err: any) {
             setError(err.message || "Import failed during processing");
@@ -726,7 +747,9 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                     <div className="bg-white dark:bg-slate-800 p-3 rounded border">
                                         <span className="text-2xl font-bold block capitalize flex items-center gap-2">
                                             {parsedData.source === 'legacy_vue' ? <><Turtle className="w-6 h-6 text-green-500" /> {t("import.turtlet_app", "Turtlet App")}</> :
-                                                parsedData.source === 'antigravity_backup' ? 'GoNuts' : 'CSV Export'}
+                                                parsedData.source === 'antigravity_backup' ? 'GoNuts' :
+                                                    parsedData.source === 'intesa_sanpaolo' ? 'Intesa Sanpaolo' :
+                                                        parsedData.source === 'revolut' ? 'Revolut' : 'CSV Export'}
                                         </span>
                                         <span className="text-xs text-muted-foreground">{t("import.source", "Source")}</span>
                                     </div>
@@ -739,7 +762,8 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                 </div>
                             )}
 
-                            {parsedData.source === 'generic_csv' && (
+
+                            {['generic_csv', 'intesa_sanpaolo', 'revolut'].includes(parsedData.source) && (
                                 <div className="text-sm p-3 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded border border-blue-100 dark:border-blue-900">
                                     <p><strong>{t("import.csv_note", "Note")}:</strong> {t("import.csv_note_desc", "Transactions will be set to 'Uncategorized' initially. Use the rules engine in the next step to categorize them.")}</p>
                                 </div>
@@ -916,9 +940,67 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                 <CheckCircle2 className="h-8 w-8" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold">Import Complete</h3>
-                                <p className="text-muted-foreground">Your data has been successfully imported.</p>
+                                <h3 className="text-lg font-semibold">{t("import.complete", "Import Complete")}</h3>
+                                <p className="text-muted-foreground">{t("import.complete_desc", "Your data has been successfully imported.")}</p>
                             </div>
+
+                            {/* Import Summary */}
+                            {importResult && (
+                                <div className="w-full max-w-sm space-y-3 mt-4">
+                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                        <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg">
+                                            <span className="text-xl font-bold block">{importResult.transactions}</span>
+                                            <span className="text-xs text-muted-foreground">{t("transactions")}</span>
+                                        </div>
+                                        <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg">
+                                            <span className="text-xl font-bold block">{importResult.categories}</span>
+                                            <span className="text-xs text-muted-foreground">{t("categories")}</span>
+                                        </div>
+                                        <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg">
+                                            <span className="text-xl font-bold block">{importResult.recurring}</span>
+                                            <span className="text-xs text-muted-foreground">{t("recurring")}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Orphan Warning */}
+                                    {importResult.orphanCount > 0 && (
+                                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 rounded-lg flex items-start gap-2 text-left">
+                                            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                                            <div className="text-sm">
+                                                <p className="font-medium text-amber-800 dark:text-amber-200">
+                                                    {t("import.orphan_warning", "{{count}} transactions need review", { count: importResult.orphanCount })}
+                                                </p>
+                                                <p className="text-amber-700 dark:text-amber-300 text-xs mt-1">
+                                                    {t("import.orphan_warning_desc", "These transactions have missing categories and won't sync until categorized. Use the 'Needs Review' filter to find them.")}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Sync Status */}
+                                    {isSyncing && (
+                                        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>{t("import.syncing", "Syncing to cloud...")}</span>
+                                        </div>
+                                    )}
+                                    {!isSyncing && importResult.orphanCount === 0 && (
+                                        <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400">
+                                            <CheckCircle2 className="h-4 w-4" />
+                                            <span>{t("import.synced", "All data synced")}</span>
+                                        </div>
+                                    )}
+                                    {!isSyncing && importResult.orphanCount > 0 && (
+                                        <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                                            <RefreshCw className="h-4 w-4" />
+                                            <span>{t("import.partial_sync", "{{synced}} synced, {{pending}} pending", {
+                                                synced: importResult.transactions - importResult.orphanCount,
+                                                pending: importResult.orphanCount
+                                            })}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

@@ -7,6 +7,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { AVAILABLE_ICONS } from "../icons";
 import { findBestMatch } from "../stringUtils";
+import { UNCATEGORIZED_CATEGORY } from "../constants";
 
 // Helpers
 const VALID_ICON_NAMES = new Set(AVAILABLE_ICONS.map(i => i.name));
@@ -36,6 +37,7 @@ export class ImportProcessor {
         categories: number;
         transactions: number;
         recurring: number;
+        orphanCount: number;
     }> {
         if (data.source === 'legacy_vue') {
             return this.processVueImport(data, onProgress, mergedCategoryIds, skippedRecurringIds);
@@ -161,6 +163,7 @@ export class ImportProcessor {
         let importedCategories = 0;
         let importedTransactions = 0;
         let importedRecurring = 0;
+        let orphanCount = 0;
 
         const categoryIdMap = new Map<string, string>();
         const contextIdMap = new Map<string, string>();
@@ -205,7 +208,7 @@ export class ImportProcessor {
                 if (categoryIdMap.has(cat.id)) continue;
                 const existing = await db.categories
                     .where('user_id').equals(this.userId)
-                    .filter(c => c.name.toLowerCase() === cat.name.toLowerCase())
+                    .filter(c => !c.deleted_at && c.name.toLowerCase() === cat.name.toLowerCase())
                     .first();
 
                 if (existing) {
@@ -258,7 +261,8 @@ export class ImportProcessor {
 
                 let finalCatId = tx.category_id ? categoryIdMap.get(tx.category_id) : undefined;
                 if (!finalCatId) {
-                    finalCatId = await this.ensureFallbackCategory();
+                    finalCatId = UNCATEGORIZED_CATEGORY.ID;
+                    orphanCount++;
                 }
 
                 const finalCtxId = tx.context_id ? contextIdMap.get(tx.context_id) : undefined;
@@ -306,7 +310,10 @@ export class ImportProcessor {
 
                 // ... recurring logic ...
                 const mappedId = rec.category_id ? categoryIdMap.get(rec.category_id) : undefined;
-                const finalCatId = mappedId || await this.ensureFallbackCategory();
+                let finalCatId = mappedId;
+                if (!finalCatId) {
+                    finalCatId = UNCATEGORIZED_CATEGORY.ID;
+                }
                 const finalCtxId = rec.context_id ? contextIdMap.get(rec.context_id) : undefined;
 
                 await db.recurring_transactions.put({
@@ -358,7 +365,7 @@ export class ImportProcessor {
             }
         }
 
-        return { categories: importedCategories, transactions: importedTransactions, recurring: importedRecurring };
+        return { categories: importedCategories, transactions: importedTransactions, recurring: importedRecurring, orphanCount };
     }
 
     // --- VUE MIGRATION STRATEGY ---
@@ -377,6 +384,7 @@ export class ImportProcessor {
         let importedCategories = 0;
         let importedTransactions = 0;
         let importedRecurring = 0;
+        let orphanCount = 0;
 
         const categoryIdMap = new Map<string, string>();
         const vueCategoriesMap = new Map<string, any>();
@@ -396,13 +404,29 @@ export class ImportProcessor {
         const resolveCategoryType = (catId: string): "expense" | "income" | "investment" => {
             let currentId: string | undefined = catId;
             let depth = 0;
+            // console.log(`[ImportDebug] Resolving type for ${catId}`);
             while (currentId && depth < 10) {
-                if (ROOT_CATEGORY_TYPES[currentId]) return ROOT_CATEGORY_TYPES[currentId];
+                // Check if we hit a root category defined in the map
+                if (ROOT_CATEGORY_TYPES[currentId]) {
+                    // console.log(`[ImportDebug] Hit root ${currentId} -> ${ROOT_CATEGORY_TYPES[currentId]}`);
+                    return ROOT_CATEGORY_TYPES[currentId];
+                }
+
+                // Get the category object from the map
                 const cat = vueCategoriesMap.get(currentId);
-                if (!cat) break;
-                currentId = cat.parentCategoryId;
+                if (!cat) {
+                    // console.log(`[ImportDebug] Category ${currentId} not found in map`);
+                    break;
+                }
+
+                // Traverse up: trying common property names for parent ID
+                // The legacy app likely used 'parentCategoryId' but we check others just in case
+                currentId = cat.parentCategoryId || cat.parentId || cat.parent_id;
+                // console.log(`[ImportDebug] Climbing to parent: ${currentId}`);
                 depth++;
             }
+            // Default to expense if we can't determine the type
+            // console.log(`[ImportDebug] Defaulting to expense`);
             return "expense";
         };
 
@@ -419,7 +443,7 @@ export class ImportProcessor {
             // Check exact match (Auto-merge) - standard safety check
             const existing = await db.categories
                 .where('user_id').equals(this.userId)
-                .filter(c => c.name.toLowerCase() === vueCat.title.toLowerCase())
+                .filter(c => !c.deleted_at && c.name.toLowerCase() === vueCat.title.toLowerCase())
                 .first();
 
             if (existing) {
@@ -432,8 +456,9 @@ export class ImportProcessor {
             categoryIdMap.set(vueCat.id, newId);
 
             let newParentId: string | undefined = undefined;
-            if (vueCat.parentCategoryId && !ROOT_IDS.has(vueCat.parentCategoryId)) {
-                newParentId = categoryIdMap.get(vueCat.parentCategoryId);
+            const parentId = vueCat.parentCategoryId || vueCat.parentId || vueCat.parent_id;
+            if (parentId && !ROOT_IDS.has(parentId)) {
+                newParentId = categoryIdMap.get(parentId);
             }
 
             await db.categories.put({
@@ -468,13 +493,14 @@ export class ImportProcessor {
 
         // Transactions
         for (const tx of data.transactions) {
-            onProgress?.(++currentStep, totalSteps, 'Migrating Transactions...');
+
 
             onProgress?.(++currentStep, totalSteps, 'Importing Transactions...');
 
             let finalCatId = tx.category_id ? categoryIdMap.get(tx.category_id) : undefined;
             if (!finalCatId) {
-                finalCatId = await this.ensureFallbackCategory();
+                finalCatId = UNCATEGORIZED_CATEGORY.ID;
+                orphanCount++;
             }
 
             const finalCtxId = tx.context_id ? undefined : undefined; // Vue parser likely doesn't have contexts/IDs easily mapped or I need to check where contextIdMap is defined. 
@@ -499,12 +525,15 @@ export class ImportProcessor {
                 }
             }
 
+            // Determine type from hierarchy if not present
+            const type = tx.type || resolveCategoryType(tx.category_id || "");
+
             await db.transactions.put({
                 id: uuidv4(),
                 user_id: this.userId,
                 category_id: finalCatId,
                 context_id: finalCtxId,
-                type: tx.type || 'expense',
+                type: type,
                 amount: finalAmount,
                 date: tx.date,
                 year_month: tx.date.substring(0, 7),
@@ -534,16 +563,17 @@ export class ImportProcessor {
                 let type: "expense" | "income" | "investment" = "expense";
 
                 if (vueRec.categoryId) {
+                    // Determine type from hierarchy
+                    type = resolveCategoryType(vueRec.categoryId);
+
                     const mappedId = categoryIdMap.get(vueRec.categoryId);
                     if (mappedId) {
                         finalCatId = mappedId;
-                        const cat = await db.categories.get(mappedId);
-                        if (cat) type = cat.type;
                     } else {
-                        finalCatId = await this.ensureFallbackCategory();
+                        finalCatId = UNCATEGORIZED_CATEGORY.ID;
                     }
                 } else {
-                    finalCatId = await this.ensureFallbackCategory();
+                    finalCatId = UNCATEGORIZED_CATEGORY.ID;
                 }
 
                 await db.recurring_transactions.put({
@@ -563,38 +593,10 @@ export class ImportProcessor {
             }
         }
 
-        return { categories: importedCategories, transactions: importedTransactions, recurring: importedRecurring };
+        return { categories: importedCategories, transactions: importedTransactions, recurring: importedRecurring, orphanCount };
     }
 
     // --- HELPERS ---
-    /**
-     * Creates or retrieves the local-only "Uncategorized" category.
-     * 
-     * This category:
-     * - Uses a reserved UUID (UNCATEGORIZED_CATEGORY.ID)
-     * - Has pendingSync: 0 (never syncs to Supabase)
-     * - Transactions referencing it will fail FK constraint on sync
-     * - This forces users to categorize properly before syncing
-     */
-    private async ensureFallbackCategory(): Promise<string> {
-        const { UNCATEGORIZED_CATEGORY } = await import('../constants');
+    // Removed ensureFallbackCategory as we now use flags
 
-        // Check if already exists (by reserved ID, not name)
-        const existing = await db.categories.get(UNCATEGORIZED_CATEGORY.ID);
-        if (existing) return existing.id;
-
-        // Create local-only category
-        await db.categories.put({
-            id: UNCATEGORIZED_CATEGORY.ID,
-            user_id: this.userId,
-            name: UNCATEGORIZED_CATEGORY.NAME,
-            icon: UNCATEGORIZED_CATEGORY.ICON,
-            color: UNCATEGORIZED_CATEGORY.COLOR,
-            type: "expense",
-            active: 1,
-            deleted_at: null,
-            pendingSync: 0  // NEVER sync - local only
-        });
-        return UNCATEGORIZED_CATEGORY.ID;
-    }
 }

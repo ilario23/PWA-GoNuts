@@ -140,14 +140,12 @@ describe('ImportProcessor', () => {
 
             await processor.process(data);
 
-            // Should create the local-only Uncategorized category
-            expect(db.categories.put).toHaveBeenCalledWith(expect.objectContaining({
-                id: UNCATEGORIZED_CATEGORY.ID,
-                name: UNCATEGORIZED_CATEGORY.NAME,
-                pendingSync: 0  // Local-only, never syncs
+            // Should NOT create the local-only Uncategorized category (logic removed)
+            expect(db.categories.put).not.toHaveBeenCalledWith(expect.objectContaining({
+                id: UNCATEGORIZED_CATEGORY.ID
             }));
 
-            // Transaction should use the reserved category ID
+            // Transaction should use the reserved category ID (category check is now based on category_id)
             expect(db.transactions.put).toHaveBeenCalledWith(expect.objectContaining({
                 description: 'Mystery',
                 category_id: UNCATEGORIZED_CATEGORY.ID

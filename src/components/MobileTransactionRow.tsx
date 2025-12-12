@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { Transaction, Category, Context, Group } from "@/lib/db";
 import { getIconComponent } from "@/lib/icons";
-import { Tag, Trash2, Edit, Users } from "lucide-react";
+import { Tag, Trash2, Edit, Users, AlertCircle } from "lucide-react";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { useState } from "react";
 import { SyncStatusBadge } from "./SyncStatus";
+import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 
 interface MobileTransactionRowProps {
   transaction: Transaction;
@@ -138,11 +139,16 @@ export function MobileTransactionRow({
 
         {/* Main Content */}
         <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <div className="font-medium text-sm truncate">
+          <div className="font-medium text-sm truncate flex items-center gap-1">
             {transaction.description || t("transaction")}
+            {transaction.category_id === UNCATEGORIZED_CATEGORY.ID && (
+              <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
+            )}
           </div>
           <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-            <span className="truncate">{category?.name || "-"}</span>
+            <span className={`truncate ${!category && transaction.category_id === UNCATEGORIZED_CATEGORY.ID ? "text-amber-500" : ""}`}>
+              {category?.name || (transaction.category_id === UNCATEGORIZED_CATEGORY.ID ? (t("needs_review") || "Needs Review") : "-")}
+            </span>
             {(group || (context && !hideContext)) && (
               <div className="flex items-center gap-1 flex-wrap">
                 {group && (

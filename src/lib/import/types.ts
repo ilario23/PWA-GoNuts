@@ -1,4 +1,4 @@
-export type ImportSource = 'antigravity_backup' | 'legacy_vue' | 'generic_csv';
+export type ImportSource = 'antigravity_backup' | 'legacy_vue' | 'generic_csv' | 'intesa_sanpaolo' | 'revolut';
 
 
 export interface ParsedTransaction {
