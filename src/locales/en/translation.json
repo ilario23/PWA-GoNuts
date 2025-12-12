@@ -629,5 +629,33 @@
     "context_name_required": "Context name is required",
     "context_name_max": "Context name must be less than 5 characters",
     "context_active_check": "Active status must be boolean"
+  },
+  "welcome": {
+    "title": "Welcome Tour",
+    "description": "Get to know the app features",
+    "skip": "Skip",
+    "next": "Next",
+    "previous": "Previous",
+    "finish": "Get Started!",
+    "review_tutorial": "Review Tutorial",
+    "review_tutorial_desc": "Watch the welcome tour again",
+    "swipe_hint": "Swipe to navigate",
+    "dont_show_again": "Don't show again",
+    "step_welcome_title": "Welcome to GoNuts!",
+    "step_welcome_desc": "Your personal finance companion. Track expenses, manage budgets, and achieve your financial goals with ease.",
+    "step_dashboard_title": "Dashboard",
+    "step_dashboard_desc": "Get a quick overview of your finances with interactive charts and real-time balance tracking.",
+    "step_transactions_title": "Track Transactions",
+    "step_transactions_desc": "Easily add income, expenses, and investments. Use the quick-add button for fast entry.",
+    "step_categories_title": "Organize with Categories",
+    "step_categories_desc": "Create hierarchical categories to organize your spending. Parent and child categories for detailed tracking.",
+    "step_contexts_title": "Add Context",
+    "step_contexts_desc": "Tag transactions with contexts like Vacation or Work to analyze spending by life events.",
+    "step_groups_title": "Share Expenses",
+    "step_groups_desc": "Create groups to split expenses with friends or family. See who owes whom at a glance.",
+    "step_statistics_title": "Detailed Analytics",
+    "step_statistics_desc": "Explore monthly and yearly statistics with beautiful charts and budget tracking.",
+    "step_offline_title": "Works Offline",
+    "step_offline_desc": "Use the app even without internet. Your data syncs automatically when you're back online."
   }
 }

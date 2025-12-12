@@ -48,6 +48,7 @@ import {
   Database,
   Wrench,
   Check,
+  Compass,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
@@ -57,6 +58,7 @@ import { ImportWizard } from "@/components/import/ImportWizard";
 import { ImportRulesManager } from "@/components/settings/ImportRulesManager";
 import { cn } from "@/lib/utils";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
+import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
 
 export function SettingsPage() {
   const { settings, updateSettings } = useSettings();
@@ -71,6 +73,9 @@ export function SettingsPage() {
   const [clearingCache, setClearingCache] = useState(false);
   const [exportingData, setExportingData] = useState(false);
   const [isImportWizardOpen, setIsImportWizardOpen] = useState(false);
+
+  // Welcome wizard hook for "Review Tutorial" button
+  const welcomeWizard = useWelcomeWizard();
 
   React.useEffect(() => {
     setMounted(true);
@@ -307,6 +312,24 @@ export function SettingsPage() {
               <p className="text-xs text-muted-foreground mt-3 text-center">
                 {t((settings.accentColor || "slate"))}
               </p>
+            </CardContent>
+          </Card>
+
+          {/* Review Tutorial */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t("welcome.review_tutorial")}</CardTitle>
+              <CardDescription>{t("welcome.review_tutorial_desc")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                className="w-full h-12 gap-3 touch-manipulation"
+                onClick={() => welcomeWizard.reset()}
+              >
+                <Compass className="h-5 w-5 text-primary" />
+                {t("welcome.review_tutorial")}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

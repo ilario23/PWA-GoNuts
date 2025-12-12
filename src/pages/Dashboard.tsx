@@ -9,7 +9,7 @@ import {
   TransactionDialog,
   TransactionFormData,
 } from "@/components/TransactionDialog";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useCategories } from "@/hooks/useCategories";
 import { FlipCard, type SwipeDirection } from "@/components/ui/flip-card";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,18 @@ export function Dashboard() {
     [transactions]
   );
 
+  // Detect desktop breakpoint for conditional flip behavior
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 768px)").matches : false
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const handleChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
   // Mobile stats carousel state
   const [statsRotation, setStatsRotation] = useState(0);
   const [chartRotation, setChartRotation] = useState(0);
@@ -106,15 +118,19 @@ export function Dashboard() {
     : chartFaceAIndex;
 
   // Handle chart flip with direction (circular navigation)
+  // Supports both horizontal (left/right) and vertical (up/down) swipes
+  // Up and Left move forward, Down and Right move backward
   const handleChartSwipe = useCallback((direction: SwipeDirection) => {
-    const newRotation = direction === "left" ? chartRotation - 180 : chartRotation + 180;
+    // Map vertical directions to rotation: up = left-like (forward), down = right-like (backward)
+    const isForward = direction === "left" || direction === "up";
+    const newRotation = isForward ? chartRotation - 180 : chartRotation + 180;
     setChartRotation(newRotation);
 
-    const nextIndex = direction === "right"
+    const nextIndex = !isForward
       ? (currentChartVisibleIndex - 1 + chartViewsCount) % chartViewsCount
       : (currentChartVisibleIndex + 1) % chartViewsCount;
 
-    const afterNextIndex = direction === "right"
+    const afterNextIndex = !isForward
       ? (nextIndex - 1 + chartViewsCount) % chartViewsCount
       : (nextIndex + 1) % chartViewsCount;
 
@@ -236,11 +252,14 @@ export function Dashboard() {
       {/* Chart and Summary Cards Layout */}
       <div className="flex-1 min-h-0 grid gap-4 md:grid-cols-[1fr_auto]">
         {/* Cumulative Expenses Chart - FlipCard with 3 states */}
+        {/* Desktop: vertical swipe + vertical flip (rotateX), Mobile: horizontal swipe + horizontal flip (rotateY) */}
         <FlipCard
           className="h-full md:h-[50vh] md:min-h-[400px]"
           isFlipped={isChartFlipped}
           onSwipe={handleChartSwipe}
           rotation={chartRotation}
+          swipeAxis={isDesktop ? "vertical" : "horizontal"}
+          flipDirection={isDesktop ? "top" : "right"}
           disableGlobalClick
           frontContent={<DashboardChartCard index={chartFaceAIndex} {...chartCardProps} />}
           backContent={<DashboardChartCard index={chartFaceBIndex} {...chartCardProps} />}

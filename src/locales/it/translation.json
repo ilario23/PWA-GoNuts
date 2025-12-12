@@ -629,5 +629,33 @@
     "context_name_required": "Il nome del contesto è obbligatorio",
     "context_name_max": "Il nome del contesto deve essere inferiore a 50 caratteri",
     "context_active_check": "Lo stato attivo deve essere booleano"
+  },
+  "welcome": {
+    "title": "Tour di Benvenuto",
+    "description": "Scopri le funzionalità dell'app",
+    "skip": "Salta",
+    "next": "Avanti",
+    "previous": "Indietro",
+    "finish": "Inizia!",
+    "review_tutorial": "Rivedi Tutorial",
+    "review_tutorial_desc": "Guarda di nuovo il tour di benvenuto",
+    "swipe_hint": "Scorri per navigare",
+    "dont_show_again": "Non mostrare più",
+    "step_welcome_title": "Benvenuto in GoNuts!",
+    "step_welcome_desc": "Il tuo compagno per le finanze personali. Traccia le spese, gestisci i budget e raggiungi i tuoi obiettivi finanziari con facilità.",
+    "step_dashboard_title": "Dashboard",
+    "step_dashboard_desc": "Ottieni una panoramica rapida delle tue finanze con grafici interattivi e monitoraggio del saldo in tempo reale.",
+    "step_transactions_title": "Registra Transazioni",
+    "step_transactions_desc": "Aggiungi facilmente entrate, spese e investimenti. Usa il pulsante di aggiunta rapida per inserimenti veloci.",
+    "step_categories_title": "Organizza con Categorie",
+    "step_categories_desc": "Crea categorie gerarchiche per organizzare le tue spese. Categorie padre e figlio per un tracciamento dettagliato.",
+    "step_contexts_title": "Aggiungi Contesto",
+    "step_contexts_desc": "Tagga le transazioni con contesti come Vacanza o Lavoro per analizzare le spese per eventi di vita.",
+    "step_groups_title": "Condividi le Spese",
+    "step_groups_desc": "Crea gruppi per dividere le spese con amici o familiari. Vedi a colpo d'occhio chi deve a chi.",
+    "step_statistics_title": "Statistiche Dettagliate",
+    "step_statistics_desc": "Esplora statistiche mensili e annuali con grafici eleganti e monitoraggio del budget.",
+    "step_offline_title": "Funziona Offline",
+    "step_offline_desc": "Usa l'app anche senza internet. I tuoi dati si sincronizzano automaticamente quando torni online."
   }
 }

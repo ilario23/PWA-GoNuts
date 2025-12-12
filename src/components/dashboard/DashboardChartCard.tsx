@@ -58,7 +58,7 @@ export function DashboardChartCard({
     const now = new Date();
 
     const dotIndicators = (
-        <div className="flex gap-1.5 ml-auto">
+        <div className="flex md:flex-col gap-1.5 ml-auto">
             {Array.from({ length: chartViewsCount }).map((_, i) => (
                 <div
                     key={i}

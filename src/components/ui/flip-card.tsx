@@ -3,7 +3,8 @@ import { motion, type Transition } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 type FlipDirection = "top" | "bottom" | "left" | "right";
-type SwipeDirection = "left" | "right";
+type SwipeDirection = "left" | "right" | "up" | "down";
+type SwipeAxis = "horizontal" | "vertical";
 
 interface FlipCardProps {
   /** Content for the front face */
@@ -20,6 +21,8 @@ interface FlipCardProps {
   rotation?: number;
   /** Direction of the flip animation - can be changed dynamically */
   flipDirection?: FlipDirection;
+  /** Axis for swipe detection: "horizontal" (left/right) or "vertical" (up/down) */
+  swipeAxis?: SwipeAxis;
   /** Framer Motion transition configuration */
   transition?: Transition;
   /** Additional classes for the container */
@@ -54,6 +57,7 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
       onSwipe,
       rotation,
       flipDirection = "right",
+      swipeAxis = "horizontal",
       transition = { type: "spring", stiffness: 260, damping: 20 },
       className,
       frontClassName,
@@ -73,24 +77,44 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
       info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
     ) => {
       const swipeThreshold = 50;
-      // Only flip if horizontal movement is greater than vertical movement (to avoid flipping on scroll)
-      // and if the horizontal movement exceeds the threshold
-      if (
-        Math.abs(info.offset.x) > Math.abs(info.offset.y) &&
-        Math.abs(info.offset.x) > swipeThreshold
-      ) {
-        // Determine swipe direction: negative x = swipe left, positive x = swipe right
-        const swipeDir: SwipeDirection = info.offset.x < 0 ? "left" : "right";
 
-        if (onSwipe) {
-          // Use the new directional callback if provided
-          onSwipe(swipeDir);
-        } else if (onFlip) {
-          // Fall back to simple flip for backwards compatibility
-          onFlip();
+      if (swipeAxis === "vertical") {
+        // Vertical swipe detection: only flip if vertical movement is greater than horizontal
+        if (
+          Math.abs(info.offset.y) > Math.abs(info.offset.x) &&
+          Math.abs(info.offset.y) > swipeThreshold
+        ) {
+          // Determine swipe direction: negative y = swipe up, positive y = swipe down
+          const swipeDir: SwipeDirection = info.offset.y < 0 ? "up" : "down";
+
+          if (onSwipe) {
+            onSwipe(swipeDir);
+          } else if (onFlip) {
+            onFlip();
+          }
+        }
+      } else {
+        // Horizontal swipe detection (default): only flip if horizontal movement is greater than vertical
+        if (
+          Math.abs(info.offset.x) > Math.abs(info.offset.y) &&
+          Math.abs(info.offset.x) > swipeThreshold
+        ) {
+          // Determine swipe direction: negative x = swipe left, positive x = swipe right
+          const swipeDir: SwipeDirection = info.offset.x < 0 ? "left" : "right";
+
+          if (onSwipe) {
+            onSwipe(swipeDir);
+          } else if (onFlip) {
+            onFlip();
+          }
         }
       }
     };
+
+    // Touch action based on swipe axis
+    // For horizontal swipes: allow vertical scrolling (pan-y)
+    // For vertical swipes: allow horizontal scrolling (pan-x)
+    const touchAction = swipeAxis === "vertical" ? "pan-x" : "pan-y";
 
     return (
       <motion.div
@@ -118,7 +142,7 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
         style={{
           perspective: 1000,
           transformStyle: "preserve-3d",
-          touchAction: "pan-y", // Allow vertical scrolling, capture horizontal swipes
+          touchAction, // Allow scrolling on the perpendicular axis, capture swipes on the configured axis
         }}
         whileTap={isClickable ? { scale: 0.98 } : undefined}
         onPanEnd={handlePanEnd}
@@ -166,4 +190,4 @@ const FlipCard = React.forwardRef<HTMLDivElement, FlipCardProps>(
 FlipCard.displayName = "FlipCard";
 
 export { FlipCard };
-export type { FlipCardProps, FlipDirection, SwipeDirection };
+export type { FlipCardProps, FlipDirection, SwipeDirection, SwipeAxis };

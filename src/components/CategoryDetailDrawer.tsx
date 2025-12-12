@@ -246,31 +246,33 @@ export function CategoryDetailDrawer({
         </div>
       </div>
 
-      {/* Actions Footer */}
-      <div className="pt-4 mt-6 border-t flex gap-2">
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={() => {
-            onEdit(category);
-            onOpenChange(false);
-          }}
-        >
-          <Edit className="h-4 w-4 mr-2" />
-          {t("edit")}
-        </Button>
-        <Button
-          variant="destructive"
-          className="flex-1"
-          onClick={() => {
-            onDelete(category.id);
-            onOpenChange(false);
-          }}
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          {t("delete")}
-        </Button>
-      </div>
+      {/* Actions Footer - Hidden on mobile since swipe gestures are used */}
+      {!isMobile && (
+        <div className="pt-4 mt-6 border-t flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => {
+              onEdit(category);
+              onOpenChange(false);
+            }}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            {t("edit")}
+          </Button>
+          <Button
+            variant="destructive"
+            className="flex-1"
+            onClick={() => {
+              onDelete(category.id);
+              onOpenChange(false);
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {t("delete")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 

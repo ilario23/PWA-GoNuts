@@ -23,6 +23,8 @@ import { ContentLoader } from "@/components/ui/content-loader";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { WifiOff, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { WelcomeWizard } from "@/components/welcome/WelcomeWizard";
+import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
 
 // Lazy-loaded pages for better initial bundle size
 const Dashboard = lazy(() =>
@@ -112,6 +114,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useAutoGenerate(); // Generate recurring transactions on app load
   useBudgetNotifications(); // Monitor budget and show warnings
 
+  // Welcome wizard state
+  const welcomeWizard = useWelcomeWizard();
+
   // Handle initial sync and visibility changes
   useEffect(() => {
     // Initial sync
@@ -148,7 +153,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <WelcomeWizard
+        open={welcomeWizard.shouldShow}
+        onComplete={welcomeWizard.complete}
+        onSkip={welcomeWizard.skip}
+      />
+    </>
+  );
 }
 
 /**
