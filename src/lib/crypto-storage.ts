@@ -130,3 +130,70 @@ function base64ToUint8Array(base64: string): Uint8Array {
     }
     return bytes;
 }
+
+// ============================================================================
+// WRAPPED KEY STORAGE
+// ============================================================================
+
+const WRAPPED_KEY_STORAGE_KEY = "expense_tracker_wrapped_keys";
+
+/**
+ * Get all stored wrapped keys from localStorage.
+ */
+function getAllWrappedKeys(): Record<string, string> {
+    try {
+        const stored = localStorage.getItem(WRAPPED_KEY_STORAGE_KEY);
+        return stored ? JSON.parse(stored) : {};
+    } catch {
+        return {};
+    }
+}
+
+/**
+ * Save all wrapped keys to localStorage.
+ */
+function saveWrappedKeys(keys: Record<string, string>): void {
+    localStorage.setItem(WRAPPED_KEY_STORAGE_KEY, JSON.stringify(keys));
+}
+
+/**
+ * Store a wrapped encryption key for a user.
+ * The key is indexed by email hash for privacy.
+ *
+ * @param email - User's email address
+ * @param wrappedKey - The wrapped (encrypted) key to store
+ */
+export async function storeWrappedKey(email: string, wrappedKey: string): Promise<void> {
+    const emailHash = hashEmail(email.toLowerCase());
+    const keys = getAllWrappedKeys();
+    keys[emailHash] = wrappedKey;
+    saveWrappedKeys(keys);
+    console.log("[CryptoStorage] Stored wrapped key for user");
+}
+
+/**
+ * Retrieve a wrapped encryption key for a user.
+ *
+ * @param email - User's email address
+ * @returns The wrapped key, or null if not found
+ */
+export async function getWrappedKey(email: string): Promise<string | null> {
+    const emailHash = hashEmail(email.toLowerCase());
+    const keys = getAllWrappedKeys();
+    return keys[emailHash] || null;
+}
+
+/**
+ * Clear the wrapped encryption key for a user.
+ * Call this on logout to remove persisted key.
+ *
+ * @param email - User's email address
+ */
+export async function clearWrappedKey(email: string): Promise<void> {
+    const emailHash = hashEmail(email.toLowerCase());
+    const keys = getAllWrappedKeys();
+    delete keys[emailHash];
+    saveWrappedKeys(keys);
+    console.log("[CryptoStorage] Cleared wrapped key for user");
+}
+

@@ -14,6 +14,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Squirrel,
+    Plus,
 } from "lucide-react";
 import {
     Dialog,
@@ -149,6 +150,7 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
     const { updateSettings } = useSettings();
     const [currentStep, setCurrentStep] = useState(0);
     const [direction, setDirection] = useState<Direction>(1);
+    const [demoTransactions, setDemoTransactions] = useState(demoData.transactions);
     const constraintsRef = useRef<HTMLDivElement>(null);
 
     const isFirstStep = currentStep === 0;
@@ -160,6 +162,7 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
         if (open) {
             setCurrentStep(0);
             setDirection(1);
+            setDemoTransactions(demoData.transactions);
         }
     }, [open]);
 
@@ -214,6 +217,18 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
         [isFirstStep, isLastStep]
     );
 
+    const handleAddDemoTransaction = () => {
+        const newTx = {
+            id: Math.random().toString(),
+            description: [t("demo.coffee", "Coffee"), t("demo.taxi", "Taxi"), t("demo.snack", "Snack"), t("demo.gift", "Gift")][Math.floor(Math.random() * 4)],
+            amount: Number((Math.random() * 50 + 5).toFixed(2)),
+            type: 'expense' as const,
+            category_id: demoData.categories[Math.floor(Math.random() * demoData.categories.length)].id
+        };
+        setDemoTransactions(prev => [newTx, ...prev]);
+        // fireConfetti(); - Removed per user request (too much)
+    };
+
     const currentStepData = STEPS[currentStep];
 
     // Slide animation variants - fast transitions
@@ -261,18 +276,38 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
 
             case "transactions":
                 return (
-                    <div className="bg-muted/50 rounded-xl p-3 space-y-2">
-                        {demoData.transactions.slice(1, 4).map((tx) => (
-                            <div key={tx.id} className="flex justify-between items-center text-sm">
-                                <span className="truncate max-w-[180px]">{tx.description}</span>
-                                <span className={cn(
-                                    "font-medium",
-                                    tx.type === "expense" ? "text-destructive" : "text-green-500"
-                                )}>
-                                    {tx.type === "expense" ? "-" : "+"}{demoData.settings.currency}{tx.amount.toFixed(2)}
-                                </span>
-                            </div>
-                        ))}
+                    <div className="bg-muted/50 rounded-xl p-3 space-y-2 max-h-[200px] overflow-hidden flex flex-col">
+                        <div className="space-y-2 overflow-y-auto pr-1">
+                            <AnimatePresence initial={false} mode="popLayout">
+                                {demoTransactions.slice(0, 4).map((tx) => (
+                                    <motion.div
+                                        key={tx.id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.8, y: -20 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.8 }}
+                                        className="flex justify-between items-center text-sm bg-background/50 p-2 rounded-lg"
+                                    >
+                                        <span className="truncate max-w-[150px]">{tx.description}</span>
+                                        <span className={cn(
+                                            "font-medium",
+                                            tx.type === "expense" ? "text-destructive" : "text-green-500"
+                                        )}>
+                                            {tx.type === "expense" ? "-" : "+"}{demoData.settings.currency}{tx.amount.toFixed(2)}
+                                        </span>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            className="w-full mt-2 text-xs"
+                            onClick={handleAddDemoTransaction}
+                        >
+                            <Plus className="w-3 h-3 mr-1" />
+                            {t("welcome.add_demo_transaction", "Add Demo Transaction")}
+                        </Button>
                     </div>
                 );
 
@@ -308,19 +343,41 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
 
             case "groups":
                 return (
-                    <div className="bg-muted/50 rounded-xl p-4 text-left">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                <Users className="w-5 h-5 text-primary" />
+                    <div className="bg-muted/50 rounded-xl p-4 text-left space-y-4">
+                        {/* Header & Balance */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <Users className="w-4 h-4 text-primary" />
+                                </div>
+                                <span className="font-medium text-sm">{demoData.groups[0].name}</span>
                             </div>
-                            <div>
-                                <p className="font-medium">{demoData.groups[0].name}</p>
-                                <p className="text-xs text-muted-foreground">{demoData.groupMembers.length} {t("members")}</p>
+                            <div className="text-right">
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("balance", "Balance")}</p>
+                                <p className="text-sm font-bold text-green-600 dark:text-green-500">
+                                    {t("you_are_owed", "You are owed")} {demoData.settings.currency}23.70
+                                </p>
                             </div>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span>{t("your_share")}</span>
-                            <span className="font-medium">50%</span>
+
+                        {/* Recent Activity List */}
+                        <div className="space-y-2">
+                            {demoData.groupExpenses.map((exp) => (
+                                <div key={exp.id} className="flex justify-between items-center text-xs bg-background/50 p-2 rounded-lg">
+                                    <div>
+                                        <p className="font-medium">{exp.description}</p>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            {exp.paid_by === 'You' ? t("paid_by_you", "Paid by you") : t("paid_by_partner", "Paid by Partner")} • {exp.split}
+                                        </p>
+                                    </div>
+                                    <div className={cn(
+                                        "font-medium",
+                                        exp.paid_by === 'You' ? "text-green-600" : "text-destructive"
+                                    )}>
+                                        {exp.paid_by === 'You' ? "+" : "-"}{demoData.settings.currency}{(exp.amount / 2).toFixed(2)}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 );
@@ -417,7 +474,7 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
                 </div>
 
                 {/* Step content with swipe gesture */}
-                <div ref={constraintsRef} className="relative min-h-[360px] sm:min-h-[400px] overflow-hidden touch-pan-y">
+                <div ref={constraintsRef} className="relative min-h-[460px] sm:min-h-[500px] overflow-hidden touch-pan-y">
                     <AnimatePresence mode="popLayout" custom={direction}>
                         <motion.div
                             key={currentStep}

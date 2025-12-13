@@ -365,7 +365,7 @@ export function TransactionDialog({
                                             }}
                                             required
                                             placeholder={calcState.operation ? "..." : "0.00"}
-                                            onFocus={() => setShowCalculator(true)}
+
                                             className="flex-1"
                                         />
                                         <Button

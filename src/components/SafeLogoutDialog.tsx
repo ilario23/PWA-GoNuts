@@ -63,11 +63,9 @@ export function SafeLogoutDialog({
                         )}
                     </AlertDialogTitle>
                     <AlertDialogDescription className="space-y-3">
-                        <p>
-                            {hasPendingChanges
-                                ? t("logout_warning_pending_desc", { count: pendingCount })
-                                : t("confirm_logout_desc")}
-                        </p>
+                        {hasPendingChanges
+                            ? t("logout_warning_pending_desc", { count: pendingCount })
+                            : t("confirm_logout_desc")}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 

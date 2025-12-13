@@ -39,7 +39,7 @@ describe('useStatistics', () => {
     const mockTransactions = [
         {
             id: '1',
-            amount: -50,
+            amount: 50,
             type: 'expense',
             date: '2023-01-15',
             year_month: '2023-01',
@@ -101,7 +101,7 @@ describe('useStatistics', () => {
 
         const { result } = renderHook(() => useStatistics({ selectedMonth: '2023-01', mode: 'monthly' }));
 
-        expect(result.current.monthlyStats.expense).toBe(-50);
+        expect(result.current.monthlyStats.expense).toBe(50);
         expect(result.current.monthlyStats.income).toBe(1000);
         expect(result.current.monthlyNetBalance).toBe(950);
         expect(result.current.monthlyStats.byCategory).toHaveLength(1);
@@ -126,7 +126,7 @@ describe('useStatistics', () => {
 
         const { result } = renderHook(() => useStatistics({ selectedYear: '2023', mode: 'yearly' }));
 
-        expect(result.current.yearlyStats.expense).toBe(-50);
+        expect(result.current.yearlyStats.expense).toBe(50);
         expect(result.current.yearlyStats.income).toBe(1000);
         // Monthly stats should be empty/default
         expect(result.current.monthlyStats.income).toBe(0);
@@ -135,7 +135,7 @@ describe('useStatistics', () => {
         const groupTransactions = [
             {
                 id: '3',
-                amount: -100, // 100 expense
+                amount: 100, // 100 expense
                 type: 'expense',
                 date: '2023-01-20',
                 year_month: '2023-01',
@@ -159,15 +159,15 @@ describe('useStatistics', () => {
 
         const { result } = renderHook(() => useStatistics({ selectedMonth: '2023-01', mode: 'monthly', userId: 'me' }));
 
-        // 40% of 100 = 40. Expense is negative -> -40.
-        expect(result.current.monthlyStats.expense).toBe(-40);
+        // 40% of 100 = 40. Expense is positive -> 40.
+        expect(result.current.monthlyStats.expense).toBe(40);
     });
 
     it('should aggregate stats by context', () => {
         const contextTransactions = [
             {
                 id: '4',
-                amount: -200,
+                amount: 200,
                 type: 'expense',
                 date: '2023-01-20',
                 year_month: '2023-01',
@@ -193,13 +193,13 @@ describe('useStatistics', () => {
 
         expect(result.current.contextStats).toHaveLength(1);
         expect(result.current.contextStats[0].name).toBe('Vacation');
-        expect(result.current.contextStats[0].total).toBe(-200);
+        expect(result.current.contextStats[0].total).toBe(200);
     });
 
     it('should calculate category percentages correctly', () => {
         const catTransactions = [
-            { id: '5', amount: -60, type: 'expense', category_id: 'cat-1', date: '2023-01-20', year_month: '2023-01' },
-            { id: '6', amount: -40, type: 'expense', category_id: 'cat-2', date: '2023-01-21', year_month: '2023-01' }
+            { id: '5', amount: 60, type: 'expense', category_id: 'cat-1', date: '2023-01-20', year_month: '2023-01' },
+            { id: '6', amount: 40, type: 'expense', category_id: 'cat-2', date: '2023-01-21', year_month: '2023-01' }
         ];
 
         const cats = [
@@ -219,7 +219,7 @@ describe('useStatistics', () => {
 
         // Total expense = 100. Food = 60. Transport = 40.
         // Percentages should be 60 and 40.
-        expect(result.current.monthlyStats.expense).toBe(-100);
+        expect(result.current.monthlyStats.expense).toBe(100);
         expect(result.current.monthlyCategoryPercentages).toHaveLength(2);
 
         const food = result.current.monthlyCategoryPercentages.find((c: any) => c.name === 'Food');

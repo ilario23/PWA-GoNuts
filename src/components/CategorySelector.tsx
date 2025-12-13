@@ -549,6 +549,7 @@ export function CategorySelector({
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerTrigger asChild>
           <Button
+            variant="outline"
             role="combobox"
             aria-expanded={open}
             className={cn("w-full justify-between", triggerClassName)}
@@ -583,6 +584,7 @@ export function CategorySelector({
     <Popover open={open} onOpenChange={setOpen} modal={modal}>
       <PopoverTrigger asChild>
         <Button
+          variant="outline"
           role="combobox"
           aria-expanded={open}
           className={cn("w-full justify-between", triggerClassName)}

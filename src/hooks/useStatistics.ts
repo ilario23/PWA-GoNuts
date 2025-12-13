@@ -3,6 +3,7 @@ import { db, Category, Transaction, GroupMember } from "../lib/db";
 import { useTranslation } from "react-i18next";
 import { format, subMonths } from "date-fns";
 import { useMemo, useCallback } from "react";
+import { decryptArray, ENCRYPTED_FIELDS } from "../lib/crypto-middleware";
 
 /**
  * Parameters for configuring the statistics hook.
@@ -97,59 +98,95 @@ export function useStatistics(params?: UseStatisticsParams) {
   // #2 - CONDITIONAL QUERIES: Only fetch data needed for active mode
   // Monthly queries - only run in monthly mode
   const transactions = useLiveQuery(
-    () =>
-      mode === "monthly"
-        ? db.transactions.where("year_month").equals(currentMonth).toArray()
-          .then(txs => params?.groupId
-            ? txs.filter(t => t.group_id === params.groupId)
-            : txs)
-        : Promise.resolve([] as Transaction[]),
+    async () => {
+      if (mode !== "monthly") return [] as Transaction[];
+
+      let txs = await db.transactions.where("year_month").equals(currentMonth).toArray();
+      if (params?.groupId) {
+        txs = txs.filter(t => t.group_id === params.groupId);
+      }
+      // Decrypt sensitive fields
+      const fields = ENCRYPTED_FIELDS.transactions || [];
+      if (fields.length > 0) {
+        txs = await decryptArray(txs as unknown as Record<string, unknown>[], fields) as unknown as Transaction[];
+      }
+      return txs;
+    },
     [currentMonth, mode, params?.groupId]
   );
 
   // Get previous month transactions for comparison - only in monthly mode
   const previousMonthTransactions = useLiveQuery(
-    () =>
-      mode === "monthly"
-        ? db.transactions.where("year_month").equals(previousMonth).toArray()
-          .then(txs => params?.groupId
-            ? txs.filter(t => t.group_id === params.groupId)
-            : txs)
-        : Promise.resolve([] as Transaction[]),
+    async () => {
+      if (mode !== "monthly") return [] as Transaction[];
+
+      let txs = await db.transactions.where("year_month").equals(previousMonth).toArray();
+      if (params?.groupId) {
+        txs = txs.filter(t => t.group_id === params.groupId);
+      }
+      // Decrypt sensitive fields
+      const fields = ENCRYPTED_FIELDS.transactions || [];
+      if (fields.length > 0) {
+        txs = await decryptArray(txs as unknown as Record<string, unknown>[], fields) as unknown as Transaction[];
+      }
+      return txs;
+    },
     [previousMonth, mode, params?.groupId]
   );
 
   // Get all transactions for the selected year - only in yearly mode
   const yearlyTransactions = useLiveQuery(
-    () =>
-      mode === "yearly"
-        ? db.transactions
-          .where("year_month")
-          .between(`${currentYear}-01`, `${currentYear}-12`, true, true)
-          .toArray()
-          .then(txs => params?.groupId
-            ? txs.filter(t => t.group_id === params.groupId)
-            : txs)
-        : Promise.resolve([] as Transaction[]),
+    async () => {
+      if (mode !== "yearly") return [] as Transaction[];
+
+      let txs = await db.transactions
+        .where("year_month")
+        .between(`${currentYear}-01`, `${currentYear}-12`, true, true)
+        .toArray();
+      if (params?.groupId) {
+        txs = txs.filter(t => t.group_id === params.groupId);
+      }
+      // Decrypt sensitive fields
+      const fields = ENCRYPTED_FIELDS.transactions || [];
+      if (fields.length > 0) {
+        txs = await decryptArray(txs as unknown as Record<string, unknown>[], fields) as unknown as Transaction[];
+      }
+      return txs;
+    },
     [currentYear, mode, params?.groupId]
   );
 
   // Get previous year transactions for comparison - only in yearly mode
   const previousYearTransactions = useLiveQuery(
-    () =>
-      mode === "yearly"
-        ? db.transactions
-          .where("year_month")
-          .between(`${previousYear}-01`, `${previousYear}-12`, true, true)
-          .toArray()
-          .then(txs => params?.groupId
-            ? txs.filter(t => t.group_id === params.groupId)
-            : txs)
-        : Promise.resolve([] as Transaction[]),
+    async () => {
+      if (mode !== "yearly") return [] as Transaction[];
+
+      let txs = await db.transactions
+        .where("year_month")
+        .between(`${previousYear}-01`, `${previousYear}-12`, true, true)
+        .toArray();
+      if (params?.groupId) {
+        txs = txs.filter(t => t.group_id === params.groupId);
+      }
+      // Decrypt sensitive fields
+      const fields = ENCRYPTED_FIELDS.transactions || [];
+      if (fields.length > 0) {
+        txs = await decryptArray(txs as unknown as Record<string, unknown>[], fields) as unknown as Transaction[];
+      }
+      return txs;
+    },
     [previousYear, mode, params?.groupId]
   );
 
-  const categories = useLiveQuery(() => db.categories.toArray());
+  const categories = useLiveQuery(async () => {
+    const rawData = await db.categories.toArray();
+    // Decrypt sensitive fields
+    const fields = ENCRYPTED_FIELDS.categories || [];
+    if (fields.length > 0) {
+      return decryptArray(rawData as unknown as Record<string, unknown>[], fields) as unknown as Category[];
+    }
+    return rawData;
+  });
   const contexts = useLiveQuery(() => db.contexts.toArray());
 
   // Fetch group memberships to calculate shares
@@ -425,11 +462,11 @@ export function useStatistics(params?: UseStatisticsParams) {
 
   // Calculate net balances
   const monthlyNetBalance = useMemo(
-    () => monthlyStats.income + monthlyStats.expense,
+    () => monthlyStats.income - monthlyStats.expense,
     [monthlyStats]
   );
   const yearlyNetBalance = useMemo(
-    () => yearlyStats.income + yearlyStats.expense,
+    () => yearlyStats.income - yearlyStats.expense,
     [yearlyStats]
   );
 

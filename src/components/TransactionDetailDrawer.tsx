@@ -8,7 +8,9 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
+  DrawerClose,
 } from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
 import { getIconComponent } from "@/lib/icons";
 import { format, parseISO } from "date-fns";
 import { it, enUS } from "date-fns/locale";
@@ -21,6 +23,8 @@ import {
   User,
   PieChart,
   Cloud,
+  Calculator,
+  X,
 } from "lucide-react";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { Badge } from "@/components/ui/badge";
@@ -95,7 +99,17 @@ export function TransactionDetailDrawer({
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader className="text-center pt-8 pb-4">
+          <DrawerHeader className="text-center pt-8 pb-4 relative">
+            <DrawerClose asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-4 h-8 w-8 rounded-full opacity-70 hover:opacity-100"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">{t("close")}</span>
+              </Button>
+            </DrawerClose>
             <div className="flex justify-center mb-4">
               <div
                 className="h-16 w-16 rounded-full flex items-center justify-center"
@@ -116,20 +130,24 @@ export function TransactionDetailDrawer({
             <DrawerTitle className="text-2xl font-bold truncate px-4">
               {transaction.description}
             </DrawerTitle>
-            <DrawerDescription className="text-lg font-medium mt-1">
-              <span className={getTypeColor(transaction.type)}>
-                {transaction.type === "expense"
-                  ? "-"
-                  : transaction.type === "investment"
-                    ? ""
-                    : "+"}
-                €{isGroupTransaction && myShareAmount > 0 ? myShareAmount.toFixed(2) : transaction.amount.toFixed(2)}
-              </span>
-              {isGroupTransaction && myShareAmount > 0 && (
-                <span className="text-xs text-muted-foreground mt-1 block">
-                  {t("your_share")} • {t("total")}: €{transaction.amount.toFixed(2)}
+            <DrawerDescription asChild>
+              <div className="text-lg font-medium mt-1">
+                <span className={getTypeColor(transaction.type)}>
+                  {transaction.type === "expense"
+                    ? "-"
+                    : transaction.type === "investment"
+                      ? ""
+                      : "+"}
+                  €{isGroupTransaction && myShareAmount > 0 ? myShareAmount.toFixed(2) : transaction.amount.toFixed(2)}
                 </span>
-              )}
+                {isGroupTransaction && myShareAmount > 0 && (
+                  <div className="flex flex-col items-center gap-1 mt-2">
+                    <Badge variant="secondary" className="font-normal text-xs px-2 py-0.5">
+                      {t("your_share")}
+                    </Badge>
+                  </div>
+                )}
+              </div>
             </DrawerDescription>
           </DrawerHeader>
 
@@ -223,6 +241,16 @@ export function TransactionDetailDrawer({
                         ({mySharePercentage}%)
                       </span>
                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-muted-foreground">
+                      <Calculator className="h-4 w-4 mr-2" />
+                      <span className="text-sm">{t("total")}</span>
+                    </div>
+                    <span className="text-sm font-medium">
+                      €{transaction.amount.toFixed(2)}
+                    </span>
                   </div>
                 </>
               )}

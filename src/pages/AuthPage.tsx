@@ -59,14 +59,19 @@ export function AuthPage() {
         await cryptoService.initialize(password, salt);
         toast.dismiss();
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) {
           // Clear crypto key if auth fails
-          cryptoService.clearKey();
+          await cryptoService.clearKey();
           throw error;
+        }
+
+        // Wrap and store the encryption key for session persistence
+        if (data.session?.access_token) {
+          await cryptoService.wrapAndStoreKey(email, data.session.access_token);
         }
 
         // Sync data from Supabase after successful login
@@ -87,7 +92,7 @@ export function AuthPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-muted/40 p-4 safe-y relative">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-[calc(1rem+var(--safe-area-inset-top))] right-[calc(1rem+var(--safe-area-inset-right))]">
         <LanguageSwitcher />
       </div>
       <Card className="w-full max-w-md">

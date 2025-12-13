@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useContexts } from "@/hooks/useContexts";
@@ -101,6 +102,8 @@ export function TransactionsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const [searchParams] = useSearchParams();
+
   const [filters, setFilters] = useState({
     text: "",
     dateFrom: "",
@@ -110,7 +113,7 @@ export function TransactionsPage() {
     categoryId: "all",
     type: "all",
     groupFilter: "all" as "all" | "personal" | "group" | string, // 'all', 'personal', 'group', or specific group id
-    contextFilter: "all" as "all" | "none" | string, // 'all', 'none' (no context), or specific context id
+    contextFilter: (searchParams.get("contextId") || "all") as "all" | "none" | string, // 'all', 'none' (no context), or specific context id
     needsReview: false,
   });
 

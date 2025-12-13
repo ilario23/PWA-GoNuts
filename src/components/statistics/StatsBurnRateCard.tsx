@@ -71,7 +71,8 @@ export function StatsBurnRateCard({
     // Progress Bar Logic
     // We want to show time progress vs money progress
     const timeProgress = (daysElapsed / daysInPeriod) * 100;
-    const moneyProgress = hasBudget ? Math.min((spending / budgetAmount) * 100, 100) : 0;
+    const rawMoneyProgress = hasBudget ? (spending / budgetAmount) * 100 : 0;
+    const moneyProgress = Math.min(rawMoneyProgress, 100);
 
     return (
         <Card className="min-w-0 h-full flex flex-col justify-between">
@@ -147,7 +148,7 @@ export function StatsBurnRateCard({
                         {/* Budget Usage */}
                         <div className="space-y-1">
                             <div className="flex justify-between text-xs">
-                                <span>{t("budget_used")} ({(moneyProgress).toFixed(0)}%)</span>
+                                <span>{t("budget_used")} ({(rawMoneyProgress).toFixed(0)}%)</span>
                                 <span className="font-medium">€<CountUp value={spending} /></span>
                             </div>
                             <AnimatedProgress value={moneyProgress} className={cn("h-2", isOverBudget ? "bg-red-100 [&>div]:bg-red-500" : "")} />

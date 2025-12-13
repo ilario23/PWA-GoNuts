@@ -18,7 +18,14 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Tag } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { Plus, Edit, Trash2, Tag, Receipt } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -31,10 +38,12 @@ function MobileContextRow({
   context,
   onEdit,
   onDelete,
+  onSelect,
 }: {
   context: Context;
   onEdit: (context: Context) => void;
   onDelete: (id: string) => void;
+  onSelect: (context: Context) => void;
 }) {
   const { t } = useTranslation();
   const x = useMotionValue(0);
@@ -48,6 +57,8 @@ function MobileContextRow({
       "rgb(59 130 246)", // Blue for edit (right)
     ]
   );
+
+  const [open, setOpen] = useState(false);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     const threshold = 220;
@@ -77,29 +88,39 @@ function MobileContextRow({
       </motion.div>
 
       {/* Foreground Content Layer */}
-      <motion.div
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.7}
-        onDragEnd={handleDragEnd}
-        style={{ x, touchAction: "pan-y" }}
-        className="relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3"
-      >
-        {/* Icon */}
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <Tag className="h-5 w-5 text-primary" />
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm truncate">{context.name}</div>
-          {context.description && (
-            <div className="text-xs text-muted-foreground truncate">
-              {context.description}
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <motion.div
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.7}
+            onDragEnd={handleDragEnd}
+            style={{ x, touchAction: "pan-y" }}
+            className="relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 cursor-pointer active:bg-muted/50 focus:outline-none"
+          >
+            {/* Icon */}
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Tag className="h-5 w-5 text-primary" />
             </div>
-          )}
-        </div>
-      </motion.div>
+
+            {/* Main Content */}
+            <div className="flex-1 min-w-0 text-left">
+              <div className="font-medium text-sm truncate">{context.name}</div>
+              {context.description && (
+                <div className="text-xs text-muted-foreground truncate">
+                  {context.description}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="end" className="w-[200px]">
+          <DropdownMenuItem onClick={() => onSelect(context)}>
+            <Receipt className="mr-2 h-4 w-4" />
+            <span>{t("view_transactions_context")}</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -116,6 +137,12 @@ export function ContextsPage() {
     name: "",
     description: "",
   });
+
+  const navigate = useNavigate();
+
+  const handleViewTransactions = (context: Context) => {
+    navigate(`/transactions?contextId=${context.id}`);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,6 +268,7 @@ export function ContextsPage() {
                 context={c}
                 onEdit={handleEdit}
                 onDelete={handleDeleteClick}
+                onSelect={handleViewTransactions}
               />
             ))}
           </div>
@@ -262,6 +290,14 @@ export function ContextsPage() {
                     <TableCell>{c.description}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title={t("view_transactions_context")}
+                          onClick={() => navigate(`/transactions?contextId=${c.id}`)}
+                        >
+                          <Receipt className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -296,6 +332,7 @@ export function ContextsPage() {
           t("confirm_delete_description")
         }
       />
+
     </div>
   );
 }
