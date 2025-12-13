@@ -14,7 +14,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
 import { useTranslation } from 'react-i18next';
 import { syncManager } from '../../lib/sync';
-import { useIsMobile } from '../../hooks/use-mobile';
+
 import { Loader2, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
 
 import { AntigravityBackupParser } from '../../lib/import/parsers/AntigravityBackupParser';

@@ -2,6 +2,11 @@ import { ImportProcessor } from '../ImportProcessor';
 import { db } from '../../db';
 import { UNCATEGORIZED_CATEGORY } from '../../constants';
 
+// Mock uuid
+jest.mock('uuid', () => ({
+    v4: jest.fn().mockImplementation(() => 'test-uuid-' + Math.random())
+}));
+
 // Mock DB
 jest.mock('../../db', () => ({
     db: {
@@ -9,22 +14,36 @@ jest.mock('../../db', () => ({
             where: jest.fn(),
             get: jest.fn(),
             put: jest.fn(),
+            bulkPut: jest.fn(),
         },
         transactions: {
             put: jest.fn(),
+            bulkPut: jest.fn(),
         },
         contexts: {
-            where: jest.fn(),
-            put: jest.fn()
+            where: jest.fn().mockReturnValue({
+                equals: jest.fn().mockReturnValue({
+                    toArray: jest.fn().mockResolvedValue([])
+                })
+            }),
+            put: jest.fn(),
+            bulkPut: jest.fn(),
         },
         recurring_transactions: {
             where: jest.fn(),
-            put: jest.fn()
+            put: jest.fn(),
+            bulkPut: jest.fn(),
         },
         category_budgets: {
             put: jest.fn(),
-            where: jest.fn()
-        }
+            where: jest.fn().mockReturnValue({
+                equals: jest.fn().mockReturnValue({
+                    toArray: jest.fn().mockResolvedValue([])
+                })
+            }),
+            bulkPut: jest.fn(),
+        },
+        transaction: jest.fn((_mode, _tables, callback) => callback())
     }
 }));
 
@@ -52,6 +71,13 @@ describe('ImportProcessor', () => {
             (db.categories.where as jest.Mock).mockReturnValue({
                 equals: jest.fn().mockReturnValue({
                     toArray: jest.fn().mockResolvedValue(existingCategories)
+                })
+            });
+
+            // Mock contexts lookup - empty by default
+            (db.contexts.where as jest.Mock).mockReturnValue({
+                equals: jest.fn().mockReturnValue({
+                    toArray: jest.fn().mockResolvedValue([])
                 })
             });
 
@@ -100,9 +126,7 @@ describe('ImportProcessor', () => {
             // Pass 1 (ID resolution)
             (db.categories.where as jest.Mock).mockReturnValue({
                 equals: jest.fn().mockReturnValue({
-                    filter: jest.fn().mockReturnValue({
-                        first: jest.fn().mockResolvedValue(null) // Not found
-                    })
+                    toArray: jest.fn().mockResolvedValue([])
                 })
             });
             // Category Get (during insert check)
@@ -111,17 +135,21 @@ describe('ImportProcessor', () => {
             const result = await processor.process(data);
 
             // Expect category to be inserted
-            expect(db.categories.put).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'Food',
-                user_id: userId
-            }));
+            expect(db.categories.bulkPut).toHaveBeenCalledWith(expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'Food',
+                    user_id: userId
+                })
+            ]));
 
             // Expect transaction to be inserted
-            expect(db.transactions.put).toHaveBeenCalledWith(expect.objectContaining({
-                description: 'Lunch',
-                amount: 50, // Normalized
-                user_id: userId
-            }));
+            expect(db.transactions.bulkPut).toHaveBeenCalledWith(expect.arrayContaining([
+                expect.objectContaining({
+                    description: 'Lunch',
+                    amount: 50, // Normalized
+                    user_id: userId
+                })
+            ]));
 
             expect(result.categories).toBe(1);
             expect(result.transactions).toBe(1);
@@ -141,15 +169,16 @@ describe('ImportProcessor', () => {
             await processor.process(data);
 
             // Should NOT create the local-only Uncategorized category (logic removed)
-            expect(db.categories.put).not.toHaveBeenCalledWith(expect.objectContaining({
-                id: UNCATEGORIZED_CATEGORY.ID
-            }));
+            expect(db.categories.put).not.toHaveBeenCalled();
+            expect(db.categories.bulkPut).not.toHaveBeenCalled();
 
             // Transaction should use the reserved category ID (category check is now based on category_id)
-            expect(db.transactions.put).toHaveBeenCalledWith(expect.objectContaining({
-                description: 'Mystery',
-                category_id: UNCATEGORIZED_CATEGORY.ID
-            }));
+            expect(db.transactions.bulkPut).toHaveBeenCalledWith(expect.arrayContaining([
+                expect.objectContaining({
+                    description: 'Mystery',
+                    category_id: UNCATEGORIZED_CATEGORY.ID
+                })
+            ]));
         });
 
         it('should respect active status from imported category', async () => {
@@ -165,9 +194,7 @@ describe('ImportProcessor', () => {
             // Mock checks
             (db.categories.where as jest.Mock).mockReturnValue({
                 equals: jest.fn().mockReturnValue({
-                    filter: jest.fn().mockReturnValue({
-                        first: jest.fn().mockResolvedValue(null)
-                    })
+                    toArray: jest.fn().mockResolvedValue([])
                 })
             });
             (db.categories.get as jest.Mock).mockResolvedValue(null);
@@ -175,16 +202,16 @@ describe('ImportProcessor', () => {
             await processor.process(data);
 
             // Check active category
-            expect(db.categories.put).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'Active Cat',
-                active: 1
-            }));
-
-            // Check inactive category
-            expect(db.categories.put).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'Inactive Cat',
-                active: 0
-            }));
+            expect(db.categories.bulkPut).toHaveBeenCalledWith(expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'Active Cat',
+                    active: 1
+                }),
+                expect.objectContaining({
+                    name: 'Inactive Cat',
+                    active: 0
+                })
+            ]));
         });
 
         it('should import category budgets', async () => {
@@ -202,9 +229,7 @@ describe('ImportProcessor', () => {
             // Mock checks
             (db.categories.where as jest.Mock).mockReturnValue({
                 equals: jest.fn().mockReturnValue({
-                    filter: jest.fn().mockReturnValue({
-                        first: jest.fn().mockResolvedValue(null)
-                    })
+                    toArray: jest.fn().mockResolvedValue([])
                 })
             });
             // Update: mock 'get' sequence:
@@ -214,23 +239,29 @@ describe('ImportProcessor', () => {
                 .mockResolvedValueOnce(null)
                 .mockResolvedValueOnce({ id: 'cat-1', name: 'Budgeted Cat' });
 
-            // Mock budget check to return null (so it creates new)
+            // Mock budget check to return empty array (so it creates new)
             (db.category_budgets.where as jest.Mock).mockReturnValue({
-                first: jest.fn().mockResolvedValue(null)
+                equals: jest.fn().mockReturnValue({
+                    toArray: jest.fn().mockResolvedValue([])
+                })
             });
 
             await processor.process(data);
 
             // Verify category created
-            expect(db.categories.put).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'Budgeted Cat'
-            }));
+            expect(db.categories.bulkPut).toHaveBeenCalledWith(expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'Budgeted Cat'
+                })
+            ]));
 
             // Verify budget created
-            expect(db.category_budgets.put).toHaveBeenCalledWith(expect.objectContaining({
-                amount: 500,
-                period: 'monthly'
-            }));
+            expect(db.category_budgets.bulkPut).toHaveBeenCalledWith(expect.arrayContaining([
+                expect.objectContaining({
+                    amount: 500,
+                    period: 'monthly'
+                })
+            ]));
         });
 
         it('should import group transaction share correctly', async () => {
@@ -263,9 +294,7 @@ describe('ImportProcessor', () => {
             // Mock checks
             (db.categories.where as jest.Mock).mockReturnValue({
                 equals: jest.fn().mockReturnValue({
-                    filter: jest.fn().mockReturnValue({
-                        first: jest.fn().mockResolvedValue(null)
-                    })
+                    toArray: jest.fn().mockResolvedValue([])
                 })
             });
             (db.categories.get as jest.Mock).mockResolvedValue(null);
@@ -278,12 +307,14 @@ describe('ImportProcessor', () => {
             }
 
             // Verify transaction imported with 50% of the amount (50)
-            expect(db.transactions.put).toHaveBeenCalledWith(expect.objectContaining({
-                description: 'Shared Dinner',
-                amount: 50,
-                group_id: null,
-                user_id: userId
-            }));
+            expect(db.transactions.bulkPut).toHaveBeenCalledWith(expect.arrayContaining([
+                expect.objectContaining({
+                    description: 'Shared Dinner',
+                    amount: 50,
+                    group_id: null,
+                    user_id: userId
+                })
+            ]));
         });
     });
 });

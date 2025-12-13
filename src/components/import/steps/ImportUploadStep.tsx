@@ -61,7 +61,7 @@ export function ImportUploadStep({ importType, selectedBank, isProcessing, error
                         className="hidden"
                         accept={selectedBank === 'intesa' ? ".xlsx" : importType === 'bank_csv' ? ".csv" : ".json"}
                         onChange={onFileSelect}
-                        onClick={(e) => { (e.target as any).value = null; }} // Reset to allow re-selection of same file
+                        onClick={(e) => { (e.currentTarget as HTMLInputElement).value = ''; }} // Reset to allow re-selection of same file
                     />
                     {error && (
                         <div className="mt-4 p-3 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded text-sm flex items-center">

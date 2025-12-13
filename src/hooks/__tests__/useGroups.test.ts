@@ -16,6 +16,12 @@ jest.mock("../../lib/sync", () => ({
   },
 }));
 
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (k: string) => k,
+  }),
+}));
+
 jest.mock("../../lib/db", () => ({
   db: {
     groups: {
