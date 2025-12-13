@@ -40,6 +40,9 @@ jest.mock("../../lib/db", () => ({
       filter: jest.fn(),
       update: jest.fn(),
     },
+    profiles: {
+      toArray: jest.fn(),
+    },
   },
 }));
 
@@ -91,6 +94,7 @@ describe("useGroups", () => {
     (useAuth as jest.Mock).mockReturnValue({ user: mockUser });
     (db.groups.toArray as jest.Mock).mockResolvedValue([mockGroup]);
     (db.group_members.toArray as jest.Mock).mockResolvedValue([mockMember]);
+    (db.profiles.toArray as jest.Mock).mockResolvedValue([]);
   });
 
   it("should return empty array when user is not authenticated", async () => {

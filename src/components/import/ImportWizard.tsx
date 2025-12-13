@@ -28,6 +28,8 @@ import { db } from '../../lib/db';
 import { useTranslation } from 'react-i18next';
 import { Building2, Command } from 'lucide-react';
 import { syncManager } from '../../lib/sync';
+import { useIsMobile } from '../../hooks/use-mobile';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface ImportWizardProps {
     open: boolean;
@@ -43,6 +45,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
     const { user } = useAuth();
     const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const isMobile = useIsMobile();
 
     const [step, setStep] = useState<WizardStep>('select_type');
     const [importType, setImportType] = useState<ImportType | null>(null);
@@ -834,86 +837,171 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                 </Button>
                             </div>
 
-                            <div className="border rounded-md overflow-hidden max-h-[400px] overflow-y-auto overflow-x-auto w-full relative max-w-[80vw] sm:max-w-[720px]">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Description</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                            <TableHead>Category</TableHead>
-                                            <TableHead className="w-[100px]"></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {parsedData.transactions.slice(0, 100).map((tx, idx) => {
-                                            // Pagination limit to 100 for perf in MVP
-                                            return (
-                                                <TableRow key={idx}>
-                                                    <TableCell className="text-xs whitespace-nowrap">{tx.date}</TableCell>
-                                                    <TableCell className="text-sm font-medium max-w-[200px] truncate" title={tx.description}>
-                                                        {tx.description}
-                                                    </TableCell>
-                                                    <TableCell className="text-sm whitespace-nowrap">
+                            {/* Mobile Card Layout */}
+                            {isMobile ? (
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                                    {parsedData.transactions.slice(0, 100).map((tx, idx) => (
+                                        <div key={idx} className="border rounded-lg p-3 bg-white dark:bg-slate-950 space-y-2">
+                                            {/* Header: Date, Amount, Delete */}
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs text-muted-foreground">{tx.date}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-sm font-semibold ${tx.amount < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                                                         {new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(tx.amount)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Select
-                                                            value={tx.category_id || "uncategorized"}
-                                                            onValueChange={(val) => handleManualCategoryChange(tx, val === "uncategorized" ? "" : val)}
-                                                        >
-                                                            <SelectTrigger className="h-8 text-xs w-[140px]">
-                                                                <SelectValue placeholder="Uncategorized" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="uncategorized" className="text-muted-foreground">Uncategorized</SelectItem>
-                                                                <SelectItem value="SKIP" className="text-red-500 font-medium">⛔ Ignore (Skip)</SelectItem>
-                                                                {activeCategories?.map(c => ( // Use activeCategories here
-                                                                    <SelectItem key={c.id} value={c.id}>
-                                                                        <span className="flex items-center gap-2">
-                                                                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
-                                                                            {c.name}
+                                                    </span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                        onClick={() => handleDeleteTransaction(idx)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            {/* Description - Full text, wraps naturally */}
+                                            <p className="text-sm font-medium text-foreground leading-snug">
+                                                {tx.description}
+                                            </p>
+
+                                            {/* Category Select + Rule Button */}
+                                            <div className="flex items-center gap-2 pt-1">
+                                                <Select
+                                                    value={tx.category_id || "uncategorized"}
+                                                    onValueChange={(val) => handleManualCategoryChange(tx, val === "uncategorized" ? "" : val)}
+                                                >
+                                                    <SelectTrigger className="h-9 text-sm flex-1">
+                                                        <SelectValue placeholder="Uncategorized" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="uncategorized" className="text-muted-foreground">Uncategorized</SelectItem>
+                                                        <SelectItem value="SKIP" className="text-red-500 font-medium">⛔ Ignore (Skip)</SelectItem>
+                                                        {activeCategories?.map(c => (
+                                                            <SelectItem key={c.id} value={c.id}>
+                                                                <span className="flex items-center gap-2">
+                                                                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
+                                                                    {c.name}
+                                                                </span>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {tx.category_id && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="h-9 w-9 shrink-0"
+                                                        title="Create rule for this"
+                                                        onClick={() => handleCreateRule(tx, tx.category_id!)}
+                                                    >
+                                                        <Wand2 className="h-4 w-4 text-blue-500" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {parsedData.transactions.length > 100 && (
+                                        <p className="text-center text-xs text-muted-foreground py-2">
+                                            And {parsedData.transactions.length - 100} more...
+                                        </p>
+                                    )}
+                                </div>
+                            ) : (
+                                /* Desktop Table Layout */
+                                <div className="border rounded-md overflow-hidden max-h-[400px] overflow-y-auto">
+                                    <TooltipProvider>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="w-[100px]">Date</TableHead>
+                                                    <TableHead className="min-w-[300px]">Description</TableHead>
+                                                    <TableHead className="w-[110px]">Amount</TableHead>
+                                                    <TableHead className="w-[160px]">Category</TableHead>
+                                                    <TableHead className="w-[80px]"></TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {parsedData.transactions.slice(0, 100).map((tx, idx) => (
+                                                    <TableRow key={idx}>
+                                                        <TableCell className="text-xs whitespace-nowrap">{tx.date}</TableCell>
+                                                        <TableCell className="text-sm font-medium">
+                                                            {tx.description.length > 60 ? (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <span className="cursor-help block max-w-[350px] truncate">
+                                                                            {tx.description}
                                                                         </span>
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </TableCell>
-                                                    <TableCell className="flex items-center gap-1">
-                                                        {tx.category_id && (
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="bottom" className="max-w-[400px] text-wrap">
+                                                                        <p>{tx.description}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            ) : (
+                                                                <span>{tx.description}</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-sm whitespace-nowrap">
+                                                            {new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(tx.amount)}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Select
+                                                                value={tx.category_id || "uncategorized"}
+                                                                onValueChange={(val) => handleManualCategoryChange(tx, val === "uncategorized" ? "" : val)}
+                                                            >
+                                                                <SelectTrigger className="h-8 text-xs w-[140px]">
+                                                                    <SelectValue placeholder="Uncategorized" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="uncategorized" className="text-muted-foreground">Uncategorized</SelectItem>
+                                                                    <SelectItem value="SKIP" className="text-red-500 font-medium">⛔ Ignore (Skip)</SelectItem>
+                                                                    {activeCategories?.map(c => (
+                                                                        <SelectItem key={c.id} value={c.id}>
+                                                                            <span className="flex items-center gap-2">
+                                                                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
+                                                                                {c.name}
+                                                                            </span>
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </TableCell>
+                                                        <TableCell className="flex items-center gap-1">
+                                                            {tx.category_id && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    title="Create rule for this"
+                                                                    onClick={() => handleCreateRule(tx, tx.category_id!)}
+                                                                >
+                                                                    <Wand2 className="h-3.5 w-3.5 text-blue-500" />
+                                                                </Button>
+                                                            )}
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="h-8 w-8"
-                                                                title="Create rule for this"
-                                                                onClick={() => handleCreateRule(tx, tx.category_id!)}
+                                                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                                title="Remove transaction"
+                                                                onClick={() => handleDeleteTransaction(idx)}
                                                             >
-                                                                <Wand2 className="h-3.5 w-3.5 text-blue-500" />
+                                                                <Trash2 className="h-3.5 w-3.5" />
                                                             </Button>
-                                                        )}
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                                            title="Remove transaction"
-                                                            onClick={() => handleDeleteTransaction(idx)}
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                        {parsedData.transactions.length > 100 && (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="text-center text-xs text-muted-foreground p-2">
-                                                    And {parsedData.transactions.length - 100} more...
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                                {parsedData.transactions.length > 100 && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={5} className="text-center text-xs text-muted-foreground p-2">
+                                                            And {parsedData.transactions.length - 100} more...
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </TooltipProvider>
+                                </div>
+                            )}
                         </div>
                     )}
 
