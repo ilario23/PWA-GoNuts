@@ -1,16 +1,7 @@
-
 import * as React from 'react';
-import { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { Card, CardContent } from "../ui/card";
-import { Upload, FileJson, CheckCircle2, AlertTriangle, Loader2, ArrowRight, FileSpreadsheet, RefreshCw, Wand2, Trash2, Info, Download, Settings2, Turtle } from "lucide-react";
-
-import { IntesaSanpaoloParser } from '../../lib/import/parsers/IntesaSanpaoloParser';
-import { AntigravityBackupParser } from '../../lib/import/parsers/AntigravityBackupParser';
-import { LegacyVueParser } from '../../lib/import/parsers/LegacyVueParser';
-import { GenericCsvParser } from '../../lib/import/parsers/GenericCsvParser';
-import { RevolutParser } from '../../lib/import/parsers/RevolutParser';
 import { ImportProcessor } from '../../lib/import/ImportProcessor';
 import { RulesEngine } from '../../lib/import/RulesEngine';
 import { useAuth } from '../../contexts/AuthProvider';
@@ -19,14 +10,26 @@ import { ImportConflictResolver } from './ImportConflictResolver';
 import { toast } from 'sonner';
 import { Progress } from "../ui/progress";
 import * as Papa from 'papaparse';
-import { Label } from "../ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
-import { Switch } from "../ui/switch";
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
 import { useTranslation } from 'react-i18next';
-import { Building2, Command } from 'lucide-react';
+import { syncManager } from '../../lib/sync';
+
+import { Loader2, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
+
+import { AntigravityBackupParser } from '../../lib/import/parsers/AntigravityBackupParser';
+import { LegacyVueParser } from '../../lib/import/parsers/LegacyVueParser';
+import { GenericCsvParser } from '../../lib/import/parsers/GenericCsvParser';
+import { IntesaSanpaoloParser } from '../../lib/import/parsers/IntesaSanpaoloParser';
+import { RevolutParser } from '../../lib/import/parsers/RevolutParser';
+
+// Steps
+import { ImportTypeSelection, ImportType, BankType } from './steps/ImportTypeSelection';
+import { ImportUploadStep } from './steps/ImportUploadStep';
+import { ImportCsvMapping } from './steps/ImportCsvMapping';
+import { ImportRevolutConfig } from './steps/ImportRevolutConfig';
+import { ImportPreview } from './steps/ImportPreview';
+import { ImportReconciliation } from './steps/ImportReconciliation';
 
 interface ImportWizardProps {
     open: boolean;
@@ -35,13 +38,10 @@ interface ImportWizardProps {
 }
 
 type WizardStep = 'select_type' | 'select_bank' | 'upload' | 'mapping' | 'revolut_config' | 'preview' | 'resolving_conflicts' | 'reconciliation' | 'importing' | 'success';
-type ImportType = 'backup' | 'bank_csv';
-type BankType = 'intesa' | 'revolut' | 'generic';
 
 export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWizardProps) {
     const { user } = useAuth();
     const { t } = useTranslation();
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [step, setStep] = useState<WizardStep>('select_type');
     const [importType, setImportType] = useState<ImportType | null>(null);
@@ -54,6 +54,13 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
     const [error, setError] = useState<string | null>(null);
     const [conflicts, setConflicts] = useState<PotentialMerge[]>([]);
     const [recurringConflicts, setRecurringConflicts] = useState<RecurringConflict[]>([]);
+    const [importResult, setImportResult] = useState<{
+        categories: number;
+        transactions: number;
+        recurring: number;
+        orphanCount: number;
+    } | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     // CSV Specific State
     const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -94,6 +101,8 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         setCsvMapping({ dateColumn: '', amountColumn: '', descriptionColumn: '', hasHeader: true });
         setRevolutIncludeSavings(false);
         setDetectedParser(null);
+        setImportResult(null);
+        setIsSyncing(false);
     };
 
     const handleOpenChange = (newOpen: boolean) => {
@@ -123,10 +132,6 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         setError(null);
 
         try {
-            // For XLSX files, file.text() might be garbage, verify extension first if parsing as text
-            // IntesaParser uses ArrayBuffer so it's fine.
-            // But others use FileReader or text.
-            // Let's get text only if needed. Common parsers take text.
             const isBinary = file.name.toLowerCase().endsWith('.xlsx');
             let text = "";
             if (!isBinary) {
@@ -147,7 +152,6 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                     }
                 }
             } else if (importType === 'bank_csv') {
-                // Instantiate based on selection
                 if (selectedBank === 'intesa') {
                     const p = new IntesaSanpaoloParser();
                     if (await p.canParse(file, text)) parser = p;
@@ -172,7 +176,6 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
             setCsvContent(text);
 
             if (parser instanceof GenericCsvParser) {
-                // Determine headers via PapaParse
                 const preview = Papa.parse(text, { preview: 5, header: true, skipEmptyLines: true });
                 if (preview.meta.fields && preview.meta.fields.length > 0) {
                     setCsvHeaders(preview.meta.fields);
@@ -188,7 +191,6 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                 setParsedData(data);
                 setStep('preview');
             } else {
-                // Standard parsers (Backup, Vue)
                 const data = await parser.parse(file, text);
                 setParsedData(data);
                 setStep('preview');
@@ -198,7 +200,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
             setError(err.message || "Failed to parse file");
         } finally {
             setIsProcessing(false);
-            if (fileInputRef.current) fileInputRef.current.value = "";
+            e.target.value = "";
         }
     };
 
@@ -231,12 +233,9 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
 
     const handleDownloadCategories = () => {
         if (!activeCategories) return;
-
-        // Format: Name,Type,ID
         const header = "Name,Type,ID";
         const rows = activeCategories.map(c => `${c.name},${c.type},${c.id}`).join("\n");
         const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(header + "\n" + rows);
-
         const link = document.createElement("a");
         link.setAttribute("href", csvContent);
         link.setAttribute("download", "antigravity_categories.csv");
@@ -247,7 +246,6 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
 
     const handleCsvMappingComplete = async () => {
         if (!csvFile || !csvContent) return;
-
         setIsProcessing(true);
         try {
             const parser = new GenericCsvParser();
@@ -266,12 +264,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         setIsProcessing(true);
         try {
             await rulesEngine.loadRules();
-
-            // 1. Apply rules (modifies transactions in-place)
             const matched = rulesEngine.applyRules(parsedData.transactions);
-
-            // 2. Filter out SKIPPED transactions
-            // We create a new list excluding the skipped ones
             const activeTransactions = parsedData.transactions.filter(t => t.category_id !== 'SKIP');
             const skippedCount = parsedData.transactions.length - activeTransactions.length;
 
@@ -281,7 +274,6 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
             } else {
                 toast.success(`Auto-categorized ${matched} transactions based on your rules.`);
             }
-
             setStep('reconciliation');
         } catch (e) {
             console.error(e);
@@ -293,16 +285,11 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
 
     const handleCreateRule = async (tx: ParsedTransaction, categoryId: string) => {
         if (!rulesEngine) return;
-        // Simple "Contains" rule on the description
         try {
             await rulesEngine.createRule(tx.description, categoryId, 'contains');
-
             if (categoryId === 'SKIP') {
                 toast.success("Ignore rule created! Transaction removed.");
-                // Immediately remove this and any other matching items from the current view
-                // to give instant feedback
                 if (parsedData) {
-                    // Re-run rules or just filter manually for speed
                     const newTransactions = parsedData.transactions.filter(t =>
                         !t.description.toLowerCase().includes(tx.description.toLowerCase())
                     );
@@ -310,7 +297,6 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                 }
             } else {
                 toast.success("Rule created!");
-                // Re-run rules on remaining
                 if (parsedData) {
                     const matched = rulesEngine.applyRules(parsedData.transactions);
                     if (matched > 0) toast.info(`Applied new rule to ${matched} other items.`);
@@ -337,16 +323,11 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
 
     const handleImport = async () => {
         if (!parsedData || !user) return;
-
-        // For backups/migrations: Check for fuzzy category matches first
         if (parsedData.categories && parsedData.categories.length > 0) {
             const processor = new ImportProcessor(user.id);
             setIsProcessing(true);
             try {
-                // 1. Analyze Category Conflicts
                 const foundConflicts = await processor.analyzeCategoryConflicts(parsedData);
-
-                // 2. Analyze Recurring Conflicts
                 const foundRecurringConflicts = await processor.analyzeRecurringConflicts(parsedData);
 
                 if (foundConflicts.length > 0 || foundRecurringConflicts.length > 0) {
@@ -354,7 +335,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                     setRecurringConflicts(foundRecurringConflicts);
                     setStep('resolving_conflicts');
                     setIsProcessing(false);
-                    return; // Stop here, wait for user resolution
+                    return;
                 }
             } catch (e) {
                 console.warn("Failed to analyze conflicts", e);
@@ -362,8 +343,6 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                 setIsProcessing(false);
             }
         }
-
-        // If no categories or no conflicts, proceed directly
         await handleImportAfterMerge(new Map(), new Set());
     };
 
@@ -375,16 +354,26 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         const processor = new ImportProcessor(user.id);
 
         try {
-            await processor.process(parsedData, (current, total, msg) => {
+            const result = await processor.process(parsedData, (current, total, msg) => {
                 const pct = Math.round((current / total) * 100);
                 setProgress(pct);
                 setProgressMessage(msg);
             }, mergeMap, skippedRecurringIds);
 
+            setImportResult(result);
             setStep('success');
+
+            setIsSyncing(true);
+            setProgressMessage(t("import.syncing", "Syncing to cloud..."));
+            try {
+                await syncManager.pushOnly();
+            } finally {
+                setIsSyncing(false);
+            }
+
             onImportComplete({
-                transactions: parsedData.transactions.length,
-                categories: parsedData.categories?.length || 0
+                transactions: result.transactions,
+                categories: result.categories
             });
         } catch (err: any) {
             setError(err.message || "Import failed during processing");
@@ -394,7 +383,6 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         }
     };
 
-    // Mapping Validation
     const isMappingValid = csvMapping.dateColumn && csvMapping.amountColumn && csvMapping.descriptionColumn;
 
     return (
@@ -417,554 +405,145 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                 </DialogHeader>
 
                 <div className="py-4">
-                    {/* STEP 1: SELECT TYPE */}
-                    {step === 'select_type' && (
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <Card
-                                className="cursor-pointer hover:border-primary transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
-                                onClick={() => handleSelectType('backup')}
-                            >
-                                <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
-                                    <FileJson className="h-10 w-10 mb-4 text-blue-500" />
-                                    <h3 className="font-semibold text-lg mb-1">{t("import.type_backup", "System Backup")}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        {t("import.type_backup_desc", "Restore from an GoNuts backup or migrate from the old Turtlet app.")}
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            <Card
-                                className="cursor-pointer hover:border-primary transition-colors hover:bg-slate-50 dark:hover:bg-slate-900 relative group"
-                                onClick={() => handleSelectType('bank_csv')}
-                            >
-                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            toast.info(t("import.bank_supported_info", "Supported: Revolut, Intesa, N26, and any bank with standard CSV export."), {
-                                                description: t("import.bank_supported_desc", "Maps Date, Amount, and Description columns manually.")
-                                            });
-                                        }}
-                                    >
-                                        <Info className="h-4 w-4 text-muted-foreground" />
-                                    </Button>
-                                </div>
-                                <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
-                                    <FileSpreadsheet className="h-10 w-10 mb-4 text-green-500" />
-                                    <h3 className="font-semibold text-lg mb-1">{t("import.type_bank", "Bank Export")}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        {t("import.type_bank_desc", "Import transactions from CSV/Excel files (Revolut, Intesa, etc).")}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </div>
+                    {(step === 'select_type' || step === 'select_bank') && (
+                        <ImportTypeSelection
+                            step={step}
+                            onSelectType={handleSelectType}
+                            onSelectBank={handleSelectBank}
+                            onBack={() => setStep('select_type')}
+                            onDownloadCategories={handleDownloadCategories}
+                        />
                     )}
 
-                    {/* STEP 1.5: SELECT BANK */}
-                    {step === 'select_bank' && (
-                        <div>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-4">
-                                <Card
-                                    className="cursor-pointer hover:border-primary transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
-                                    onClick={() => handleSelectBank('intesa')}
-                                >
-                                    <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
-                                        <Building2 className="h-8 w-8 mb-3 text-orange-600" />
-                                        <h3 className="font-semibold text-md mb-1">Intesa Sanpaolo</h3>
-                                        <p className="text-xs text-muted-foreground">Excel (.xlsx)</p>
-                                    </CardContent>
-                                </Card>
+                    {step === 'upload' && (
+                        <ImportUploadStep
+                            importType={importType}
+                            selectedBank={selectedBank}
+                            isProcessing={isProcessing}
+                            error={error}
+                            onFileSelect={handleFileSelect}
+                            onDownloadTemplate={handleDownloadTemplate}
+                        />
+                    )}
 
-                                <Card
-                                    className="cursor-pointer hover:border-primary transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
-                                    onClick={() => handleSelectBank('revolut')}
-                                >
-                                    <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
-                                        <Building2 className="h-8 w-8 mb-3 text-blue-500" />
-                                        <h3 className="font-semibold text-md mb-1">Revolut</h3>
-                                        <p className="text-xs text-muted-foreground">CSV Export</p>
-                                    </CardContent>
-                                </Card>
-
-                                <Card
-                                    className="cursor-pointer hover:border-primary transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
-                                    onClick={() => handleSelectBank('generic')}
-                                >
-                                    <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
-                                        <Command className="h-8 w-8 mb-3 text-slate-500" />
-                                        <h3 className="font-semibold text-md mb-1">Generic CSV</h3>
-                                        <p className="text-xs text-muted-foreground">Custom Mapping</p>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                            <div className="flex justify-center">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleDownloadCategories}
-                                    className="text-xs gap-2"
-                                >
-                                    <Download className="h-3.5 w-3.5" />
-                                    Download Category List
+                    {step === 'mapping' && (
+                        <div className="space-y-4">
+                            <ImportCsvMapping
+                                csvHeaders={csvHeaders}
+                                csvPreviewRows={csvPreviewRows}
+                                csvMapping={csvMapping}
+                                setCsvMapping={setCsvMapping}
+                            />
+                            <div className="flex justify-end pt-4">
+                                <Button onClick={handleCsvMappingComplete} disabled={!isMappingValid}>
+                                    {t("common.next", "Next")} <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
                             </div>
                         </div>
                     )}
 
-                    {/* STEP 2: UPLOAD */}
-                    {step === 'upload' && (
-                        <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl bg-slate-50 dark:bg-slate-950 relative">
-                            {/* Template Download Button for Bank CVS */}
-                            {importType === 'bank_csv' && selectedBank === 'generic' && !isProcessing && (
-                                <div className="absolute top-4 right-4">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleDownloadTemplate}
-                                        className="text-xs flex items-center gap-2 h-8"
-                                        title={t("import.template_download", "Download a CSV template")}
-                                    >
-                                        <Download className="h-3.5 w-3.5" />
-                                        {t("import.template_download", "Template")}
-                                    </Button>
-                                </div>
-                            )}
-
-                            {isProcessing ? (
-                                <div className="flex flex-col items-center">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                                    <p className="text-sm text-muted-foreground">{t("import.analyzing_file", "Analyzing file...")}</p>
-                                </div>
-                            ) : (
-                                <>
-                                    {importType === 'bank_csv' ? (
-                                        <FileSpreadsheet className="h-10 w-10 mb-4 text-muted-foreground" />
-                                    ) : (
-                                        <Upload className="h-10 w-10 mb-4 text-muted-foreground" />
-                                    )}
-                                    <p className="text-sm text-muted-foreground mb-4 text-center">
-                                        {importType === 'bank_csv'
-                                            ? selectedBank === 'intesa' ? "Select your Intesa Sanpaolo .xlsx file" : t("import.select_csv_bank", "Select a .csv file from your bank.")
-                                            : t("import.select_json_backup", "Select a .json file to restore your backup.")}
-                                    </p>
-                                    <Button onClick={() => fileInputRef.current?.click()}>
-                                        {t("import.choose_file", "Choose File")}
-                                    </Button>
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        className="hidden"
-                                        accept={selectedBank === 'intesa' ? ".xlsx" : importType === 'bank_csv' ? ".csv" : ".json"}
-                                        onChange={handleFileSelect}
-                                        onClick={(e) => { (e.target as any).value = null; }} // Reset to allow re-selection of same file
-                                    />
-                                    {error && (
-                                        <div className="mt-4 p-3 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded text-sm flex items-center">
-                                            <AlertTriangle className="h-4 w-4 mr-2" />
-                                            {error}
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    )}
-
-                    {/* STEP 2.5: MAPPING (CSV ONLY) */}
-                    {step === 'mapping' && (
-
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div className="space-y-2">
-                                    <Label>{t("import.col_date", "Date Column")}</Label>
-                                    <Select
-                                        value={csvMapping.dateColumn}
-                                        onValueChange={(v) => setCsvMapping(p => ({ ...p, dateColumn: v }))}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder={t("import.col_select_placeholder", "Select column")} /></SelectTrigger>
-                                        <SelectContent>
-                                            {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>{t("import.col_amount", "Amount Column")}</Label>
-                                    <Select
-                                        value={csvMapping.amountColumn}
-                                        onValueChange={(v) => setCsvMapping(p => ({ ...p, amountColumn: v }))}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder={t("import.col_select_placeholder", "Select column")} /></SelectTrigger>
-                                        <SelectContent>
-                                            {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>{t("import.col_fee", "Fee Column (Optional)")}</Label>
-                                    <Select
-                                        value={csvMapping.feeColumn || ""}
-                                        onValueChange={(v) => setCsvMapping(p => ({ ...p, feeColumn: v === "none" ? undefined : v }))}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder={t("import.col_select_placeholder", "Select column")} /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none" className="text-muted-foreground font-light">{t("import.col_none", "None")}</SelectItem>
-                                            {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    {csvMapping.feeColumn && (
-                                        <p className="text-[10px] text-blue-600 dark:text-blue-400">
-                                            {t("import.fee_note", "Note: Tax will be added to the amount (Amount + Fee).")}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>{t("import.col_category", "Category Column (Optional)")}</Label>
-                                    <Select
-                                        value={csvMapping.categoryColumn || ""}
-                                        onValueChange={(v) => setCsvMapping(p => ({ ...p, categoryColumn: v === "none" ? undefined : v }))}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder={t("import.col_select_placeholder", "Select column")} /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none" className="text-muted-foreground font-light">{t("import.col_none", "None")}</SelectItem>
-                                            {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>{t("import.col_description", "Description Column")}</Label>
-                                    <Select
-                                        value={csvMapping.descriptionColumn}
-                                        onValueChange={(v) => setCsvMapping(p => ({ ...p, descriptionColumn: v }))}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder={t("import.col_select_placeholder", "Select column")} /></SelectTrigger>
-                                        <SelectContent>
-                                            {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="border rounded-lg overflow-x-auto w-full relative max-w-[80vw] sm:max-w-[720px]">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            {csvHeaders.map(h => (
-                                                <TableHead key={h} className="bg-slate-50 dark:bg-slate-900 whitespace-nowrap">{h}</TableHead>
-                                            ))}
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {csvPreviewRows.map((row, i) => (
-                                            <TableRow key={i}>
-                                                {csvHeaders.map(h => (
-                                                    <TableCell key={h} className="whitespace-nowrap">{row[h]}</TableCell>
-                                                ))}
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <p className="text-xs text-muted-foreground">{t("import.preview_rows", "Showing first 5 rows for preview.")}</p>
-                        </div>
-                    )}
-
-                    {/* STEP 2.75: REVOLUT CONFIG */}
                     {step === 'revolut_config' && (
-                        <div className="flex flex-col items-center justify-center p-8 space-y-6">
-                            <div className="h-16 w-16 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400">
-                                <Settings2 className="h-8 w-8" />
+                        <div className="space-y-4">
+                            <ImportRevolutConfig
+                                includeSavings={revolutIncludeSavings}
+                                setIncludeSavings={setRevolutIncludeSavings}
+                            />
+                            <div className="flex justify-end pt-4">
+                                <Button onClick={handleRevolutConfigComplete} disabled={isProcessing}>
+                                    {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {t("common.next", "Next")} <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
                             </div>
-                            <div className="text-center">
-                                <h3 className="text-lg font-semibold">{t("import.revolut_title", "Revolut Import Settings")}</h3>
-                                <p className="text-muted-foreground text-sm max-w-md mt-2">
-                                    {t("import.revolut_desc", "We detected a Revolut export. Would you like to import transfers to/from your savings accounts and pockets?")}
-                                </p>
-                            </div>
-
-                            <Card className="w-full max-w-md">
-                                <CardContent className="pt-6">
-                                    <div className="flex items-center justify-between space-x-2">
-                                        <div className="space-y-0.5">
-                                            <Label htmlFor="include-savings" className="text-base">{t("import.include_savings", "Include Savings & Pockets")}</Label>
-                                            <p className="text-xs text-muted-foreground">
-                                                {t("import.include_savings_desc", "If enabled, transfers to Vaults/Pockets are imported as expenses or income. If disabled, they are ignored to avoid duplicates or noise.")}
-                                            </p>
-                                        </div>
-                                        <Switch
-                                            id="include-savings"
-                                            checked={revolutIncludeSavings}
-                                            onCheckedChange={setRevolutIncludeSavings}
-                                        />
-                                    </div>
-                                </CardContent>
-                            </Card>
                         </div>
                     )}
 
-                    {/* STEP 3: PREVIEW */}
                     {step === 'preview' && parsedData && (
                         <div className="space-y-4">
-                            <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-lg">
-                                <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider mb-3">{t("import.found_data", "Found Data")}</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-white dark:bg-slate-800 p-3 rounded border">
-                                        <span className="text-2xl font-bold block">{parsedData.transactions.length}</span>
-                                        <span className="text-xs text-muted-foreground">{t("transactions", "Transactions")}</span>
-                                    </div>
-                                    <div className="bg-white dark:bg-slate-800 p-3 rounded border">
-                                        <span className="text-2xl font-bold block">{parsedData.categories?.length || 0}</span>
-                                        <span className="text-xs text-muted-foreground">{t("categories", "Categories")}</span>
-                                    </div>
-                                    {parsedData.recurring && parsedData.recurring.length > 0 && (
-                                        <div className="bg-white dark:bg-slate-800 p-3 rounded border">
-                                            <span className="text-2xl font-bold block">{parsedData.recurring.length}</span>
-                                            <span className="text-xs text-muted-foreground">{t("recurring_transactions", "Recurring")}</span>
-                                        </div>
-                                    )}
-                                    <div className="bg-white dark:bg-slate-800 p-3 rounded border">
-                                        <span className="text-2xl font-bold block capitalize flex items-center gap-2">
-                                            {parsedData.source === 'legacy_vue' ? <><Turtle className="w-6 h-6 text-green-500" /> {t("import.turtlet_app", "Turtlet App")}</> :
-                                                parsedData.source === 'antigravity_backup' ? 'GoNuts' : 'CSV Export'}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">{t("import.source", "Source")}</span>
-                                    </div>
-                                </div>
+                            <ImportPreview parsedData={parsedData} />
+                            <div className="flex justify-end gap-2 pt-4">
+                                <Button variant="outline" onClick={resetState}>
+                                    {t("common.cancel", "Cancel")}
+                                </Button>
+                                <Button onClick={handlePrepareReconciliation} disabled={isProcessing}>
+                                    {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {t("import.proceed_to_categorization", "Review & Categorize")} <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
                             </div>
-
-                            {parsedData.source === 'legacy_vue' && (
-                                <div className="text-sm p-3 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded border border-blue-100 dark:border-blue-900">
-                                    <p><strong>{t("import.migration_mode", "Migration Mode")}:</strong> {t("import.migration_mode_desc", "We will automatically migrate your categories to the new structure.")}</p>
-                                </div>
-                            )}
-
-                            {parsedData.source === 'generic_csv' && (
-                                <div className="text-sm p-3 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded border border-blue-100 dark:border-blue-900">
-                                    <p><strong>{t("import.csv_note", "Note")}:</strong> {t("import.csv_note_desc", "Transactions will be set to 'Uncategorized' initially. Use the rules engine in the next step to categorize them.")}</p>
-                                </div>
-                            )}
-
-                            {/* Group Data Warning */}
-                            {(() => {
-                                // We analyze on the fly in render for simplicity, or we could have done it in effect
-                                // Since it's fast, render is fine.
-                                if (user && parsedData) {
-                                    const processor = new ImportProcessor(user.id);
-                                    const groupAnalysis = processor.analyzeGroupData(parsedData);
-
-                                    if (groupAnalysis.hasGroups) {
-                                        return (
-                                            <div className="text-sm p-3 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300 rounded border border-yellow-100 dark:border-yellow-900 flex gap-2">
-                                                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                                                <div>
-                                                    <p className="font-semibold">{t("import.group_warning_title", "Group Data Detected")}</p>
-                                                    <p>{t("import.group_warning_desc", "This file contains transactions associated with a group. Please note that group associations will be removed and these transactions will be imported as personal expenses.")}</p>
-                                                    <p className="mt-1 text-xs opacity-90">{t("import.group_warning_count", "Affected transactions: {{count}}", { count: groupAnalysis.groupTransactionCount })}</p>
-                                                </div>
-                                            </div>
-                                        )
-                                    }
-                                }
-                                return null;
-                            })()}
                         </div>
                     )}
 
-                    {/* STEP 3.5: RECONCILIATION */}
                     {step === 'resolving_conflicts' && (
-                        <div className="py-4">
-                            <ImportConflictResolver
-                                conflicts={conflicts}
-                                recurringConflicts={recurringConflicts}
-                                onResolve={async (mergeMap, skippedRecurringIds) => {
-                                    await handleImportAfterMerge(mergeMap, skippedRecurringIds);
-                                }}
-                                onCancel={() => {
-                                    setStep('preview');
-                                }}
-                            />
-                        </div>
+                        <ImportConflictResolver
+                            conflicts={conflicts}
+                            recurringConflicts={recurringConflicts}
+                            onResolve={handleImportAfterMerge}
+                            onCancel={() => setStep('preview')}
+                        />
                     )}
 
                     {step === 'reconciliation' && parsedData && (
-                        <div className="space-y-4">
-                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 p-4 rounded-lg flex items-start gap-3">
-                                <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                                <div className="text-sm text-yellow-800 dark:text-yellow-300">
-                                    <p className="font-medium">Import Limitations</p>
-                                    <p>Group expenses and creating new categories are not supported here. We recommend assigning a default category for now.</p>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-900 p-3 rounded">
-                                <div>
-                                    <p className="text-sm font-medium">Categorization</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {parsedData.transactions.filter(t => !t.category_id).length} uncategorized items
-                                    </p>
-                                </div>
-                                <Button size="sm" variant="outline" onClick={() => handlePrepareReconciliation()}>
-                                    <RefreshCw className="h-3.5 w-3.5 mr-2" />
-                                    Re-run Rules
-                                </Button>
-                            </div>
-
-                            <div className="border rounded-md overflow-hidden max-h-[400px] overflow-y-auto overflow-x-auto w-full relative max-w-[80vw] sm:max-w-[720px]">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Description</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                            <TableHead>Category</TableHead>
-                                            <TableHead className="w-[100px]"></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {parsedData.transactions.slice(0, 100).map((tx, idx) => {
-                                            // Pagination limit to 100 for perf in MVP
-                                            return (
-                                                <TableRow key={idx}>
-                                                    <TableCell className="text-xs whitespace-nowrap">{tx.date}</TableCell>
-                                                    <TableCell className="text-sm font-medium max-w-[200px] truncate" title={tx.description}>
-                                                        {tx.description}
-                                                    </TableCell>
-                                                    <TableCell className="text-sm whitespace-nowrap">
-                                                        {new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(tx.amount)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Select
-                                                            value={tx.category_id || "uncategorized"}
-                                                            onValueChange={(val) => handleManualCategoryChange(tx, val === "uncategorized" ? "" : val)}
-                                                        >
-                                                            <SelectTrigger className="h-8 text-xs w-[140px]">
-                                                                <SelectValue placeholder="Uncategorized" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="uncategorized" className="text-muted-foreground">Uncategorized</SelectItem>
-                                                                <SelectItem value="SKIP" className="text-red-500 font-medium">⛔ Ignore (Skip)</SelectItem>
-                                                                {activeCategories?.map(c => ( // Use activeCategories here
-                                                                    <SelectItem key={c.id} value={c.id}>
-                                                                        <span className="flex items-center gap-2">
-                                                                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
-                                                                            {c.name}
-                                                                        </span>
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </TableCell>
-                                                    <TableCell className="flex items-center gap-1">
-                                                        {tx.category_id && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8"
-                                                                title="Create rule for this"
-                                                                onClick={() => handleCreateRule(tx, tx.category_id!)}
-                                                            >
-                                                                <Wand2 className="h-3.5 w-3.5 text-blue-500" />
-                                                            </Button>
-                                                        )}
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                                            title="Remove transaction"
-                                                            onClick={() => handleDeleteTransaction(idx)}
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                        {parsedData.transactions.length > 100 && (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="text-center text-xs text-muted-foreground p-2">
-                                                    And {parsedData.transactions.length - 100} more...
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </div>
+                        <ImportReconciliation
+                            parsedData={parsedData}
+                            onImport={handleImport}
+                            onCreateRule={handleCreateRule}
+                            onManualCategoryChange={handleManualCategoryChange}
+                            onDeleteTransaction={handleDeleteTransaction}
+                        />
                     )}
 
-                    {/* STEP 4: IMPORTING */}
                     {step === 'importing' && (
-                        <div className="space-y-6 py-8">
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>Progress</span>
-                                    <span>{progress}%</span>
+                        <div className="flex flex-col items-center justify-center py-10 space-y-4">
+                            <div className="relative w-20 h-20">
+                                <Loader2 className="w-20 h-20 animate-spin text-primary opacity-20" />
+                                <div className="absolute top-0 left-0 w-20 h-20 flex items-center justify-center text-sm font-bold">
+                                    {progress}%
                                 </div>
-                                <Progress value={progress} className="h-2" />
                             </div>
-                            <p className="text-center text-sm text-muted-foreground animate-pulse">
-                                {progressMessage || "Processing data..."}
-                            </p>
+                            <p className="font-medium text-lg animate-pulse">{progressMessage}</p>
+                            <Progress value={progress} className="w-[60%]" />
+                            {isSyncing && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    {t("import.syncing_desc", "Backing up to secure cloud storage...")}
+                                </p>
+                            )}
                         </div>
                     )}
 
-                    {/* STEP 5: SUCCESS */}
-                    {step === 'success' && (
-                        <div className="flex flex-col items-center justify-center p-6 text-center space-y-4">
-                            <div className="h-16 w-16 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center text-green-600 dark:text-green-400">
-                                <CheckCircle2 className="h-8 w-8" />
+                    {step === 'success' && importResult && (
+                        <div className="flex flex-col items-center justify-center py-10 space-y-6 text-center">
+                            <div className="h-20 w-20 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center text-green-600 dark:text-green-400">
+                                <CheckCircle2 className="h-10 w-10" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold">Import Complete</h3>
-                                <p className="text-muted-foreground">Your data has been successfully imported.</p>
+                                <h3 className="text-2xl font-bold text-green-700 dark:text-green-400 mb-2">{t("import.success_title", "Import Complete!")}</h3>
+                                <p className="text-muted-foreground">{t("import.success_desc", "Your data has been successfully imported and synced.")}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 w-full max-w-sm mt-4">
+                                <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded">
+                                    <div className="text-2xl font-bold">{importResult.transactions}</div>
+                                    <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("transactions", "Transactions")}</div>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded">
+                                    <div className="text-2xl font-bold">{importResult.categories}</div>
+                                    <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("categories", "Categories")}</div>
+                                </div>
+                            </div>
+                            {importResult.orphanCount > 0 && (
+                                <div className="p-3 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300 rounded text-sm flex items-center max-w-md">
+                                    <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
+                                    {t("import.orphan_warning", "{{count}} transactions could not be categorized automatically and were set to Uncategorized.", { count: importResult.orphanCount })}
+                                </div>
+                            )}
+                            <div className="pt-4">
+                                <Button onClick={() => handleOpenChange(false)} size="lg">
+                                    {t("common.done", "Done")}
+                                </Button>
                             </div>
                         </div>
                     )}
                 </div>
-
-                <DialogFooter className="sm:justify-between">
-                    {step !== 'success' && step !== 'importing' && (
-                        <Button variant="ghost" onClick={() => handleOpenChange(false)}>
-                            Cancel
-                        </Button>
-                    )}
-
-                    {step === 'mapping' && (
-                        <Button onClick={handleCsvMappingComplete} disabled={isProcessing || !isMappingValid}>
-                            Next <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    )}
-
-                    {step === 'revolut_config' && (
-                        <Button onClick={handleRevolutConfigComplete} disabled={isProcessing}>
-                            Next <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    )}
-
-                    {step === 'preview' && (
-                        <Button
-                            onClick={importType === 'bank_csv' ? handlePrepareReconciliation : handleImport}
-                            disabled={isProcessing}
-                        >
-                            {importType === 'bank_csv' ? "Reconcile Data" : "Import Now"}
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    )}
-
-                    {step === 'reconciliation' && (
-                        <Button onClick={handleImport} disabled={isProcessing}>
-                            Confirm Import <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    )}
-
-                    {step === 'success' && (
-                        <Button onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
-                            Done
-                        </Button>
-                    )}
-                </DialogFooter>
             </DialogContent>
-        </Dialog >
+        </Dialog>
     );
 }

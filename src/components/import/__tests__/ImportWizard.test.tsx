@@ -21,6 +21,14 @@ jest.mock('react-i18next', () => ({
             return key;
         },
     }),
+    initReactI18next: {
+        type: '3rdParty',
+        init: () => { },
+    },
+}));
+
+jest.mock('../../../i18n', () => ({
+    t: (key: string) => key,
 }));
 
 describe('ImportWizard', () => {

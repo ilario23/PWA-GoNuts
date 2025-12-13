@@ -316,96 +316,8 @@ export class AppDatabase extends Dexie {
 
   constructor() {
     super("ExpenseTrackerDB");
+    // Version 1: Initial (and final) schema
     this.version(1).stores({
-      transactions:
-        "id, user_id, category_id, context_id, type, date, year_month, pendingSync, deleted_at",
-      categories: "id, user_id, type, pendingSync, deleted_at",
-      contexts: "id, user_id, pendingSync, deleted_at",
-      recurring_transactions:
-        "id, user_id, type, frequency, pendingSync, deleted_at",
-      user_settings: "user_id", // Primary key is user_id
-    });
-
-    // Version 2: Add groups support
-    this.version(2).stores({
-      groups: "id, created_by, pendingSync, deleted_at",
-      group_members: "id, group_id, user_id, pendingSync, removed_at",
-      transactions:
-        "id, user_id, group_id, category_id, context_id, type, date, year_month, pendingSync, deleted_at",
-      categories: "id, user_id, group_id, type, pendingSync, deleted_at",
-      contexts: "id, user_id, pendingSync, deleted_at",
-      recurring_transactions:
-        "id, user_id, group_id, type, frequency, pendingSync, deleted_at",
-      user_settings: "user_id",
-    });
-
-    // Version 3: Add category budgets
-    this.version(3).stores({
-      groups: "id, created_by, pendingSync, deleted_at",
-      group_members: "id, group_id, user_id, pendingSync, removed_at",
-      transactions:
-        "id, user_id, group_id, category_id, context_id, type, date, year_month, pendingSync, deleted_at",
-      categories: "id, user_id, group_id, type, pendingSync, deleted_at",
-      contexts: "id, user_id, pendingSync, deleted_at",
-      recurring_transactions:
-        "id, user_id, group_id, type, frequency, pendingSync, deleted_at",
-      user_settings: "user_id",
-      category_budgets:
-        "id, user_id, category_id, period, pendingSync, deleted_at",
-    });
-
-    // Version 4: Add profiles
-    this.version(4).stores({
-      groups: "id, created_by, pendingSync, deleted_at",
-      group_members: "id, group_id, user_id, pendingSync, removed_at",
-      transactions:
-        "id, user_id, group_id, category_id, context_id, type, date, year_month, pendingSync, deleted_at",
-      categories: "id, user_id, group_id, type, pendingSync, deleted_at",
-      contexts: "id, user_id, pendingSync, deleted_at",
-      recurring_transactions:
-        "id, user_id, group_id, type, frequency, pendingSync, deleted_at",
-      user_settings: "user_id",
-      category_budgets:
-        "id, user_id, category_id, period, pendingSync, deleted_at",
-      profiles: "id, pendingSync",
-    });
-
-    // Version 5: Add mock users (guests) support
-    this.version(5).stores({
-      groups: "id, created_by, pendingSync, deleted_at",
-      group_members:
-        "id, group_id, user_id, guest_name, is_guest, pendingSync, removed_at", // Added guest fields
-      transactions:
-        "id, user_id, group_id, paid_by_member_id, category_id, context_id, type, date, year_month, pendingSync, deleted_at", // Added paid_by_member_id
-      categories: "id, user_id, group_id, type, pendingSync, deleted_at",
-      contexts: "id, user_id, pendingSync, deleted_at",
-      recurring_transactions:
-        "id, user_id, group_id, paid_by_member_id, type, frequency, pendingSync, deleted_at", // Added paid_by_member_id
-      user_settings: "user_id",
-      category_budgets:
-        "id, user_id, category_id, period, pendingSync, deleted_at",
-      profiles: "id, pendingSync",
-    });
-
-    // Version 6: Add name index to categories for fallback lookup
-    this.version(6).stores({
-      groups: "id, created_by, pendingSync, deleted_at",
-      group_members:
-        "id, group_id, user_id, guest_name, is_guest, pendingSync, removed_at",
-      transactions:
-        "id, user_id, group_id, paid_by_member_id, category_id, context_id, type, date, year_month, pendingSync, deleted_at",
-      categories: "id, user_id, group_id, name, type, pendingSync, deleted_at", // Added name
-      contexts: "id, user_id, pendingSync, deleted_at",
-      recurring_transactions:
-        "id, user_id, group_id, paid_by_member_id, type, frequency, pendingSync, deleted_at",
-      user_settings: "user_id",
-      category_budgets:
-        "id, user_id, category_id, period, pendingSync, deleted_at",
-      profiles: "id, pendingSync",
-    });
-
-    // Version 7: Add import_rules
-    this.version(7).stores({
       groups: "id, created_by, pendingSync, deleted_at",
       group_members:
         "id, group_id, user_id, guest_name, is_guest, pendingSync, removed_at",
@@ -414,7 +326,7 @@ export class AppDatabase extends Dexie {
       categories: "id, user_id, group_id, name, type, pendingSync, deleted_at",
       contexts: "id, user_id, pendingSync, deleted_at",
       recurring_transactions:
-        "id, user_id, group_id, paid_by_member_id, type, frequency, pendingSync, deleted_at",
+        "id, user_id, group_id, paid_by_member_id, category_id, context_id, type, frequency, pendingSync, deleted_at",
       user_settings: "user_id",
       category_budgets:
         "id, user_id, category_id, period, pendingSync, deleted_at",

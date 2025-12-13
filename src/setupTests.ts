@@ -1,6 +1,19 @@
 import '@testing-library/jest-dom';
 import 'fake-indexeddb/auto';
 
+// Mock Supabase client to avoid import.meta errors
+jest.mock("./lib/supabase", () => ({
+    supabase: {
+        from: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn(),
+    },
+}));
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
     writable: true,

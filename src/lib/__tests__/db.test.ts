@@ -17,7 +17,17 @@ describe("db", () => {
     expect(db.category_budgets).toBeDefined();
   });
 
+  it("should have correct indices on recurring_transactions", () => {
+    const table = db.recurring_transactions;
+    expect(table.schema.indexes.some((i) => i.name === "category_id")).toBe(
+      true
+    );
+    expect(table.schema.indexes.some((i) => i.name === "context_id")).toBe(
+      true
+    );
+  });
+
   it("should have correct version", () => {
-    expect(db.verno).toBe(3);
+    expect(db.verno).toBe(1);
   });
 });

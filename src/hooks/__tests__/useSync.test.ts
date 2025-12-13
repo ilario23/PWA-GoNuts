@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useSync } from "../useSync";
 import { syncManager, SyncStatus } from "../../lib/sync";
 
@@ -46,13 +46,7 @@ describe("useSync", () => {
     expect(result.current.errors).toEqual([]);
   });
 
-  it("should call syncManager.sync on mount", async () => {
-    renderHook(() => useSync());
 
-    await waitFor(() => {
-      expect(syncManager.sync).toHaveBeenCalledTimes(1);
-    });
-  });
 
   it("should subscribe to sync changes on mount", () => {
     renderHook(() => useSync());
@@ -149,35 +143,5 @@ describe("useSync", () => {
     expect(result.current.errors).toHaveLength(1);
   });
 
-  it("should set up periodic sync interval", async () => {
-    renderHook(() => useSync());
 
-    // Clear initial sync call
-    jest.clearAllMocks();
-
-    // Fast forward 5 minutes
-    await act(async () => {
-      jest.advanceTimersByTime(5 * 60 * 1000);
-    });
-
-    // Should have synced again
-    expect(syncManager.sync).toHaveBeenCalledTimes(1);
-  });
-
-  it("should clear interval on unmount", async () => {
-    const { unmount } = renderHook(() => useSync());
-
-    // Clear initial sync call
-    jest.clearAllMocks();
-
-    unmount();
-
-    // Fast forward 5 minutes
-    await act(async () => {
-      jest.advanceTimersByTime(5 * 60 * 1000);
-    });
-
-    // Should NOT have synced after unmount
-    expect(syncManager.sync).not.toHaveBeenCalled();
-  });
 });

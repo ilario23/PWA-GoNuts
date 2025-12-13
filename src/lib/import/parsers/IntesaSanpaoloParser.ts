@@ -19,6 +19,28 @@ export class IntesaSanpaoloParser implements TransactionParser {
                     const workbook = XLSX.read(data, { type: 'array' });
                     const sheetName = workbook.SheetNames[0];
                     const sheet = workbook.Sheets[sheetName];
+
+                    // Fix for Intesa Sanpaolo exports with corrupted !ref range
+                    // The exported file may have incorrect !ref (e.g., A1:J33) but actual cells extend much further
+                    // We need to recalculate the correct range by scanning all cell keys
+                    const cellKeys = Object.keys(sheet).filter(k => !k.startsWith('!'));
+                    if (cellKeys.length > 0) {
+                        let maxRow = 0;
+                        let maxCol = 0;
+                        cellKeys.forEach(key => {
+                            const match = key.match(/^([A-Z]+)(\d+)$/);
+                            if (match) {
+                                const col = XLSX.utils.decode_col(match[1]);
+                                const row = parseInt(match[2]);
+                                if (row > maxRow) maxRow = row;
+                                if (col > maxCol) maxCol = col;
+                            }
+                        });
+                        // Update the sheet range to the actual extent of data
+                        const newRef = `A1:${XLSX.utils.encode_col(maxCol)}${maxRow}`;
+                        sheet['!ref'] = newRef;
+                    }
+
                     const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
                     // Find header row
@@ -119,7 +141,7 @@ export class IntesaSanpaoloParser implements TransactionParser {
                     }
 
                     resolve({
-                        source: 'generic_csv', // Reuse generic source type for now to use standard UI flow
+                        source: 'intesa_sanpaolo',
                         transactions: transactions,
                         metadata: {
                             totalItems: transactions.length

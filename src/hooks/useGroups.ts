@@ -480,7 +480,7 @@ export function useGroups() {
         share: member.share,
         shouldPay,
         hasPaid,
-        balance: shouldPay - hasPaid, // Fixed: Positive = owes money, Negative = owed money
+        balance: hasPaid - shouldPay, // Fixed: Positive = owed money (Creditor), Negative = owes money (Debtor)
         displayName,
         avatarUrl: profile?.avatar_url,
         isGuest: !!member.is_guest,

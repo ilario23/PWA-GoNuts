@@ -425,11 +425,11 @@ export function useStatistics(params?: UseStatisticsParams) {
 
   // Calculate net balances
   const monthlyNetBalance = useMemo(
-    () => monthlyStats.income - monthlyStats.expense,
+    () => monthlyStats.income + monthlyStats.expense,
     [monthlyStats]
   );
   const yearlyNetBalance = useMemo(
-    () => yearlyStats.income - yearlyStats.expense,
+    () => yearlyStats.income + yearlyStats.expense,
     [yearlyStats]
   );
 
@@ -1274,27 +1274,27 @@ export function useStatistics(params?: UseStatisticsParams) {
       },
       balance: {
         current: monthlyNetBalance,
-        previous: previousMonthStats.income - previousMonthStats.expense,
+        previous: previousMonthStats.income + previousMonthStats.expense,
         change: calcChange(
           monthlyNetBalance,
-          previousMonthStats.income - previousMonthStats.expense
+          previousMonthStats.income + previousMonthStats.expense
         ),
         trend:
           monthlyNetBalance >=
-            previousMonthStats.income - previousMonthStats.expense
+            previousMonthStats.income + previousMonthStats.expense
             ? "up"
             : "down",
       },
       savingRate: {
         current:
           monthlyStats.income > 0
-            ? ((monthlyStats.income - monthlyStats.expense) /
+            ? ((monthlyStats.income + monthlyStats.expense) /
               monthlyStats.income) *
             100
             : 0,
         previous:
           previousMonthStats.income > 0
-            ? ((previousMonthStats.income - previousMonthStats.expense) /
+            ? ((previousMonthStats.income + previousMonthStats.expense) /
               previousMonthStats.income) *
             100
             : 0,
@@ -1336,27 +1336,27 @@ export function useStatistics(params?: UseStatisticsParams) {
       },
       balance: {
         current: yearlyNetBalance,
-        previous: previousYearStats.income - previousYearStats.expense,
+        previous: previousYearStats.income + previousYearStats.expense,
         change: calcChange(
           yearlyNetBalance,
-          previousYearStats.income - previousYearStats.expense
+          previousYearStats.income + previousYearStats.expense
         ),
         trend:
           yearlyNetBalance >=
-            previousYearStats.income - previousYearStats.expense
+            previousYearStats.income + previousYearStats.expense
             ? "up"
             : "down",
       },
       savingRate: {
         current:
           yearlyStats.income > 0
-            ? ((yearlyStats.income - yearlyStats.expense) /
+            ? ((yearlyStats.income + yearlyStats.expense) /
               yearlyStats.income) *
             100
             : 0,
         previous:
           previousYearStats.income > 0
-            ? ((previousYearStats.income - previousYearStats.expense) /
+            ? ((previousYearStats.income + previousYearStats.expense) /
               previousYearStats.income) *
             100
             : 0,

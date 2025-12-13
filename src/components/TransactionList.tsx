@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Edit, Trash2, Tag, Users } from "lucide-react";
+import { Edit, Trash2, Tag, Users, AlertCircle } from "lucide-react";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { Transaction, Category, Context, Group } from "@/lib/db";
 import { useMobile } from "@/hooks/useMobile";
@@ -19,7 +19,7 @@ import { motion, Variants } from "framer-motion";
 import { FadeIn } from "@/components/ui/fade-in";
 import { getIconComponent } from "@/lib/icons";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { UI_DEFAULTS } from "@/lib/constants";
+import { UI_DEFAULTS, UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { it, enUS } from "date-fns/locale";
 import { MobileTransactionRow } from "./MobileTransactionRow";
@@ -226,13 +226,18 @@ export function TransactionList({
           <TableCell>
             <div className="flex items-center gap-2">
               {t_item.description}
+              {t_item.category_id === UNCATEGORIZED_CATEGORY.ID && (
+                <AlertCircle className="h-4 w-4 text-amber-500" />
+              )}
               <SyncStatusBadge isPending={t_item.pendingSync === 1} />
             </div>
           </TableCell>
           <TableCell className="w-[180px]">
             <div className="flex items-center gap-2">
               {IconComp && <IconComp className="h-4 w-4" aria-hidden="true" />}
-              <span>{category?.name || "-"}</span>
+              <span className={!category && t_item.category_id === UNCATEGORIZED_CATEGORY.ID ? "text-amber-500 font-medium" : ""}>
+                {category?.name || (t_item.category_id === UNCATEGORIZED_CATEGORY.ID ? (t("needs_review") || "Needs Review") : "-")}
+              </span>
             </div>
           </TableCell>
           <TableCell className="w-[130px]">

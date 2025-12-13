@@ -30,6 +30,7 @@ export default {
                 jsx: 'react-jsx',
                 module: 'esnext',
                 moduleResolution: 'bundler',
+                resolveJsonModule: true,
                 allowJs: true,
                 baseUrl: '.',
                 paths: {

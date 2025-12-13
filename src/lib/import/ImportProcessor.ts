@@ -7,6 +7,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { AVAILABLE_ICONS } from "../icons";
 import { findBestMatch } from "../stringUtils";
+import { UNCATEGORIZED_CATEGORY } from "../constants";
 
 // Helpers
 const VALID_ICON_NAMES = new Set(AVAILABLE_ICONS.map(i => i.name));
@@ -36,6 +37,7 @@ export class ImportProcessor {
         categories: number;
         transactions: number;
         recurring: number;
+        orphanCount: number;
     }> {
         if (data.source === 'legacy_vue') {
             return this.processVueImport(data, onProgress, mergedCategoryIds, skippedRecurringIds);
@@ -161,6 +163,7 @@ export class ImportProcessor {
         let importedCategories = 0;
         let importedTransactions = 0;
         let importedRecurring = 0;
+        let orphanCount = 0;
 
         const categoryIdMap = new Map<string, string>();
         const contextIdMap = new Map<string, string>();
@@ -175,17 +178,27 @@ export class ImportProcessor {
         const totalSteps = (data.categories?.length || 0) + (data.contexts?.length || 0) + (data.transactions?.length || 0) + (data.recurring?.length || 0) + (data.budgets?.length || 0);
         let currentStep = 0;
 
+        // Optimization: Fetch all execution data upfront to avoid N+1 queries
+        // CONTEXTS LOOKUP
+        const existingContexts = await db.contexts.where('user_id').equals(this.userId).toArray();
+        const existingContextsMap = new Map(existingContexts.map(c => [c.name, c.id]));
+
+        const contextsToInsert: any[] = [];
+
         // 1. Contexts
         if (data.contexts) {
+            onProgress?.(currentStep, totalSteps, 'Processing Contexts...');
             for (const ctx of data.contexts) {
-                onProgress?.(++currentStep, totalSteps, `Importing Context: ${ctx.name}`);
-                const existing = await db.contexts.where({ name: ctx.name, user_id: this.userId }).first();
-                if (existing) {
-                    if (ctx.id) contextIdMap.set(ctx.id, existing.id);
+                currentStep++;
+                const existingId = existingContextsMap.get(ctx.name);
+                if (existingId) {
+                    if (ctx.id) contextIdMap.set(ctx.id, existingId);
                 } else {
                     const newId = uuidv4();
                     if (ctx.id) contextIdMap.set(ctx.id, newId);
-                    await db.contexts.put({
+
+                    // Add to insert queue
+                    contextsToInsert.push({
                         id: newId,
                         user_id: this.userId,
                         name: ctx.name,
@@ -194,39 +207,54 @@ export class ImportProcessor {
                         deleted_at: null,
                         pendingSync: 1
                     });
+
+                    // Update map so subsequent duplicates in this import are caught
+                    existingContextsMap.set(ctx.name, newId);
                 }
             }
         }
 
+        // CATEGORIES LOOKUP
+        const existingCategories = await db.categories.where('user_id').equals(this.userId).toArray();
+        // Map Name -> ID (lowercase for case insensitive matching)
+        const existingCategoriesMap = new Map(existingCategories.filter(c => !c.deleted_at).map(c => [c.name.toLowerCase(), c.id]));
+        const categoriesToInsert: any[] = [];
+
         // 2. Categories
         if (data.categories) {
-            // Pass 1: IDs
-            for (const cat of data.categories) {
-                if (categoryIdMap.has(cat.id)) continue;
-                const existing = await db.categories
-                    .where('user_id').equals(this.userId)
-                    .filter(c => c.name.toLowerCase() === cat.name.toLowerCase())
-                    .first();
+            onProgress?.(currentStep, totalSteps, 'Processing Categories...');
 
-                if (existing) {
-                    categoryIdMap.set(cat.id, existing.id);
+            // Pass 1: Resolve IDs
+            for (const cat of data.categories) {
+                if (categoryIdMap.has(cat.id)) continue; // Already mapped (from merge)
+
+                const existingId = existingCategoriesMap.get(cat.name.toLowerCase());
+                if (existingId) {
+                    categoryIdMap.set(cat.id, existingId);
                 } else {
+                    // New category
                     categoryIdMap.set(cat.id, uuidv4());
                 }
             }
-            // Pass 2: Insert
-            for (const cat of data.categories) {
-                onProgress?.(++currentStep, totalSteps, `Importing Category: ${cat.name}`);
-                const newId = categoryIdMap.get(cat.id);
-                if (!newId) continue;
 
-                const existing = await db.categories.get(newId);
-                // Check if we need to insert this category
-                // Logic: If we merged it (existing is found via map), verify if we actually need to create it?
-                // If existing is found by ID, we skip.
-                if (!existing) {
-                    await db.categories.put({
-                        id: newId,
+            // Pass 2: Prepare Inserts
+            for (const cat of data.categories) {
+                currentStep++;
+
+                const finalId = categoryIdMap.get(cat.id);
+                if (!finalId) continue;
+
+                // If this ID exists in our existing DB map, we skip insert (it's a merge/duplicate)
+                // However, we need to check if we just generated this ID in Pass 1 (which means it's new)
+                // Or if it was mapped to an EXISTING ID.
+                const isExisting = Array.from(existingCategoriesMap.values()).includes(finalId);
+
+                // Also check if we already queued it for insert (duplicates within import file)
+                const isQueued = categoriesToInsert.some(c => c.id === finalId);
+
+                if (!isExisting && !isQueued) {
+                    categoriesToInsert.push({
+                        id: finalId,
                         user_id: this.userId,
                         name: cat.name,
                         icon: validateIcon(cat.icon),
@@ -239,26 +267,26 @@ export class ImportProcessor {
                     });
                     importedCategories++;
                 }
-
-                // Import category budget if present
-                // Since we are iterating categories, we can check for budgets here or in a separate pass.
-                // The previous implementation had budget logic here OR separate. 
-                // Wait, I saw budget logic in a separate block in previous views.
-                // Ideally keep it separate or integrated.
-                // Let's check if `data.budgets` is available. Yes.
-                // But `processStandardImport` iterates `data.budgets` separately in previous code.
-                // I will stick to separate block loop for budgets to keep logic clean.
             }
         }
 
+        const transactionsToInsert: any[] = [];
+
         // 3. Transactions
         if (data.transactions) {
+            onProgress?.(currentStep, totalSteps, 'Processing Transactions...');
+
+            // Batch processing for transactions
+            // We can just iterate and prepare them
             for (const tx of data.transactions) {
-                onProgress?.(++currentStep, totalSteps, 'Importing Transactions...');
+                currentStep++;
+                // Update UI every 50 transactions to not spam
+                if (currentStep % 50 === 0) onProgress?.(currentStep, totalSteps, 'Importing Transactions...');
 
                 let finalCatId = tx.category_id ? categoryIdMap.get(tx.category_id) : undefined;
                 if (!finalCatId) {
-                    finalCatId = await this.ensureFallbackCategory();
+                    finalCatId = UNCATEGORIZED_CATEGORY.ID;
+                    orphanCount++;
                 }
 
                 const finalCtxId = tx.context_id ? contextIdMap.get(tx.context_id) : undefined;
@@ -278,7 +306,7 @@ export class ImportProcessor {
                     }
                 }
 
-                await db.transactions.put({
+                transactionsToInsert.push({
                     id: uuidv4(),
                     user_id: this.userId,
                     category_id: finalCatId,
@@ -297,19 +325,23 @@ export class ImportProcessor {
             }
         }
 
+        const recurringToInsert: any[] = [];
+
         // 4. Recurring
         if (data.recurring) {
+            onProgress?.(currentStep, totalSteps, 'Processing Recurring...');
             for (const rec of data.recurring) {
-                onProgress?.(++currentStep, totalSteps, `Importing Recurring: ${rec.description}`);
-                // Skip logic if needed
+                currentStep++;
                 if (skippedRecurringIds?.has(rec.id)) continue;
 
-                // ... recurring logic ...
                 const mappedId = rec.category_id ? categoryIdMap.get(rec.category_id) : undefined;
-                const finalCatId = mappedId || await this.ensureFallbackCategory();
+                let finalCatId = mappedId;
+                if (!finalCatId) {
+                    finalCatId = UNCATEGORIZED_CATEGORY.ID;
+                }
                 const finalCtxId = rec.context_id ? contextIdMap.get(rec.context_id) : undefined;
 
-                await db.recurring_transactions.put({
+                recurringToInsert.push({
                     id: uuidv4(),
                     user_id: this.userId,
                     category_id: finalCatId,
@@ -328,37 +360,58 @@ export class ImportProcessor {
             }
         }
 
+        const budgetsToInsert: any[] = [];
+
         // 5. Category Budgets
         if (data.budgets) {
+            onProgress?.(currentStep, totalSteps, 'Processing Budgets...');
+
+            // Check existing budgets first to avoid duplicates
+            // We need to fetch all budgets for this user
+            const existingBudgets = await db.category_budgets.where('user_id').equals(this.userId).toArray();
+            // Map key: category_id + period
+            const existingBudgetsSet = new Set(existingBudgets.map(b => `${b.category_id}_${b.period}`));
+
             for (const budget of data.budgets) {
-                onProgress?.(++currentStep, totalSteps, `Importing Budget for category ${budget.category_id}...`);
+                currentStep++;
                 const mappedCatId = categoryIdMap.get(budget.category_id);
                 if (mappedCatId) {
-                    const catExists = await db.categories.get(mappedCatId);
-                    if (catExists) {
-                        const existingBudget = await db.category_budgets
-                            .where({ category_id: mappedCatId, period: budget.period })
-                            .first();
+                    // Check if category exists (it should, if it was in categories list or existing map)
+                    // If we are creating it now, it's valid. If it's existing, it's valid.
+                    // But if uncategorized?
 
-                        if (!existingBudget) {
-                            await db.category_budgets.put({
-                                id: uuidv4(),
-                                user_id: this.userId,
-                                category_id: mappedCatId,
-                                amount: Number(budget.amount),
-                                period: budget.period,
-                                deleted_at: null,
-                                pendingSync: 1,
-                                created_at: new Date().toISOString(),
-                                updated_at: new Date().toISOString()
-                            });
-                        }
+                    const budgetKey = `${mappedCatId}_${budget.period}`;
+                    if (!existingBudgetsSet.has(budgetKey)) {
+                        budgetsToInsert.push({
+                            id: uuidv4(),
+                            user_id: this.userId,
+                            category_id: mappedCatId,
+                            amount: Number(budget.amount),
+                            period: budget.period,
+                            deleted_at: null,
+                            pendingSync: 1,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        });
+                        // Add to set to prevent duplicates within same file
+                        existingBudgetsSet.add(budgetKey);
                     }
                 }
             }
         }
 
-        return { categories: importedCategories, transactions: importedTransactions, recurring: importedRecurring };
+        // EXECUTE BULK INSERTS
+        onProgress?.(totalSteps, totalSteps, 'Saving to database...');
+
+        await db.transaction('rw', [db.contexts, db.categories, db.transactions, db.recurring_transactions, db.category_budgets], async () => {
+            if (contextsToInsert.length) await db.contexts.bulkPut(contextsToInsert);
+            if (categoriesToInsert.length) await db.categories.bulkPut(categoriesToInsert);
+            if (transactionsToInsert.length) await db.transactions.bulkPut(transactionsToInsert);
+            if (recurringToInsert.length) await db.recurring_transactions.bulkPut(recurringToInsert);
+            if (budgetsToInsert.length) await db.category_budgets.bulkPut(budgetsToInsert);
+        });
+
+        return { categories: importedCategories, transactions: importedTransactions, recurring: importedRecurring, orphanCount };
     }
 
     // --- VUE MIGRATION STRATEGY ---
@@ -377,6 +430,7 @@ export class ImportProcessor {
         let importedCategories = 0;
         let importedTransactions = 0;
         let importedRecurring = 0;
+        let orphanCount = 0;
 
         const categoryIdMap = new Map<string, string>();
         const vueCategoriesMap = new Map<string, any>();
@@ -388,7 +442,7 @@ export class ImportProcessor {
             });
         }
 
-        // Index
+        // Index input categories
         for (const c of (data.categories || [])) {
             vueCategoriesMap.set(c.id, c);
         }
@@ -397,134 +451,166 @@ export class ImportProcessor {
             let currentId: string | undefined = catId;
             let depth = 0;
             while (currentId && depth < 10) {
-                if (ROOT_CATEGORY_TYPES[currentId]) return ROOT_CATEGORY_TYPES[currentId];
+                if (ROOT_CATEGORY_TYPES[currentId]) {
+                    return ROOT_CATEGORY_TYPES[currentId];
+                }
                 const cat = vueCategoriesMap.get(currentId);
                 if (!cat) break;
-                currentId = cat.parentCategoryId;
+                currentId = cat.parentCategoryId || cat.parentId || cat.parent_id;
                 depth++;
             }
             return "expense";
         };
 
+        const categoriesToInsert: any[] = [];
+        const budgetsToInsert: any[] = [];
+
+        // Load existing categories for dedupe
+        const existingCategories = await db.categories.where('user_id').equals(this.userId).toArray();
+        const existingCategoriesMap = new Map(existingCategories.filter(c => !c.deleted_at).map(c => [c.name.toLowerCase(), c.id]));
+        // Keep track of IDs we decide to insert, to avoid re-inserting same ID
+        const finalCategoryIdsSet = new Set<string>();
+
         // Categories
-        for (const vueCat of (data.categories || [])) {
-            onProgress?.(++currentStep, totalSteps, `Migrating Category: ${vueCat.title}`);
+        if (data.categories) {
+            onProgress?.(currentStep, totalSteps, 'Processing Categories...');
+            for (const vueCat of data.categories) {
+                currentStep++;
 
-            if (ROOT_IDS.has(vueCat.id)) continue;
+                if (ROOT_IDS.has(vueCat.id)) continue;
+                if (categoryIdMap.has(vueCat.id)) continue; // Already mapped (via merge)
 
-            // If already mapped (via merge), skip creation but we might need it in map for children resolution?
-            // Actually, if it's merged, we already have the target ID in categoryIdMap.
-            if (categoryIdMap.has(vueCat.id)) continue;
-
-            // Check exact match (Auto-merge) - standard safety check
-            const existing = await db.categories
-                .where('user_id').equals(this.userId)
-                .filter(c => c.name.toLowerCase() === vueCat.title.toLowerCase())
-                .first();
-
-            if (existing) {
-                categoryIdMap.set(vueCat.id, existing.id);
-                continue;
-            }
-
-            const type = resolveCategoryType(vueCat.id);
-            const newId = uuidv4();
-            categoryIdMap.set(vueCat.id, newId);
-
-            let newParentId: string | undefined = undefined;
-            if (vueCat.parentCategoryId && !ROOT_IDS.has(vueCat.parentCategoryId)) {
-                newParentId = categoryIdMap.get(vueCat.parentCategoryId);
-            }
-
-            await db.categories.put({
-                id: newId,
-                user_id: this.userId,
-                name: vueCat.title,
-                icon: validateIcon(vueCat.icon),
-                color: vueCat.color || "#6366f1",
-                type: type,
-                parent_id: newParentId,
-                active: vueCat.active ? 1 : 0,
-                deleted_at: null,
-                pendingSync: 1
-            });
-            importedCategories++;
-
-            // Budget
-            if (vueCat.budget && vueCat.budget > 0) {
-                await db.category_budgets.put({
-                    id: uuidv4(),
-                    user_id: this.userId,
-                    category_id: newId,
-                    amount: vueCat.budget,
-                    period: "monthly",
-                    deleted_at: null,
-                    pendingSync: 1,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                });
-            }
-        }
-
-        // Transactions
-        for (const tx of data.transactions) {
-            onProgress?.(++currentStep, totalSteps, 'Migrating Transactions...');
-
-            onProgress?.(++currentStep, totalSteps, 'Importing Transactions...');
-
-            let finalCatId = tx.category_id ? categoryIdMap.get(tx.category_id) : undefined;
-            if (!finalCatId) {
-                finalCatId = await this.ensureFallbackCategory();
-            }
-
-            const finalCtxId = tx.context_id ? undefined : undefined; // Vue parser likely doesn't have contexts/IDs easily mapped or I need to check where contextIdMap is defined. 
-            // Actually, `processVueImport` does NOT verify contexts in the beginning? 
-            // In the `view_file` output of Step 330, `processVueImport` does NOT seem to initialize `contextIdMap`.
-            // So I should remove `contextIdMap` usage or define it.
-            // Given Vue import is legacy, I'll just set context to undefined.
-
-            // Normalize amount: always store as positive value
-            const normalizedAmount = Math.abs(tx.amount);
-            let finalAmount = normalizedAmount;
-
-            if (tx.group_id && data.groups && data.group_members) {
-                // Try to find my share in the group
-                const groupMembers = data.group_members.filter((m: any) => m.group_id === tx.group_id);
-                const myMemberRecord = groupMembers.find((m: any) => m.user_id === tx.user_id);
-
-                if (myMemberRecord && typeof myMemberRecord.share === 'number') {
-                    const sharePercentage = myMemberRecord.share;
-                    const newAmount = finalAmount * (sharePercentage / 100);
-                    finalAmount = Number(newAmount.toFixed(2));
-                }
-            }
-
-            await db.transactions.put({
-                id: uuidv4(),
-                user_id: this.userId,
-                category_id: finalCatId,
-                context_id: finalCtxId,
-                type: tx.type || 'expense',
-                amount: finalAmount,
-                date: tx.date,
-                year_month: tx.date.substring(0, 7),
-                description: tx.description,
-                group_id: null,
-                paid_by_member_id: null,
-                deleted_at: null,
-                pendingSync: 1
-            });
-            importedTransactions++;
-        }
-
-        // Recurring
-        if (data.recurring) {
-            for (const vueRec of data.recurring) {
-                if (vueRec.id && skippedRecurringIds?.has(vueRec.id)) {
+                // Check exact match (Auto-merge)
+                const existingId = existingCategoriesMap.get(vueCat.title.toLowerCase());
+                if (existingId) {
+                    categoryIdMap.set(vueCat.id, existingId);
                     continue;
                 }
 
-                onProgress?.(++currentStep, totalSteps, 'Migrating Recurring...');
+
+                // Use imported ID if valid UUID, else generate new
+                // Vue IDs were UUIDs, so we try to reuse them if they don't collision?
+                // Actually safer to generate new IDs to avoid conflicts with existing DB, but
+                // if we want to preserve relationships within the import file, we use a map.
+                const newId = uuidv4();
+                categoryIdMap.set(vueCat.id, newId);
+
+                // Parent resolution - deferred to later or resolved now if order permits?
+                // Since we iterate randomly, parent might not be in map yet.
+                // Vue import logic is simple, maybe we can resolve parents in a second pass?
+                // For bulk, let's just queue them. parent_id will be mapped later.
+            }
+
+            // Second pass for content construction now that ID map is full
+            for (const vueCat of data.categories) {
+                if (ROOT_IDS.has(vueCat.id)) continue;
+                // If it was mapped to an EXISTING ID, we skip insert
+                const mappedId = categoryIdMap.get(vueCat.id);
+                if (!mappedId) continue;
+
+                // Check if mappedId corresponds to an existing DB category
+                const isExisting = Array.from(existingCategoriesMap.values()).includes(mappedId);
+                if (isExisting) continue;
+
+                if (finalCategoryIdsSet.has(mappedId)) continue; // Already processed
+
+                let newParentId: string | undefined = undefined;
+                const parentId = vueCat.parentCategoryId || vueCat.parentId || vueCat.parent_id;
+                if (parentId && !ROOT_IDS.has(parentId)) {
+                    newParentId = categoryIdMap.get(parentId);
+                }
+
+                categoriesToInsert.push({
+                    id: mappedId,
+                    user_id: this.userId,
+                    name: vueCat.title,
+                    icon: validateIcon(vueCat.icon),
+                    color: vueCat.color || "#6366f1",
+                    type: resolveCategoryType(vueCat.id),
+                    parent_id: newParentId,
+                    active: vueCat.active ? 1 : 0,
+                    deleted_at: null,
+                    pendingSync: 1
+                });
+                finalCategoryIdsSet.add(mappedId);
+                importedCategories++;
+
+                // Budget
+                if (vueCat.budget && vueCat.budget > 0) {
+                    budgetsToInsert.push({
+                        id: uuidv4(),
+                        user_id: this.userId,
+                        category_id: mappedId,
+                        amount: vueCat.budget,
+                        period: "monthly",
+                        deleted_at: null,
+                        pendingSync: 1,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
+                }
+            }
+        }
+
+        const transactionsToInsert: any[] = [];
+
+        // Transactions
+        if (data.transactions) {
+            onProgress?.(currentStep, totalSteps, 'Processing Transactions...');
+            for (const tx of data.transactions) {
+                currentStep++;
+                if (currentStep % 50 === 0) onProgress?.(currentStep, totalSteps, 'Importing Transactions...');
+
+                let finalCatId = tx.category_id ? categoryIdMap.get(tx.category_id) : undefined;
+                if (!finalCatId) {
+                    finalCatId = UNCATEGORIZED_CATEGORY.ID;
+                    orphanCount++;
+                }
+
+                // Normalize amount
+                const normalizedAmount = Math.abs(tx.amount);
+                let finalAmount = normalizedAmount;
+
+                if (tx.group_id && data.groups && data.group_members) {
+                    const groupMembers = data.group_members.filter((m: any) => m.group_id === tx.group_id);
+                    const myMemberRecord = groupMembers.find((m: any) => m.user_id === tx.user_id);
+
+                    if (myMemberRecord && typeof myMemberRecord.share === 'number') {
+                        const sharePercentage = myMemberRecord.share;
+                        const newAmount = finalAmount * (sharePercentage / 100);
+                        finalAmount = Number(newAmount.toFixed(2));
+                    }
+                }
+
+                const type = tx.type || resolveCategoryType(tx.category_id || "");
+
+                transactionsToInsert.push({
+                    id: uuidv4(),
+                    user_id: this.userId,
+                    category_id: finalCatId,
+                    context_id: undefined,
+                    type: type,
+                    amount: finalAmount, // Vue legacy amount
+                    date: tx.date,
+                    year_month: tx.date.substring(0, 7),
+                    description: tx.description,
+                    group_id: null,
+                    paid_by_member_id: null,
+                    deleted_at: null,
+                    pendingSync: 1
+                });
+                importedTransactions++;
+            }
+        }
+
+        const recurringToInsert: any[] = [];
+
+        // Recurring
+        if (data.recurring) {
+            onProgress?.(currentStep, totalSteps, 'Processing Recurring...');
+            for (const vueRec of data.recurring) {
+                currentStep++;
+                if (vueRec.id && skippedRecurringIds?.has(vueRec.id)) continue;
 
                 let frequency: "daily" | "weekly" | "monthly" | "yearly" = "monthly";
                 if (vueRec.frequency === "WEEKLY") frequency = "weekly";
@@ -534,19 +620,14 @@ export class ImportProcessor {
                 let type: "expense" | "income" | "investment" = "expense";
 
                 if (vueRec.categoryId) {
+                    type = resolveCategoryType(vueRec.categoryId);
                     const mappedId = categoryIdMap.get(vueRec.categoryId);
-                    if (mappedId) {
-                        finalCatId = mappedId;
-                        const cat = await db.categories.get(mappedId);
-                        if (cat) type = cat.type;
-                    } else {
-                        finalCatId = await this.ensureFallbackCategory();
-                    }
+                    finalCatId = mappedId || UNCATEGORIZED_CATEGORY.ID;
                 } else {
-                    finalCatId = await this.ensureFallbackCategory();
+                    finalCatId = UNCATEGORIZED_CATEGORY.ID;
                 }
 
-                await db.recurring_transactions.put({
+                recurringToInsert.push({
                     id: uuidv4(),
                     user_id: this.userId,
                     category_id: finalCatId,
@@ -563,38 +644,16 @@ export class ImportProcessor {
             }
         }
 
-        return { categories: importedCategories, transactions: importedTransactions, recurring: importedRecurring };
-    }
+        // EXECUTE BULK INSERTS
+        onProgress?.(totalSteps, totalSteps, 'Saving to database...');
 
-    // --- HELPERS ---
-    /**
-     * Creates or retrieves the local-only "Uncategorized" category.
-     * 
-     * This category:
-     * - Uses a reserved UUID (UNCATEGORIZED_CATEGORY.ID)
-     * - Has pendingSync: 0 (never syncs to Supabase)
-     * - Transactions referencing it will fail FK constraint on sync
-     * - This forces users to categorize properly before syncing
-     */
-    private async ensureFallbackCategory(): Promise<string> {
-        const { UNCATEGORIZED_CATEGORY } = await import('../constants');
-
-        // Check if already exists (by reserved ID, not name)
-        const existing = await db.categories.get(UNCATEGORIZED_CATEGORY.ID);
-        if (existing) return existing.id;
-
-        // Create local-only category
-        await db.categories.put({
-            id: UNCATEGORIZED_CATEGORY.ID,
-            user_id: this.userId,
-            name: UNCATEGORIZED_CATEGORY.NAME,
-            icon: UNCATEGORIZED_CATEGORY.ICON,
-            color: UNCATEGORIZED_CATEGORY.COLOR,
-            type: "expense",
-            active: 1,
-            deleted_at: null,
-            pendingSync: 0  // NEVER sync - local only
+        await db.transaction('rw', [db.categories, db.transactions, db.recurring_transactions, db.category_budgets], async () => {
+            if (categoriesToInsert.length) await db.categories.bulkPut(categoriesToInsert);
+            if (transactionsToInsert.length) await db.transactions.bulkPut(transactionsToInsert);
+            if (recurringToInsert.length) await db.recurring_transactions.bulkPut(recurringToInsert);
+            if (budgetsToInsert.length) await db.category_budgets.bulkPut(budgetsToInsert);
         });
-        return UNCATEGORIZED_CATEGORY.ID;
+
+        return { categories: importedCategories, transactions: importedTransactions, recurring: importedRecurring, orphanCount };
     }
 }

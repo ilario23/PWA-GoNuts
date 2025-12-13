@@ -121,8 +121,7 @@ export class RevolutParser implements TransactionParser {
                         }
 
                         resolve({
-                            source: 'generic_csv', // Reuse generic source type for UI compatibility, or add 'revolut' if needed. 
-                            // Using 'generic_csv' allows using the existing Reconciliation UI flow.
+                            source: 'revolut',
                             transactions: transactions,
                             metadata: {
                                 totalItems: transactions.length

@@ -12,7 +12,14 @@ jest.mock("../useAuth", () => ({
 jest.mock("../../lib/sync", () => ({
   syncManager: {
     sync: jest.fn(),
+    schedulePush: jest.fn(),
   },
+}));
+
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (k: string) => k,
+  }),
 }));
 
 jest.mock("../../lib/db", () => ({
@@ -40,6 +47,9 @@ jest.mock("../../lib/db", () => ({
       filter: jest.fn(),
       update: jest.fn(),
     },
+    profiles: {
+      toArray: jest.fn(),
+    },
   },
 }));
 
@@ -60,7 +70,7 @@ jest.mock("uuid", () => ({
 
 describe("useGroups", () => {
   const mockUser = {
-    id: "user-123",
+    id: "123e4567-e89b-12d3-a456-426614174000",
     email: "test@example.com",
   };
 
@@ -91,6 +101,7 @@ describe("useGroups", () => {
     (useAuth as jest.Mock).mockReturnValue({ user: mockUser });
     (db.groups.toArray as jest.Mock).mockResolvedValue([mockGroup]);
     (db.group_members.toArray as jest.Mock).mockResolvedValue([mockMember]);
+    (db.profiles.toArray as jest.Mock).mockResolvedValue([]);
   });
 
   it("should return empty array when user is not authenticated", async () => {
@@ -139,7 +150,7 @@ describe("useGroups", () => {
       })
     );
 
-    expect(syncManager.sync).toHaveBeenCalled();
+    expect(syncManager.schedulePush).toHaveBeenCalled();
   });
 
   it("should update a group", async () => {
@@ -161,7 +172,7 @@ describe("useGroups", () => {
       })
     );
 
-    expect(syncManager.sync).toHaveBeenCalled();
+    expect(syncManager.schedulePush).toHaveBeenCalled();
   });
 
   it("should soft delete a group", async () => {
@@ -185,7 +196,7 @@ describe("useGroups", () => {
       })
     );
 
-    expect(syncManager.sync).toHaveBeenCalled();
+    expect(syncManager.schedulePush).toHaveBeenCalled();
   });
 
   it("should add a member to a group", async () => {
@@ -205,7 +216,7 @@ describe("useGroups", () => {
       })
     );
 
-    expect(syncManager.sync).toHaveBeenCalled();
+    expect(syncManager.schedulePush).toHaveBeenCalled();
   });
 
   it("should remove a member (soft delete)", async () => {
@@ -223,7 +234,7 @@ describe("useGroups", () => {
       })
     );
 
-    expect(syncManager.sync).toHaveBeenCalled();
+    expect(syncManager.schedulePush).toHaveBeenCalled();
   });
 
   it("should update member share", async () => {
@@ -241,7 +252,7 @@ describe("useGroups", () => {
       })
     );
 
-    expect(syncManager.sync).toHaveBeenCalled();
+    expect(syncManager.schedulePush).toHaveBeenCalled();
   });
 
   it("should update all shares at once", async () => {
@@ -264,7 +275,7 @@ describe("useGroups", () => {
       expect.objectContaining({ share: 40, pendingSync: 1 })
     );
 
-    expect(syncManager.sync).toHaveBeenCalled();
+    expect(syncManager.schedulePush).toHaveBeenCalled();
   });
 
   it("should calculate group balance correctly", async () => {
