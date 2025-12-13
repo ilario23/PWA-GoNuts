@@ -317,4 +317,148 @@ describe('ImportProcessor', () => {
             ]));
         });
     });
+
+    describe('process (Vue Legacy Import)', () => {
+        it('should correctly preserve parent-child relationships for categories', async () => {
+            // This test reproduces the bug where "Carburante" ends up as root instead of child of "Trasporto"
+            // The order in the array matters - Carburante comes BEFORE Trasporto
+            const data: any = {
+                source: 'legacy_vue',
+                categories: [
+                    // Child category comes before parent in array (same order as JSON export)
+                    {
+                        id: '2908991a-f58e-4ad9-a658-b88efe37f3b2',
+                        title: 'Carburante',
+                        color: '#ff8648',
+                        icon: 'i-carbon:gas-station',
+                        parentCategoryId: '2e4bc9aa-b4ce-46ad-a2da-ee7496d9bbd0', // Trasporto
+                        active: true,
+                        type: 1
+                    },
+                    // Parent category comes after child
+                    {
+                        id: '2e4bc9aa-b4ce-46ad-a2da-ee7496d9bbd0',
+                        title: 'Trasporto',
+                        color: '#f99595',
+                        icon: 'i-carbon:ShoppingCart',
+                        parentCategoryId: '533d4482-df54-47e5-b8d8-000000000001', // ROOT - Expenses
+                        active: true,
+                        type: 1
+                    },
+                    // Sub-child under Carburante
+                    {
+                        id: '79a8b36d-34f6-4cd6-828f-a7ead14ecfae',
+                        title: 'Carburante Mito',
+                        color: '#ff8648',
+                        icon: 'i-carbon:gas-station',
+                        parentCategoryId: '2908991a-f58e-4ad9-a658-b88efe37f3b2', // Carburante
+                        active: true,
+                        type: 1
+                    }
+                ],
+                transactions: []
+            };
+
+            // Mock empty DB (fresh import)
+            (db.categories.where as jest.Mock).mockReturnValue({
+                equals: jest.fn().mockReturnValue({
+                    toArray: jest.fn().mockResolvedValue([])
+                })
+            });
+            (db.categories.get as jest.Mock).mockResolvedValue(null);
+
+            await processor.process(data);
+
+            // Get the categories that were inserted
+            const bulkPutCalls = (db.categories.bulkPut as jest.Mock).mock.calls;
+            expect(bulkPutCalls.length).toBeGreaterThan(0);
+
+            const insertedCategories = bulkPutCalls[0][0];
+
+            // Find our test categories
+            const carburante = insertedCategories.find((c: any) => c.name === 'Carburante');
+            const trasporto = insertedCategories.find((c: any) => c.name === 'Trasporto');
+            const carburanteMito = insertedCategories.find((c: any) => c.name === 'Carburante Mito');
+
+            expect(carburante).toBeDefined();
+            expect(trasporto).toBeDefined();
+            expect(carburanteMito).toBeDefined();
+
+            // CRITICAL: Trasporto should have NO parent (since its parent is ROOT which is excluded)
+            expect(trasporto.parent_id).toBeUndefined();
+
+            // CRITICAL: Carburante should have Trasporto as parent
+            expect(carburante.parent_id).toBe(trasporto.id);
+
+            // CRITICAL: Carburante Mito should have Carburante as parent
+            expect(carburanteMito.parent_id).toBe(carburante.id);
+        });
+
+        it('should correctly handle multi-level hierarchies with 3+ levels', async () => {
+            // Test 3-level hierarchy: Expenses (ROOT) -> Trasporto -> Carburante -> Carburante Mito
+            const data: any = {
+                source: 'legacy_vue',
+                categories: [
+                    // Level 3 (deepest) - comes first
+                    {
+                        id: '79a8b36d-34f6-4cd6-828f-a7ead14ecfae',
+                        title: 'Carburante Mito',
+                        color: '#ff8648',
+                        parentCategoryId: '2908991a-f58e-4ad9-a658-b88efe37f3b2', // Carburante
+                        active: true,
+                        type: 1
+                    },
+                    // Level 2
+                    {
+                        id: '2908991a-f58e-4ad9-a658-b88efe37f3b2',
+                        title: 'Carburante',
+                        color: '#ff8648',
+                        parentCategoryId: '2e4bc9aa-b4ce-46ad-a2da-ee7496d9bbd0', // Trasporto
+                        active: true,
+                        type: 1
+                    },
+                    // Level 1 (root within type)
+                    {
+                        id: '2e4bc9aa-b4ce-46ad-a2da-ee7496d9bbd0',
+                        title: 'Trasporto',
+                        color: '#f99595',
+                        parentCategoryId: '533d4482-df54-47e5-b8d8-000000000001', // ROOT
+                        active: true,
+                        type: 1
+                    }
+                ],
+                transactions: []
+            };
+
+            (db.categories.where as jest.Mock).mockReturnValue({
+                equals: jest.fn().mockReturnValue({
+                    toArray: jest.fn().mockResolvedValue([])
+                })
+            });
+            (db.categories.get as jest.Mock).mockResolvedValue(null);
+
+            await processor.process(data);
+
+            const bulkPutCalls = (db.categories.bulkPut as jest.Mock).mock.calls;
+            const insertedCategories = bulkPutCalls[0][0];
+
+            const carburante = insertedCategories.find((c: any) => c.name === 'Carburante');
+            const trasporto = insertedCategories.find((c: any) => c.name === 'Trasporto');
+            const carburanteMito = insertedCategories.find((c: any) => c.name === 'Carburante Mito');
+
+            // Build hierarchy chains and verify
+            console.log('[TEST] Hierarchy chain verification:');
+            console.log(`  Mito.parent_id = ${carburanteMito?.parent_id}`);
+            console.log(`  Carburante.id = ${carburante?.id}`);
+            console.log(`  Carburante.parent_id = ${carburante?.parent_id}`);
+            console.log(`  Trasporto.id = ${trasporto?.id}`);
+            console.log(`  Trasporto.parent_id = ${trasporto?.parent_id}`);
+
+            // Mito -> Carburante -> Trasporto -> undefined (ROOT)
+            expect(carburanteMito.parent_id).toBe(carburante.id);
+            expect(carburante.parent_id).toBe(trasporto.id);
+            expect(trasporto.parent_id).toBeUndefined();
+        });
+    });
 });
+

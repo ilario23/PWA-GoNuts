@@ -464,10 +464,19 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                                 <Button variant="outline" onClick={resetState}>
                                     {t("common.cancel", "Cancel")}
                                 </Button>
-                                <Button onClick={handlePrepareReconciliation} disabled={isProcessing}>
-                                    {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {t("import.proceed_to_categorization", "Review & Categorize")} <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
+                                {/* For backup imports (Vue, Antigravity) that include categories, skip reconciliation */}
+                                {(parsedData.source === 'legacy_vue' || parsedData.source === 'antigravity_backup') ? (
+                                    <Button onClick={handleImport} disabled={isProcessing}>
+                                        {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {t("import.start_import", "Start Import")} <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                ) : (
+                                    /* For bank CSV imports, go to reconciliation to categorize */
+                                    <Button onClick={handlePrepareReconciliation} disabled={isProcessing}>
+                                        {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {t("import.proceed_to_categorization", "Review & Categorize")} <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     )}

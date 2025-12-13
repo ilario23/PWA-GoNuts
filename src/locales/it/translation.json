@@ -549,6 +549,7 @@
     "turtlet_app": "App Turtlet",
     "complete": "Importazione Completata",
     "complete_desc": "I tuoi dati sono stati importati con successo.",
+    "start_import": "Avvia Importazione",
     "orphan_warning": "{{count}} transazioni richiedono revisione",
     "orphan_warning_desc": "Queste transazioni hanno categorie mancanti e non verranno sincronizzate fino alla categorizzazione. Usa il filtro 'Richiede Revisione' per trovarle.",
     "syncing": "Sincronizzazione in corso...",

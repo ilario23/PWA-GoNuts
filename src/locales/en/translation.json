@@ -549,6 +549,7 @@
     "turtlet_app": "Turtlet App",
     "complete": "Import Complete",
     "complete_desc": "Your data has been successfully imported.",
+    "start_import": "Start Import",
     "orphan_warning": "{{count}} transactions need review",
     "orphan_warning_desc": "These transactions have missing categories and won't sync until categorized. Use the 'Needs Review' filter to find them.",
     "syncing": "Syncing to cloud...",

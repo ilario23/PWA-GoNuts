@@ -484,6 +484,8 @@ export class ImportProcessor {
                 const existingId = existingCategoriesMap.get(vueCat.title.toLowerCase());
                 if (existingId) {
                     categoryIdMap.set(vueCat.id, existingId);
+                    // DEBUG: Uncomment to trace auto-merge
+                    // console.log(`[DEBUG Vue Import] FIRST PASS - AUTO-MERGE: "${vueCat.title}"`, { originalId: vueCat.id, mappedToExistingId: existingId });
                     continue;
                 }
 
@@ -494,6 +496,15 @@ export class ImportProcessor {
                 // if we want to preserve relationships within the import file, we use a map.
                 const newId = uuidv4();
                 categoryIdMap.set(vueCat.id, newId);
+
+                // DEBUG: Log new ID assignment
+                // if (vueCat.title?.toLowerCase().includes('carburante') || vueCat.title?.toLowerCase().includes('trasporto')) {
+                //     console.log(`[DEBUG Vue Import] FIRST PASS - NEW ID: "${vueCat.title}"`, {
+                //         originalId: vueCat.id,
+                //         newId,
+                //         parentCategoryId: vueCat.parentCategoryId,
+                //     });
+                // }
 
                 // Parent resolution - deferred to later or resolved now if order permits?
                 // Since we iterate randomly, parent might not be in map yet.
@@ -532,6 +543,18 @@ export class ImportProcessor {
                     deleted_at: null,
                     pendingSync: 1
                 });
+
+                // DEBUG: Log parent resolution for testing
+                // if (vueCat.title?.toLowerCase().includes('carburante') || vueCat.title?.toLowerCase().includes('trasporto')) {
+                //     console.log(`[DEBUG Vue Import] Category: "${vueCat.title}"`, {
+                //         originalId: vueCat.id,
+                //         mappedId,
+                //         originalParentId: parentId,
+                //         newParentId,
+                //         parentInMap: parentId ? categoryIdMap.has(parentId) : false,
+                //     });
+                // }
+
                 finalCategoryIdsSet.add(mappedId);
                 importedCategories++;
 
