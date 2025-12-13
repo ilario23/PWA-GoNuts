@@ -8,6 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Edit, Trash2, Tag, Users, AlertCircle } from "lucide-react";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { Transaction, Category, Context, Group } from "@/lib/db";
@@ -26,6 +32,7 @@ import { MobileTransactionRow } from "./MobileTransactionRow";
 import { TransactionDetailDrawer } from "./TransactionDetailDrawer";
 import { useState } from "react";
 import { GroupWithMembers } from "@/hooks/useGroups";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TransactionListProps {
   transactions: Transaction[] | undefined;
@@ -63,18 +70,12 @@ export function TransactionList({
   hideContext = false,
 }: TransactionListProps) {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const isMobile = useMobile();
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
-  };
+  // Removed containerVariants as we are moving to independent item animations
+  // to avoid race conditions where items stay at opacity: 0
 
   const itemVariants: Variants = {
     hidden: { opacity: 0, y: 10 },
@@ -210,6 +211,29 @@ export function TransactionList({
       const group = getGroup(t_item.group_id);
       const IconComp = category?.icon ? getIconComponent(category.icon) : null;
 
+      // Group Details Logic for Tooltip
+      let payerName = "";
+      let myShareAmount = 0;
+      let mySharePercentage = 0;
+      const isGroupTransaction = !!group && !!t_item.group_id;
+
+      if (isGroupTransaction && user && group && "members" in group) {
+        if (t_item.paid_by_member_id) {
+          const payer = (group as GroupWithMembers).members.find((m) => m.id === t_item.paid_by_member_id);
+          payerName = payer?.displayName || t("unknown_user");
+        } else {
+          const payerId = t_item.user_id;
+          const payer = (group as GroupWithMembers).members.find((m) => m.user_id === payerId);
+          payerName = payer?.displayName || t("unknown_user");
+        }
+
+        const myMemberInfo = (group as GroupWithMembers).members.find((m) => m.user_id === user.id);
+        if (myMemberInfo) {
+          mySharePercentage = myMemberInfo.share;
+          myShareAmount = (t_item.amount * mySharePercentage) / 100;
+        }
+      }
+
       const animationProps =
         !isVirtual && index < 20
           ? {
@@ -252,10 +276,41 @@ export function TransactionList({
           </TableCell>
           <TableCell className="w-[130px]">
             {group ? (
-              <div className="inline-flex items-center gap-1 text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-md">
-                <Users className="h-3 w-3" aria-hidden="true" />
-                {group.name}
-              </div>
+              <TooltipProvider>
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <div className="inline-flex items-center gap-1 text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-md cursor-default">
+                      <Users className="h-3 w-3" aria-hidden="true" />
+                      {group.name}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs p-3 space-y-2">
+                    {isGroupTransaction && "members" in group ? (
+                      <>
+                        <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                          <span className="text-muted-foreground">{t("paid_by")}:</span>
+                          <span className="font-medium text-right">{payerName}</span>
+
+                          {myShareAmount > 0 && (
+                            <>
+                              <span className="text-muted-foreground">{t("your_share")}:</span>
+                              <div className="text-right">
+                                <span className="font-medium">€{myShareAmount.toFixed(2)}</span>
+                                <span className="text-muted-foreground ml-1">({mySharePercentage}%)</span>
+                              </div>
+                            </>
+                          )}
+
+                          <span className="text-muted-foreground">{t("total")}:</span>
+                          <span className="font-medium text-right">€{t_item.amount.toFixed(2)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <span>{t("amount")}: €{t_item.amount.toFixed(2)}</span>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ) : (
               <span className="text-muted-foreground">-</span>
             )}
@@ -412,18 +467,15 @@ export function TransactionList({
       // Non-virtualized mobile list for small datasets
       return (
         <>
-          <motion.div
-            className="space-y-1"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {groupedItems.map((item) => {
+          <div className="space-y-1">
+            {groupedItems.map((item, index) => {
               if (item.type === "header") {
                 return (
                   <motion.div
                     key={`header-${item.date}`}
-                    variants={itemVariants}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
                     className="font-semibold text-sm text-muted-foreground pt-4 pb-2 px-1 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
                   >
                     {item.label}
@@ -431,7 +483,16 @@ export function TransactionList({
                 );
               }
               return (
-                <motion.div key={item.data.id} variants={itemVariants}>
+                <motion.div
+                  key={item.data.id}
+                  variants={itemVariants}
+                  initial="hidden"
+                  animate="visible"
+                  custom={index}
+                  // Add a small delay based on index to stagger the animation manually
+                  // This is more robust than staggerChildren which can sometimes fail if parent state updates too quickly
+                  transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                >
                   <MobileTransactionRow
                     transaction={item.data}
                     category={getCategory(item.data.category_id)}
@@ -448,7 +509,7 @@ export function TransactionList({
                 </motion.div>
               );
             })}
-          </motion.div>
+          </div>
           <TransactionDetailDrawer
             transaction={selectedTransaction}
             category={getCategory(selectedTransaction?.category_id)}
