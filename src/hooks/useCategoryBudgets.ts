@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, CategoryBudget } from "../lib/db";
+import { db, CategoryBudget, Transaction } from "../lib/db";
 import { syncManager } from "../lib/sync";
 import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "./useAuth";
@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { format } from "date-fns";
 import { getCategoryBudgetInputSchema, validate } from "../lib/validation";
 import { useTranslation } from "react-i18next";
+import { decryptArray, ENCRYPTED_FIELDS } from "../lib/crypto-middleware";
 
 /**
  * Extended budget type with spending calculations and category info.
@@ -81,27 +82,48 @@ export function useCategoryBudgets(
 
   // Get categories for enrichment
   const categories = useLiveQuery(
-    () =>
-      user
-        ? db.categories
-          .filter((c) => c.user_id === user.id && !c.deleted_at)
-          .toArray()
-        : [],
+    async () => {
+      if (!user) return [];
+      const rawData = await db.categories
+        .filter((c) => c.user_id === user.id && !c.deleted_at)
+        .toArray();
+      // Decrypt sensitive fields
+      const fields = ENCRYPTED_FIELDS.categories || [];
+      if (fields.length > 0) {
+        return decryptArray(rawData as unknown as Record<string, unknown>[], fields) as unknown as any[]; // Type assertion needed or update Category type if needed in this file context
+      }
+      return rawData;
+    },
     [user?.id]
   );
 
   // Get transactions for the current period
   const monthlyTransactions = useLiveQuery(
-    () => db.transactions.where("year_month").equals(currentMonth).toArray(),
+    async () => {
+      let txs = await db.transactions.where("year_month").equals(currentMonth).toArray();
+      // Decrypt sensitive fields
+      const fields = ENCRYPTED_FIELDS.transactions || [];
+      if (fields.length > 0) {
+        txs = await decryptArray(txs as unknown as Record<string, unknown>[], fields) as unknown as Transaction[];
+      }
+      return txs;
+    },
     [currentMonth]
   );
 
   const yearlyTransactions = useLiveQuery(
-    () =>
-      db.transactions
+    async () => {
+      let txs = await db.transactions
         .where("year_month")
         .between(`${currentYear}-01`, `${currentYear}-12`, true, true)
-        .toArray(),
+        .toArray();
+      // Decrypt sensitive fields
+      const fields = ENCRYPTED_FIELDS.transactions || [];
+      if (fields.length > 0) {
+        txs = await decryptArray(txs as unknown as Record<string, unknown>[], fields) as unknown as Transaction[];
+      }
+      return txs;
+    },
     [currentYear]
   );
 

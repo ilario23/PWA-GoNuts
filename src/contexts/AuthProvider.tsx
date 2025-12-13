@@ -22,6 +22,7 @@ import { supabase } from "@/lib/supabase";
 import { db } from "@/lib/db";
 import { syncManager } from "@/lib/sync";
 import { cryptoService } from "@/lib/crypto";
+import { clearWrappedKey } from "@/lib/crypto-storage";
 import { cleanupSoftDeletedRecords } from "@/lib/cleanup";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -202,10 +203,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Get user email before clearing
+    const cachedUser = getCachedUser();
+    const userEmail = cachedUser?.email;
+
     // Clear cached user
     setCachedUser(null);
-    // Clear encryption key from memory
-    cryptoService.clearKey();
+    // Clear encryption key from memory and storage
+    await cryptoService.clearKey(userEmail);
+    // Also clear wrapped key explicitly (in case clearKey fails)
+    if (userEmail) {
+      await clearWrappedKey(userEmail).catch(() => { });
+    }
     // Clear local cache before signing out
     await db.clearLocalCache();
     // Sign out and discard the return value (we don't need the error)
@@ -288,6 +297,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Session valid
         if (session?.user) {
+          // Restore encryption key if not already initialized
+          if (!cryptoService.ready && session.user.email && session.access_token) {
+            const restored = await cryptoService.restoreFromWrappedKey(
+              session.user.email,
+              session.access_token
+            );
+            if (restored) {
+              console.log("[AuthProvider] Encryption key restored from session");
+            } else {
+              console.log("[AuthProvider] No wrapped key available - user may need to re-login");
+            }
+          }
+
           // Mark that we loaded the page with an existing session
           markPageLoaded();
           // Update with fresh session data
