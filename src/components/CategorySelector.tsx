@@ -43,6 +43,7 @@ interface CategorySelectorProps {
   excludeId?: string;
   modal?: boolean;
   groupId?: string | null; // Filter by group
+  triggerClassName?: string;
 }
 
 interface CategoryNode extends Category {
@@ -57,6 +58,7 @@ export function CategorySelector({
   excludeId,
   modal = false,
   groupId,
+  triggerClassName,
 }: CategorySelectorProps) {
   const { categories } = useCategories(groupId);
   const { t } = useTranslation();
@@ -547,10 +549,9 @@ export function CategorySelector({
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerTrigger asChild>
           <Button
-            variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between"
+            className={cn("w-full justify-between", triggerClassName)}
           >
             {selectedCategory ? (
               <div className="flex items-center">
@@ -582,10 +583,9 @@ export function CategorySelector({
     <Popover open={open} onOpenChange={setOpen} modal={modal}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className={cn("w-full justify-between", triggerClassName)}
         >
           {selectedCategory ? (
             <div className="flex items-center">
