@@ -133,6 +133,42 @@ BEGIN
   (mem_charlie_guest, group_guest_id, NULL, guest_name, true, 50.00);
 
   -- ==========================================================================
+  -- 2.1 CREATE CONTEXTS (NEW)
+  -- ==========================================================================
+  INSERT INTO public.contexts (id, user_id, name, description, active) VALUES
+  (uuid_generate_v4(), user_a_id, 'Lavoro', 'Spese rimborsabili o legate al lavoro', 1),
+  (uuid_generate_v4(), user_a_id, 'Vacanza', 'Viaggi e relax', 1);
+
+  -- Get definitions for later usage in the loop (approximate lookup by name)
+  -- NOTE: In a real seed we'd use variables, but let's just select them back or assume IDs if we forced them.
+  -- Since we didn't force IDs, let's grab them into variables:
+  DECLARE
+    ctx_work uuid;
+    ctx_vac uuid;
+  BEGIN
+    SELECT id INTO ctx_work FROM public.contexts WHERE user_id = user_a_id AND name = 'Lavoro' LIMIT 1;
+    SELECT id INTO ctx_vac FROM public.contexts WHERE user_id = user_a_id AND name = 'Vacanza' LIMIT 1;
+  -- END block for just these variables is not quite right in PL/PGSQL structure nested here, 
+  -- but we are inside the main DO block. So we can just use `SELECT INTO`.
+  -- However, we are ALREADY in a DO block. Let's just use the outer variables or declare new ones?
+  -- We'll declare `ctx_work` and `ctx_vac` at the top with other vars for cleanliness. 
+  -- But since I cannot edit the DECLARE block easily without replacing the whole file, 
+  -- I will use a nested DECLARE or just inline SQL lookups. 
+  -- Actually, let's just create them with KNOWN UUIDs to be safe and easy.
+  END;
+  -- RE-DOING Context Insert with specific IDs to make it easier to reference
+  DELETE FROM public.contexts WHERE user_id = user_a_id; -- Safety clear of what I just did if run twice
+  
+  DECLARE 
+     ctx_work_id uuid := uuid_generate_v4();
+     ctx_vac_id uuid := uuid_generate_v4();
+  BEGIN
+     -- Re-insert with known IDs
+     INSERT INTO public.contexts (id, user_id, name, description, active) VALUES
+     (ctx_work_id, user_a_id, 'Lavoro', 'Spese rimborsabili o legate al lavoro', 1),
+     (ctx_vac_id, user_a_id, 'Vacanza', 'Viaggi e relax', 1);
+
+  -- ==========================================================================
   -- 3. CREATE CATEGORIES (HIERARCHY & VOLUME)
   -- ==========================================================================
   
@@ -227,7 +263,10 @@ BEGIN
        DECLARE
          rnd float := random();
          tmp_rnd_idx int;
+         tmp_ctx_id uuid; -- Variable for context
        BEGIN
+         tmp_ctx_id := NULL; -- Reset context
+
          IF rnd < 0.20 THEN
            -- Group Main (20%)
            tmp_amount := (random() * 80 + 10)::numeric(10,2);
@@ -238,19 +277,24 @@ BEGIN
            VALUES (user_a_id, group_main_id, mem_a_main, tmp_cat_id, 'expense', tmp_amount, curr_date, 'Spesa gruppo ' || curr_date);
            
          ELSIF rnd < 0.25 THEN
-           -- Group Guest (5%)
+           -- Group Guest (5%) - Mostly Holiday context
            tmp_amount := (random() * 50 + 20)::numeric(10,2);
            tmp_rnd_idx := floor(random() * array_length(cats_grp_guest, 1) + 1);
            tmp_cat_id := cats_grp_guest[tmp_rnd_idx];
            
+           -- 90% chance of being "Vacation" context
+           IF random() < 0.9 THEN
+              tmp_ctx_id := ctx_vac_id;
+           END IF;
+           
            IF random() < 0.5 THEN
               -- Paid by A
-              INSERT INTO public.transactions (user_id, group_id, paid_by_member_id, category_id, type, amount, date, description)
-              VALUES (user_a_id, group_guest_id, mem_a_guest, tmp_cat_id, 'expense', tmp_amount, curr_date, 'Cena fuori');
+              INSERT INTO public.transactions (user_id, group_id, paid_by_member_id, category_id, context_id, type, amount, date, description)
+              VALUES (user_a_id, group_guest_id, mem_a_guest, tmp_cat_id, tmp_ctx_id, 'expense', tmp_amount, curr_date, 'Cena fuori');
            ELSE
               -- Paid by Guest
-              INSERT INTO public.transactions (user_id, group_id, paid_by_member_id, category_id, type, amount, date, description)
-              VALUES (user_a_id, group_guest_id, mem_charlie_guest, tmp_cat_id, 'expense', tmp_amount, curr_date, 'Pagato da Ospite');
+              INSERT INTO public.transactions (user_id, group_id, paid_by_member_id, category_id, context_id, type, amount, date, description)
+              VALUES (user_a_id, group_guest_id, mem_charlie_guest, tmp_cat_id, tmp_ctx_id, 'expense', tmp_amount, curr_date, 'Pagato da Ospite');
            END IF;
            
          ELSE
@@ -262,22 +306,43 @@ BEGIN
              tmp_cat_id := cats_a_food[tmp_rnd_idx];
              tmp_amount := (random() * 30 + 5)::numeric(10,2);
              tmp_desc := 'Cibo ' || curr_date;
+             
+             -- Randomly assign Work context (e.g. 20% of food is work lunch)
+             IF random() < 0.2 THEN
+                tmp_ctx_id := ctx_work_id;
+                tmp_desc := 'Pranzo Lavoro ' || curr_date;
+             END IF;
+             
            ELSIF rnd < 0.7 THEN
              -- Transport
              tmp_rnd_idx := floor(random() * array_length(cats_a_trans, 1) + 1);
              tmp_cat_id := cats_a_trans[tmp_rnd_idx];
              tmp_amount := (random() * 60 + 20)::numeric(10,2);
              tmp_desc := 'Trasporto';
+             
+             -- Randomly assign Work context (e.g. 30% of transport is work travel)
+             IF random() < 0.3 THEN
+                tmp_ctx_id := ctx_work_id;
+                tmp_desc := 'Trasferta Lavoro';
+             END IF;
+             
            ELSE
              -- Shop
              tmp_rnd_idx := floor(random() * array_length(cats_a_shop, 1) + 1);
              tmp_cat_id := cats_a_shop[tmp_rnd_idx];
              tmp_amount := (random() * 150 + 20)::numeric(10,2);
              tmp_desc := 'Acquisto';
+             
+             -- Maybe 5% vacation shopping
+             IF random() < 0.05 THEN
+                tmp_ctx_id := ctx_vac_id;
+                tmp_desc := 'Souvenir Vacanza';
+             END IF;
+             
            END IF;
            
-           INSERT INTO public.transactions (user_id, group_id, paid_by_member_id, category_id, type, amount, date, description)
-           VALUES (user_a_id, NULL, NULL, tmp_cat_id, 'expense', tmp_amount, curr_date, tmp_desc);
+           INSERT INTO public.transactions (user_id, group_id, paid_by_member_id, category_id, context_id, type, amount, date, description)
+           VALUES (user_a_id, NULL, NULL, tmp_cat_id, tmp_ctx_id, 'expense', tmp_amount, curr_date, tmp_desc);
          END IF;
        END;
     END LOOP;
@@ -315,6 +380,7 @@ BEGIN
 
     curr_date := curr_date + 1;
   END LOOP;
+  END; -- End of the DECLARE block for context vars
   
   RAISE NOTICE 'Seed Data Generation Completed Successfully.';
 END $$;
