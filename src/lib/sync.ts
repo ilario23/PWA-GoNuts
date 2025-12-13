@@ -30,6 +30,11 @@ import { Tables, TablesInsert } from "../types/supabase";
 import { toast } from "sonner";
 import i18n from "@/i18n";
 import { UNCATEGORIZED_CATEGORY } from "./constants";
+import {
+  encryptFields,
+  decryptFields,
+  ENCRYPTED_FIELDS,
+} from "./crypto-middleware";
 
 const TABLES = [
   "profiles",
@@ -458,7 +463,11 @@ export class SyncManager {
     items: LocalTableMap[T][],
     userId: string
   ): Promise<void> {
-    const itemsToPush = items.map((item) =>
+    // Decrypt items before pushing to server (data is stored encrypted locally)
+    const decryptedItems = await Promise.all(
+      items.map((item) => this.decryptItemForPush(item, tableName))
+    );
+    const itemsToPush = decryptedItems.map((item) =>
       this.prepareItemForPush(item, tableName, userId)
     );
 
@@ -481,8 +490,8 @@ export class SyncManager {
           await db.transaction("rw", db.table(tableName), async () => {
             for (const serverItem of data) {
               const item = serverItem as any;
-              // Prepare item for local storage (handles type conversions etc.)
-              const localUpdate = this.prepareItemForLocal(item, tableName);
+              // Prepare item for local storage (handles type conversions and encryption)
+              const localUpdate = await this.prepareItemForLocal(item, tableName);
 
               // Update local DB ensuring pendingSync is 0
               await db.table(tableName).update(item.id, {
@@ -683,8 +692,8 @@ export class SyncManager {
                 }
               }
 
-              // Calculate year_month for transactions if missing
-              const localItem = this.prepareItemForLocal(item, tableName);
+              // Prepare item for local storage (type conversions + encryption)
+              const localItem = await this.prepareItemForLocal(item, tableName);
               await db.table(tableName).put(localItem);
 
               if ((item.sync_token || 0) > maxToken) {
@@ -812,8 +821,8 @@ export class SyncManager {
                 }
               }
 
-              // Calculate year_month for transactions if missing
-              const localItem = this.prepareItemForLocal(item, tableName);
+              // Prepare item for local storage (type conversions + encryption)
+              const localItem = await this.prepareItemForLocal(item, tableName);
               await db.table(tableName).put(localItem);
 
               // Track max sync_token for future delta syncs
@@ -896,11 +905,12 @@ export class SyncManager {
   /**
    * Prepare a remote item for local storage.
    * Normalizes data types that differ between Supabase (PostgreSQL) and IndexedDB.
+   * Also encrypts sensitive fields before storing locally.
    */
-  private prepareItemForLocal<T extends TableName>(
+  private async prepareItemForLocal<T extends TableName>(
     item: Tables<T>,
     tableName: T
-  ): LocalTableMap[T] {
+  ): Promise<LocalTableMap[T]> {
     const localItem: any = { ...item, pendingSync: 0 };
 
     // Calculate year_month for transactions
@@ -914,7 +924,29 @@ export class SyncManager {
       localItem.active = localItem.active ? 1 : 0;
     }
 
+    // Encrypt sensitive fields before storing locally
+    const fieldsToEncrypt = ENCRYPTED_FIELDS[tableName] || [];
+    if (fieldsToEncrypt.length > 0) {
+      return encryptFields(localItem, fieldsToEncrypt) as Promise<LocalTableMap[T]>;
+    }
+
     return localItem;
+  }
+
+  /**
+   * Prepare a local item for decryption before push.
+   * Decrypts sensitive fields that were encrypted in local storage.
+   */
+  private async decryptItemForPush<T extends TableName>(
+    item: LocalTableMap[T],
+    tableName: T
+  ): Promise<LocalTableMap[T]> {
+    const fieldsToDecrypt = ENCRYPTED_FIELDS[tableName] || [];
+    if (fieldsToDecrypt.length > 0) {
+      const decrypted = await decryptFields(item as unknown as Record<string, unknown>, fieldsToDecrypt);
+      return decrypted as unknown as LocalTableMap[T];
+    }
+    return item;
   }
 
   /**

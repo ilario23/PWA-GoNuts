@@ -8,6 +8,7 @@ import {
   validate,
 } from "../lib/validation";
 import { useTranslation } from "react-i18next";
+import { decryptArray, ENCRYPTED_FIELDS } from "../lib/crypto-middleware";
 
 /**
  * Hook for managing transaction contexts (e.g., "Work", "Personal", "Vacation").
@@ -35,7 +36,15 @@ import { useTranslation } from "react-i18next";
  */
 export function useContexts() {
   const { t } = useTranslation();
-  const contexts = useLiveQuery(() => db.contexts.toArray());
+  const contexts = useLiveQuery(async () => {
+    const rawData = await db.contexts.toArray();
+    // Decrypt sensitive fields
+    const fields = ENCRYPTED_FIELDS.contexts || [];
+    if (fields.length > 0) {
+      return decryptArray(rawData as unknown as Record<string, unknown>[], fields) as unknown as Context[];
+    }
+    return rawData;
+  });
 
   const activeContexts = contexts?.filter((c) => !c.deleted_at) || [];
 

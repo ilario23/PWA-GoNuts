@@ -10,6 +10,7 @@ import {
     Users,
     BarChart3,
     CloudDownload,
+    ShieldCheck,
     ChevronLeft,
     ChevronRight,
     Squirrel,
@@ -90,6 +91,13 @@ const STEPS = [
         iconColor: "#64748b",
         titleKey: "welcome.step_offline_title",
         descKey: "welcome.step_offline_desc",
+    },
+    {
+        id: "encryption",
+        icon: ShieldCheck,
+        iconColor: "#10b981",
+        titleKey: "welcome.step_encryption_title",
+        descKey: "welcome.step_encryption_desc",
     },
 ] as const;
 
@@ -335,6 +343,35 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
                                 <span className="text-xs text-muted-foreground">{cat.percentage}%</span>
                             </div>
                         ))}
+                    </div>
+                );
+
+            case "encryption":
+                return (
+                    <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-medium">{t("welcome.encryption_preview_title")}</p>
+                                <p className="text-xs text-muted-foreground">{t("welcome.encryption_preview_subtitle")}</p>
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">{t("transactions")}</span>
+                                <span className="font-mono text-emerald-500">🔒 {t("encrypted")}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">{t("categories")}</span>
+                                <span className="font-mono text-emerald-500">🔒 {t("encrypted")}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">{t("settings")}</span>
+                                <span className="font-mono text-emerald-500">🔒 {t("encrypted")}</span>
+                            </div>
+                        </div>
                     </div>
                 );
 

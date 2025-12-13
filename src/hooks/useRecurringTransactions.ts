@@ -10,12 +10,19 @@ import {
 } from "../lib/validation";
 import { processRecurringTransactions } from "../lib/recurring";
 import { useTranslation } from "react-i18next";
+import { decryptArray, ENCRYPTED_FIELDS } from "../lib/crypto-middleware";
 
 export function useRecurringTransactions(groupId?: string | null) {
   const { t } = useTranslation();
-  const recurringTransactions = useLiveQuery(() =>
-    db.recurring_transactions.toArray()
-  );
+  const recurringTransactions = useLiveQuery(async () => {
+    const rawData = await db.recurring_transactions.toArray();
+    // Decrypt sensitive fields
+    const fields = ENCRYPTED_FIELDS.recurring_transactions || [];
+    if (fields.length > 0) {
+      return decryptArray(rawData as unknown as Record<string, unknown>[], fields) as unknown as RecurringTransaction[];
+    }
+    return rawData;
+  });
 
   // Filter out deleted items and optionally by group
   const activeRecurring =

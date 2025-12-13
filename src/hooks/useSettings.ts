@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, Setting } from "../lib/db";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "./useAuth";
+import { decryptFields, ENCRYPTED_FIELDS } from "../lib/crypto-middleware";
 
 /**
  * Hook for managing user preferences and application settings.
@@ -33,10 +34,17 @@ import { useAuth } from "./useAuth";
 export function useSettings() {
   const { user } = useAuth();
 
-  const settings = useLiveQuery(
-    () => (user ? db.user_settings.get(user.id) : undefined),
-    [user]
-  );
+  const settings = useLiveQuery(async () => {
+    if (!user) return undefined;
+    const rawSettings = await db.user_settings.get(user.id);
+    if (!rawSettings) return undefined;
+    // Decrypt sensitive fields
+    const fields = ENCRYPTED_FIELDS.user_settings || [];
+    if (fields.length > 0) {
+      return decryptFields(rawSettings as unknown as Record<string, unknown>, fields) as unknown as Setting;
+    }
+    return rawSettings;
+  }, [user]);
 
   React.useEffect(() => {
     if (user && settings === undefined) {

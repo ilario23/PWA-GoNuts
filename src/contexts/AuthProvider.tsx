@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { db } from "@/lib/db";
 import { syncManager } from "@/lib/sync";
+import { cryptoService } from "@/lib/crypto";
 import { cleanupSoftDeletedRecords } from "@/lib/cleanup";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -203,6 +204,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signOut = useCallback(async () => {
     // Clear cached user
     setCachedUser(null);
+    // Clear encryption key from memory
+    cryptoService.clearKey();
     // Clear local cache before signing out
     await db.clearLocalCache();
     // Sign out and discard the return value (we don't need the error)

@@ -671,6 +671,11 @@
     "step_statistics_title": "Statistiche Dettagliate",
     "step_statistics_desc": "Esplora statistiche mensili e annuali con grafici eleganti e monitoraggio del budget.",
     "step_offline_title": "Funziona Offline",
-    "step_offline_desc": "Usa l'app anche senza internet. I tuoi dati si sincronizzano automaticamente quando torni online."
-  }
+    "step_offline_desc": "Usa l'app anche senza internet. I tuoi dati si sincronizzano automaticamente quando torni online.",
+    "step_encryption_title": "I Tuoi Dati sono Protetti",
+    "step_encryption_desc": "Tutti i dati sensibili sono criptati localmente sul tuo dispositivo usando crittografia standard. La tua password è l'unica chiave—non la salviamo mai.",
+    "encryption_preview_title": "Crittografia Locale",
+    "encryption_preview_subtitle": "Protezione AES-256"
+  },
+  "encrypted": "Criptato"
 }

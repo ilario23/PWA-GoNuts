@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { toast } from "sonner";
 import i18n from "@/i18n";
+import { decryptFields, ENCRYPTED_FIELDS } from "@/lib/crypto-middleware";
 
 /**
  * Hook to fetch user profiles from the local database.
@@ -21,11 +22,16 @@ export function useProfiles(userIds: string[]) {
         const result: Record<string, Profile> = {};
         const profileList = await db.profiles.bulkGet(uniqueIds);
 
-        profileList.forEach((profile) => {
+        // Decrypt sensitive fields
+        const fields = ENCRYPTED_FIELDS.profiles || [];
+        for (const profile of profileList) {
             if (profile) {
-                result[profile.id] = profile;
+                const decrypted = fields.length > 0
+                    ? await decryptFields(profile as unknown as Record<string, unknown>, fields) as unknown as Profile
+                    : profile;
+                result[decrypted.id] = decrypted;
             }
-        });
+        }
 
         return result;
     }, [userIds.join(",")]);
@@ -39,7 +45,14 @@ export function useProfiles(userIds: string[]) {
 export function useProfile(userId: string | undefined) {
     const profile = useLiveQuery(async () => {
         if (!userId) return undefined;
-        return await db.profiles.get(userId);
+        const rawProfile = await db.profiles.get(userId);
+        if (!rawProfile) return undefined;
+        // Decrypt sensitive fields
+        const fields = ENCRYPTED_FIELDS.profiles || [];
+        if (fields.length > 0) {
+            return decryptFields(rawProfile as unknown as Record<string, unknown>, fields) as unknown as Profile;
+        }
+        return rawProfile;
     }, [userId]);
 
     return profile;

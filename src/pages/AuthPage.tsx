@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { syncManager } from "@/lib/sync";
+import { cryptoService } from "@/lib/crypto";
+import { getSaltForUser, storeSaltForUser } from "@/lib/crypto-storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,6 +33,9 @@ export function AuthPage() {
     setLoading(true);
 
     try {
+      // Get or create salt for this user (before auth for key derivation)
+      const salt = getSaltForUser(email);
+
       if (isSignUp) {
         if (password !== confirmPassword) {
           toast.error(t("passwords_mismatch"));
@@ -43,13 +48,25 @@ export function AuthPage() {
           password,
         });
         if (error) throw error;
+
+        // Store salt for new user
+        storeSaltForUser(email, salt);
         toast.success(t("check_email"));
       } else {
+        // Derive encryption key BEFORE auth (we have the password now)
+        toast.loading(t("initializing_security") || "Initializing security...");
+        await cryptoService.initialize(password, salt);
+        toast.dismiss();
+
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          // Clear crypto key if auth fails
+          cryptoService.clearKey();
+          throw error;
+        }
 
         // Sync data from Supabase after successful login
         toast.success(t("sign_in_success"));
