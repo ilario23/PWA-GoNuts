@@ -82,6 +82,12 @@ export const demoData = {
         currency: '€',
         monthly_budget: 1500,
     } as DemoSettings,
+
+    groupExpenses: [
+        { id: '1', description: 'Supermarket', amount: 45.50, paid_by: 'You', split: '50/50' },
+        { id: '2', description: 'Pizza Dinner', amount: 28.00, paid_by: 'Partner', split: '50/50' },
+        { id: '3', description: 'Internet', amount: 29.90, paid_by: 'You', split: '50/50' },
+    ],
 };
 
 // Calculate demo statistics
