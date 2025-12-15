@@ -57,6 +57,7 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                                             value={tx.category_id}
                                             onChange={(catId) => onManualCategoryChange(tx, catId)}
                                             triggerClassName="w-full h-8 text-xs"
+                                            showSkipOption={true}
                                         />
                                         <TooltipProvider>
                                             <Tooltip>

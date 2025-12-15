@@ -1,10 +1,5 @@
 import '@testing-library/jest-dom';
 import 'fake-indexeddb/auto';
-import { webcrypto } from 'crypto';
-
-// Polyfill Web Crypto API for Node.js/Jest environment
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(global as any).crypto = webcrypto;
 
 // Mock Supabase client to avoid import.meta errors
 jest.mock("./lib/supabase", () => ({

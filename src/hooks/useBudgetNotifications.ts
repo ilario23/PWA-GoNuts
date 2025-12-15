@@ -1,11 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, Transaction, Setting } from "../lib/db";
+import { db } from "../lib/db";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import i18n from "@/i18n";
 import { format } from "date-fns";
-import { decryptArray, decryptFields, ENCRYPTED_FIELDS } from "../lib/crypto-middleware";
 
 /**
  * Hook that monitors budget usage and shows warnings
@@ -19,35 +18,18 @@ export function useBudgetNotifications() {
 
   // Get settings with budget
   const settings = useLiveQuery(
-    async () => {
-      if (!user) return undefined;
-      const raw = await db.user_settings.get(user.id);
-      if (!raw) return undefined;
-
-      // Decrypt sensitive fields
-      const fields = ENCRYPTED_FIELDS.user_settings || [];
-      if (fields.length > 0) {
-        return decryptFields(raw as unknown as Record<string, unknown>, fields) as unknown as Setting;
-      }
-      return raw;
-    },
-    [user?.id]
+    () => (user ? db.user_settings.get(user.id) : undefined),
+    [user]
   );
 
   // Get current month expenses with share calculation
   const monthlyExpenses = useLiveQuery(async () => {
     if (!user) return 0;
 
-    let [transactions, memberships] = await Promise.all([
+    const [transactions, memberships] = await Promise.all([
       db.transactions.where("year_month").equals(currentMonth).toArray(),
       db.group_members.where("user_id").equals(user.id).toArray(),
     ]);
-
-    // Decrypt transaction amounts
-    const fields = ENCRYPTED_FIELDS.transactions || [];
-    if (fields.length > 0) {
-      transactions = await decryptArray(transactions as unknown as Record<string, unknown>[], fields) as unknown as Transaction[];
-    }
 
     const groupShareMap = new Map<string, number>();
     memberships.forEach((m) => {
@@ -59,7 +41,7 @@ export function useBudgetNotifications() {
         (t) => t.user_id === user.id && t.type === "expense" && !t.deleted_at
       )
       .reduce((sum, t) => {
-        let amount = Number(t.amount);
+        let amount = t.amount;
         if (t.group_id && groupShareMap.has(t.group_id)) {
           const share = groupShareMap.get(t.group_id)!;
           amount = (amount * share) / 100;

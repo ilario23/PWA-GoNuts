@@ -65,8 +65,7 @@ function DesktopCategoryRows({
                                 : !isRoot
                                     ? "animate-fade-in"
                                     : ""
-                                } ${children.length > 0 ? "cursor-pointer hover:bg-muted/50" : ""
-                                } ${!isRoot ? "bg-muted/20" : ""} ${isInactive ? "opacity-50" : ""
+                                } cursor-pointer hover:bg-muted/50 ${!isRoot ? "bg-muted/20" : ""} ${isInactive ? "opacity-50" : ""
                                 }`}
                             style={
                                 isRoot && index < 20
@@ -75,6 +74,7 @@ function DesktopCategoryRows({
                                         ? { animationDelay: `${index * 0.03}s` }
                                         : {}
                             }
+                            onClick={() => onCategoryClick(c)}
                         >
                             <TableCell className="w-8">
                                 {children.length > 0 ? (
@@ -82,7 +82,10 @@ function DesktopCategoryRows({
                                         variant="ghost"
                                         size="icon"
                                         className="h-6 w-6"
-                                        onClick={() => toggleCategory(c.id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleCategory(c.id);
+                                        }}
                                     >
                                         <ChevronRight
                                             className="h-4 w-4 transition-transform duration-200 ease-out"

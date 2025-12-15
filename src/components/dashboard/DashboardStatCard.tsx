@@ -37,14 +37,15 @@ export function DashboardStatCard({
 
     // Helper to render value or placeholder
     const renderAnimatedValue = (value: number, prefix: string = "", suffix: string = "", decimals: number = 2) => {
-        // Remove sign from prefix if value is 0
-        const finalPrefix = value === 0 ? prefix.replace(/^[+-]/, "") : prefix;
+        if (value === 0) {
+            return <span className="text-muted-foreground">-</span>;
+        }
 
         return (
             <CountUp
                 value={value}
                 decimals={decimals}
-                prefix={finalPrefix}
+                prefix={prefix}
                 suffix={suffix}
             />
         );

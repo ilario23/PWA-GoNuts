@@ -10,11 +10,11 @@ import {
     Users,
     BarChart3,
     CloudDownload,
-    ShieldCheck,
     ChevronLeft,
     ChevronRight,
     Squirrel,
     Plus,
+    Settings2,
 } from "lucide-react";
 import {
     Dialog,
@@ -25,9 +25,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { WelcomeStep } from "./WelcomeStep";
+import { SetupStep } from "./steps/SetupStep";
 import { demoData, getDemoStats } from "@/lib/demoData";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/hooks/useSettings";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfile, useUpdateProfile } from "@/hooks/useProfiles";
+import { Theme } from "@/lib/types";
 
 interface WelcomeWizardProps {
     open: boolean;
@@ -43,6 +47,13 @@ const STEPS = [
         iconColor: "#f97316",
         titleKey: "welcome.step_welcome_title",
         descKey: "welcome.step_welcome_desc",
+    },
+    {
+        id: "setup",
+        icon: Settings2,
+        iconColor: "#8b5cf6",
+        titleKey: "welcome.step_setup_title",
+        descKey: "welcome.step_setup_desc",
     },
     {
         id: "dashboard",
@@ -93,13 +104,6 @@ const STEPS = [
         titleKey: "welcome.step_offline_title",
         descKey: "welcome.step_offline_desc",
     },
-    {
-        id: "encryption",
-        icon: ShieldCheck,
-        iconColor: "#10b981",
-        titleKey: "welcome.step_encryption_title",
-        descKey: "welcome.step_encryption_desc",
-    },
 ] as const;
 
 // Direction for slide animation
@@ -147,10 +151,32 @@ const fireConfetti = () => {
 
 export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) {
     const { t, i18n } = useTranslation();
-    const { updateSettings } = useSettings();
+    const { settings, updateSettings } = useSettings();
+    const { user } = useAuth();
+    const profile = useProfile(user?.id);
+    const { updateProfile } = useUpdateProfile();
+
     const [currentStep, setCurrentStep] = useState(0);
     const [direction, setDirection] = useState<Direction>(1);
     const [demoTransactions, setDemoTransactions] = useState(demoData.transactions);
+
+    // Setup state
+    const [userName, setUserName] = useState("");
+    const [monthlyBudget, setMonthlyBudget] = useState("");
+
+    // Initialize state from existing data
+    useEffect(() => {
+        if (profile?.full_name) {
+            setUserName(profile.full_name);
+        }
+    }, [profile]);
+
+    useEffect(() => {
+        if (settings?.monthly_budget) {
+            setMonthlyBudget(settings.monthly_budget.toString());
+        }
+    }, [settings]);
+
     const constraintsRef = useRef<HTMLDivElement>(null);
 
     const isFirstStep = currentStep === 0;
@@ -166,13 +192,18 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
         }
     }, [open]);
 
-    const handleComplete = useCallback(() => {
+    const handleComplete = useCallback(async () => {
+        // Save profile name
+        if (user && userName) {
+            await updateProfile({ full_name: userName });
+        }
+
         fireConfetti();
         // Small delay to let confetti start before closing
         setTimeout(() => {
             onComplete();
         }, 300);
-    }, [onComplete]);
+    }, [onComplete, user, userName, updateProfile]);
 
     const goNext = useCallback(() => {
         if (isLastStep) {
@@ -191,8 +222,12 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
     }, [isFirstStep]);
 
     const handleSkip = useCallback(() => {
+        // Save current name anyway if set
+        if (user && userName.trim()) {
+            updateProfile({ full_name: userName });
+        }
         onSkip();
-    }, [onSkip]);
+    }, [onSkip, user, userName, updateProfile]);
 
     // Swipe gesture handler
     const handleDragEnd = useCallback(
@@ -403,33 +438,22 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
                     </div>
                 );
 
-            case "encryption":
+            case "setup":
                 return (
-                    <div className="bg-muted/50 rounded-xl p-4 space-y-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                            </div>
-                            <div className="text-left">
-                                <p className="text-sm font-medium">{t("welcome.encryption_preview_title")}</p>
-                                <p className="text-xs text-muted-foreground">{t("welcome.encryption_preview_subtitle")}</p>
-                            </div>
-                        </div>
-                        <div className="space-y-1.5">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">{t("transactions")}</span>
-                                <span className="font-mono text-emerald-500">🔒 {t("encrypted")}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">{t("categories")}</span>
-                                <span className="font-mono text-emerald-500">🔒 {t("encrypted")}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">{t("settings")}</span>
-                                <span className="font-mono text-emerald-500">🔒 {t("encrypted")}</span>
-                            </div>
-                        </div>
-                    </div>
+                    <SetupStep
+                        userName={userName}
+                        setUserName={setUserName}
+                        monthlyBudget={monthlyBudget}
+                        setMonthlyBudget={(val) => {
+                            setMonthlyBudget(val);
+                            const numVal = parseFloat(val);
+                            if (!isNaN(numVal)) {
+                                updateSettings({ monthly_budget: numVal });
+                            }
+                        }}
+                        currentTheme={settings?.theme as Theme || 'light'}
+                        setTheme={(val) => updateSettings({ theme: val })}
+                    />
                 );
 
             default:

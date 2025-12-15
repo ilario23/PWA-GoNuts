@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { Category } from "@/lib/db";
 import { getIconComponent } from "@/lib/icons";
-import { Edit, Trash2, ChevronRight } from "lucide-react";
-import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
+import { ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { SwipeableItem } from "@/components/ui/SwipeableItem";
 
 interface MobileCategoryRowProps {
   category: Category;
@@ -11,6 +12,7 @@ interface MobileCategoryRowProps {
   onDelete: (id: string) => void;
   onClick?: (category: Category) => void;
   style?: React.CSSProperties;
+  className?: string; // Allow custom classes
   childCount?: number;
   budgetAmount?: number; // Monthly budget limit for expense categories
   isExpanded?: boolean;
@@ -24,6 +26,7 @@ export function MobileCategoryRow({
   onDelete,
   onClick,
   style,
+  className,
   childCount,
   budgetAmount,
   isExpanded,
@@ -32,32 +35,7 @@ export function MobileCategoryRow({
 }: MobileCategoryRowProps) {
   const { t } = useTranslation();
   const IconComp = category.icon ? getIconComponent(category.icon) : null;
-  const x = useMotionValue(0);
   const isInactive = category.active === 0;
-
-  // Background color based on swipe direction
-  const background = useTransform(
-    x,
-    [-100, 0, 100],
-    [
-      "rgb(239 68 68)", // Red for delete (left)
-      "rgb(255 255 255)", // White (center)
-      "rgb(59 130 246)", // Blue for edit (right)
-    ]
-  );
-
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 220; // Increased from 80 to require more deliberate swipe
-    if (info.offset.x < -threshold) {
-      // Swiped left - Delete
-      onDelete(category.id);
-    } else if (info.offset.x > threshold) {
-      // Swiped right - Edit
-      onEdit(category);
-      // Reset position after a delay
-      setTimeout(() => x.set(0), 300);
-    }
-  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -73,43 +51,15 @@ export function MobileCategoryRow({
   };
 
   return (
-    <div style={style} className="relative overflow-hidden rounded-lg mb-2">
-      {/* Background Actions Layer */}
-      <motion.div
-        style={{ backgroundColor: background }}
-        className="absolute inset-0 flex items-center justify-between px-4 rounded-lg"
-      >
-        <div className="flex items-center text-white font-medium">
-          <Edit className="h-5 w-5 mr-2" />
-          {t("edit")}
-        </div>
-        <div className="flex items-center text-white font-medium">
-          {t("delete")}
-          <Trash2 className="h-5 w-5 ml-2" />
-        </div>
-      </motion.div>
-
-      {/* Foreground Content Layer */}
-      <motion.div
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.7}
-        onDragEnd={handleDragEnd}
-        onClick={() => {
-          // Only handle expand/collapse if there are children and user clicked (not dragged)
-          if (x.get() !== 0) return; // Don't click if dragging
-
-          if (onClick) {
-            onClick(category);
-          }
-        }}
-        whileTap={{ scale: 0.98 }}
-        style={{
-          x,
-          touchAction: "pan-y",
-          cursor: "pointer",
-        }}
-        className={`relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] ${isInactive ? "opacity-60" : ""
+    <SwipeableItem
+      onEdit={() => onEdit(category)}
+      onDelete={() => onDelete(category.id)}
+      onClick={onClick ? () => onClick(category) : undefined}
+      style={style}
+      className={className}
+    >
+      <div
+        className={`relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] cursor-pointer ${isInactive ? "opacity-60" : ""
           }`}
       >
         {/* Icon */}
@@ -142,13 +92,12 @@ export function MobileCategoryRow({
             {childCount !== undefined && childCount > 0 && (
               <>
                 {onToggleExpand ? (
-                  <motion.div
-                    className="flex items-center gap-0.5 shrink-0 cursor-pointer"
+                  <div
+                    className="flex items-center gap-0.5 shrink-0 cursor-pointer p-1 -m-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       onToggleExpand();
                     }}
-                    whileTap={{ scale: 0.95 }}
                   >
                     <Badge
                       variant="secondary"
@@ -166,7 +115,7 @@ export function MobileCategoryRow({
                     >
                       <ChevronRight className="h-3 w-3 text-muted-foreground" />
                     </motion.div>
-                  </motion.div>
+                  </div>
                 ) : (
                   <Badge
                     variant="secondary"
@@ -180,27 +129,29 @@ export function MobileCategoryRow({
           </div>
         </div>
 
-        {/* Type Badge and Budget */}
-        <div className="shrink-0 flex flex-col items-end gap-0.5">
-          <div
-            className={`text-[10px] px-2 py-1 rounded-full uppercase font-medium tracking-wider ${getTypeColor(
-              category.type
-            )}`}
-          >
-            {t(category.type)}
-          </div>
-          {isInactive && (
-            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
-              {t("inactive") || "Inactive"}
-            </Badge>
-          )}
-          {!isInactive && budgetAmount && budgetAmount > 0 && (
-            <div className="text-[10px] text-muted-foreground font-medium">
-              €{budgetAmount.toFixed(0)}/mese
+        {/* Right Side: Type/Budget Info */}
+        <div className="shrink-0 flex items-center gap-3">
+          <div className="flex flex-col items-end gap-0.5">
+            <div
+              className={`text-[10px] px-2 py-1 rounded-full uppercase font-medium tracking-wider ${getTypeColor(
+                category.type
+              )}`}
+            >
+              {t(category.type)}
             </div>
-          )}
+            {isInactive && (
+              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+                {t("inactive") || "Inactive"}
+              </Badge>
+            )}
+            {!isInactive && budgetAmount && budgetAmount > 0 && (
+              <div className="text-[10px] text-muted-foreground font-medium">
+                {budgetAmount} / {t("month_short")}
+              </div>
+            )}
+          </div>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </SwipeableItem>
   );
 }

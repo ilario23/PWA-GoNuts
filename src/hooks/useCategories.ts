@@ -9,7 +9,6 @@ import {
 } from "../lib/validation";
 import { useTranslation } from "react-i18next";
 import { UNCATEGORIZED_CATEGORY } from "../lib/constants";
-import { decryptArray, ENCRYPTED_FIELDS } from "../lib/crypto-middleware";
 
 /**
  * Hook for managing expense/income categories with hierarchical support.
@@ -45,15 +44,7 @@ import { decryptArray, ENCRYPTED_FIELDS } from "../lib/crypto-middleware";
  */
 export function useCategories(groupId?: string | null) {
   const { t } = useTranslation();
-  const categories = useLiveQuery(async () => {
-    const rawCategories = await db.categories.toArray();
-    // Decrypt sensitive fields
-    const fields = ENCRYPTED_FIELDS.categories || [];
-    if (fields.length > 0) {
-      return decryptArray(rawCategories as unknown as Record<string, unknown>[], fields) as unknown as Category[];
-    }
-    return rawCategories;
-  });
+  const categories = useLiveQuery(() => db.categories.toArray());
 
   // Filter out deleted items, the local-only placeholder, and optionally by group
   const filteredCategories =

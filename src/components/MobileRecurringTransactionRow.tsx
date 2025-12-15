@@ -1,10 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { RecurringTransaction, Category, Context, Group } from "@/lib/db";
 import { getIconComponent } from "@/lib/icons";
-import { Tag, Trash2, Edit, Users, Repeat } from "lucide-react";
-import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { useState } from "react";
+import { Tag, Users, Repeat } from "lucide-react";
 import { SyncStatusBadge } from "./SyncStatus";
+import { SwipeableItem } from "@/components/ui/SwipeableItem";
 import {
   addDays,
   addWeeks,
@@ -40,36 +39,6 @@ export function MobileRecurringTransactionRow({
 }: MobileRecurringTransactionRowProps) {
   const { t } = useTranslation();
   const IconComp = category?.icon ? getIconComponent(category.icon) : null;
-  const x = useMotionValue(0);
-  const [, setSwipedState] = useState<"none" | "left" | "right">("none");
-
-  // Background color based on swipe direction
-  const background = useTransform(
-    x,
-    [-100, 0, 100],
-    [
-      "rgb(239 68 68)", // Red for delete (left)
-      "rgb(255 255 255)", // White (center)
-      "rgb(59 130 246)", // Blue for edit (right)
-    ]
-  );
-
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 100;
-    if (info.offset.x < -threshold && onDelete) {
-      // Swiped left - Delete
-      onDelete(transaction.id);
-      setSwipedState("left");
-    } else if (info.offset.x > threshold && onEdit) {
-      // Swiped right - Edit
-      onEdit(transaction);
-      setSwipedState("right");
-      setTimeout(() => x.set(0), 300);
-    } else {
-      // Reset
-      setSwipedState("none");
-    }
-  };
 
   const getNextOccurrence = (startDateStr: string, frequency: string) => {
     const startDate = parseISO(startDateStr);
@@ -114,46 +83,14 @@ export function MobileRecurringTransactionRow({
     }
   };
 
-  const hasActions = !!onEdit || !!onDelete;
-
   return (
-    <div style={style} className="relative overflow-hidden rounded-lg mb-2">
-      {/* Background Actions Layer */}
-      {hasActions && (
-        <motion.div
-          style={{ backgroundColor: background }}
-          className="absolute inset-0 flex items-center justify-between px-4 rounded-lg"
-        >
-          <div className="flex items-center text-white font-medium">
-            <Edit className="h-5 w-5 mr-2" />
-            {t("edit")}
-          </div>
-          <div className="flex items-center text-white font-medium">
-            {t("delete")}
-            <Trash2 className="h-5 w-5 ml-2" />
-          </div>
-        </motion.div>
-      )}
-
-      {/* Foreground Content Layer */}
-      <motion.div
-        drag={hasActions ? "x" : false}
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.7}
-        onDragEnd={handleDragEnd}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => {
-          if (x.get() === 0 && onClick) {
-            onClick(transaction);
-          }
-        }}
-        style={{
-          x,
-          touchAction: "pan-y",
-          cursor: onClick ? "pointer" : "default",
-        }}
-        className="relative bg-card p-3 rounded-lg border shadow-sm flex flex-col gap-2 min-h-[84px]"
-      >
+    <SwipeableItem
+      onEdit={onEdit ? () => onEdit(transaction) : undefined}
+      onDelete={onDelete ? () => onDelete(transaction.id) : undefined}
+      onClick={onClick ? () => onClick(transaction) : undefined}
+      style={style}
+    >
+      <div className="relative bg-card p-3 rounded-lg border shadow-sm flex flex-col gap-2 min-h-[84px] cursor-pointer">
         {/* Top: Description (Full Width) */}
         <div className="font-medium text-sm w-full break-all">
           {transaction.description || t("transaction")}
@@ -231,7 +168,7 @@ export function MobileRecurringTransactionRow({
             <SyncStatusBadge isPending={transaction.pendingSync === 1} />
           </div>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </SwipeableItem>
   );
 }

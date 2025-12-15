@@ -41,12 +41,16 @@ export function CountUp({
     }, [isInView, value, motionValue]);
 
     useEffect(() => {
+        if (ref.current) {
+            ref.current.textContent = `${prefix}${motionValue.get().toFixed(decimals)}${suffix}`;
+        }
+
         return springValue.on("change", (latest) => {
             if (ref.current) {
                 ref.current.textContent = `${prefix}${latest.toFixed(decimals)}${suffix}`;
             }
         });
-    }, [springValue, decimals, prefix, suffix]);
+    }, [springValue, decimals, prefix, suffix, motionValue]);
 
     return <span className={`tabular-nums ${className || ''}`} ref={ref} />;
 }

@@ -1,11 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { Transaction, Category, Context, Group } from "@/lib/db";
 import { getIconComponent } from "@/lib/icons";
-import { Tag, Trash2, Edit, Users, AlertCircle } from "lucide-react";
-import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { useState } from "react";
+import { Tag, Users, AlertCircle } from "lucide-react";
 import { SyncStatusBadge } from "./SyncStatus";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
+import { SwipeableItem } from "@/components/ui/SwipeableItem";
 
 interface MobileTransactionRowProps {
   transaction: Transaction;
@@ -37,37 +36,6 @@ export function MobileTransactionRow({
 }: MobileTransactionRowProps) {
   const { t } = useTranslation();
   const IconComp = category?.icon ? getIconComponent(category.icon) : null;
-  const x = useMotionValue(0);
-  const [, setSwipedState] = useState<"none" | "left" | "right">("none");
-
-  // Background color based on swipe direction
-  const background = useTransform(
-    x,
-    [-100, 0, 100],
-    [
-      "rgb(239 68 68)", // Red for delete (left)
-      "rgb(255 255 255)", // White (center)
-      "rgb(59 130 246)", // Blue for edit (right)
-    ]
-  );
-
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 220;
-    if (info.offset.x < -threshold && onDelete) {
-      // Swiped left - Delete
-      onDelete(transaction.id);
-      setSwipedState("left");
-    } else if (info.offset.x > threshold && onEdit) {
-      // Swiped right - Edit
-      onEdit(transaction);
-      setSwipedState("right");
-      // Reset position after a delay if it was just an edit trigger
-      setTimeout(() => x.set(0), 300);
-    } else {
-      // Reset
-      setSwipedState("none");
-    }
-  };
 
   const getTypeTextColor = (type: string) => {
     switch (type) {
@@ -82,52 +50,40 @@ export function MobileTransactionRow({
     }
   };
 
-  const hasActions = !!onEdit || !!onDelete;
-
   return (
-    <div style={style} className="relative overflow-hidden rounded-lg mb-2">
-      {/* Background Actions Layer */}
-      {hasActions && (
-        <motion.div
-          style={{ backgroundColor: background }}
-          className="absolute inset-0 flex items-center justify-between px-4 rounded-lg"
-        >
-          <motion.div
-            style={{ scale: useTransform(x, [50, 220], [0.8, 1.2]) }}
-            className="flex items-center text-white font-medium"
-          >
-            <Edit className="h-5 w-5 mr-2" />
-            {t("edit")}
-          </motion.div>
-          <motion.div
-            style={{ scale: useTransform(x, [-50, -220], [0.8, 1.2]) }}
-            className="flex items-center text-white font-medium"
-          >
-            {t("delete")}
-            <Trash2 className="h-5 w-5 ml-2" />
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Foreground Content Layer */}
-      <motion.div
-        drag={hasActions ? "x" : false}
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.7}
-        onDragEnd={handleDragEnd}
-        onClick={onClick}
-        onKeyDown={(e) => {
-          if (onClick && (e.key === "Enter" || e.key === " ")) {
-            e.preventDefault();
-            onClick();
-          }
-        }}
-        tabIndex={onClick ? 0 : undefined}
+    <SwipeableItem
+      onEdit={onEdit ? () => onEdit(transaction) : undefined}
+      onDelete={onDelete ? () => onDelete(transaction.id) : undefined}
+      onClick={onClick}
+      className={style ? "" : undefined}
+      style={style}
+    >
+      {/* 
+        Virtualization libraries often pass style for absolute positioning.
+        SwipeableItem renders a relative div.
+        If we need absolute positioning properties from 'style' to apply to the SwipeableItem container,
+        we might need to adjust SwipeableItem to accept style or wrap it.
+        
+        The 'style' prop coming from virtualizer usually contains: position: absolute, top, left, width, height, transform.
+        If we wrap it, the wrapper needs those styles.
+        MobileTransactionRow root div used to accept style.
+        SwipeableItem renders a wrapper div. Let's make sure SwipeableItem accepts style or we wrap SwipeableItem.
+        My SwipeableItem currently only accepts className.
+        
+        Wait, I should check SwipeableItem again. It renders a div. I should add style prop to it. 
+        I'll modify SwipeableItem to accept style prop just in case, or I wrap it here.
+        Actually, existing component had:
+        <div style={style} className="relative ..."> ... <motion.div ...>
+        
+        So the ROOT element needs the style.
+        SwipeableItem renders the root div.
+        I should update SwipeableItem to accept style.
+      */}
+      <div
+        className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
         aria-label={`${transaction.description}, ${(personalAmount ?? transaction.amount).toFixed(2)}`}
-        whileTap={{ scale: 0.98 }}
-        style={{ x, touchAction: "pan-y" }} // Important for vertical scrolling
-        className="relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         {/* Icon */}
         <div
@@ -201,7 +157,7 @@ export function MobileTransactionRow({
             <SyncStatusBadge isPending={transaction.pendingSync === 1} />
           </div>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </SwipeableItem>
   );
 }

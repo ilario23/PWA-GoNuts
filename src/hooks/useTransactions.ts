@@ -8,7 +8,6 @@ import {
   validate,
 } from "../lib/validation";
 import { useTranslation } from "react-i18next";
-import { decryptArray, ENCRYPTED_FIELDS } from "../lib/crypto-middleware";
 
 /**
  * Hook for managing transactions with optional filtering.
@@ -47,12 +46,6 @@ export function useTransactions(
 
     // Apply remaining filters
     let results: Transaction[] = await collection.reverse().toArray();
-
-    // Decrypt sensitive fields
-    const fields = ENCRYPTED_FIELDS.transactions || [];
-    if (fields.length > 0) {
-      results = await decryptArray(results as unknown as Record<string, unknown>[], fields) as unknown as Transaction[];
-    }
 
     // Apply group filter if not already applied via index
     // (e.g. if we queried by yearMonth, or if we want personal only)

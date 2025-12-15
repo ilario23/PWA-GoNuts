@@ -29,9 +29,9 @@ import { Plus, Edit, Trash2, Tag, Receipt } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { Context } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
+import { SwipeableItem } from "@/components/ui/SwipeableItem";
 
 // Mobile swipeable row component for contexts
 function MobileContextRow({
@@ -46,73 +46,13 @@ function MobileContextRow({
   onSelect: (context: Context) => void;
 }) {
   const { t } = useTranslation();
-  const x = useMotionValue(0);
-
-  const background = useTransform(
-    x,
-    [-100, 0, 100],
-    [
-      "rgb(239 68 68)", // Red for delete (left)
-      "rgb(255 255 255)", // White (center)
-      "rgb(59 130 246)", // Blue for edit (right)
-    ]
-  );
-
   const [open, setOpen] = useState(false);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 220;
-    if (info.offset.x < -threshold) {
-      onDelete(context.id);
-    } else if (info.offset.x > threshold) {
-      onEdit(context);
-      setTimeout(() => x.set(0), 300);
-    }
-  };
-
   return (
-    <div className="relative overflow-hidden rounded-lg mb-2">
-      {/* Background Actions Layer */}
-      <motion.div
-        style={{ backgroundColor: background }}
-        className="absolute inset-0 flex items-center justify-between px-4 rounded-lg"
-      >
-        <div className="flex items-center text-white font-medium">
-          <Edit className="h-5 w-5 mr-2" />
-          {t("edit")}
-        </div>
-        <div className="flex items-center text-white font-medium">
-          {t("delete")}
-          <Trash2 className="h-5 w-5 ml-2" />
-        </div>
-      </motion.div>
-
-      {/* Foreground Content Layer */}
+    <>
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <motion.div
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.7}
-            onDragEnd={handleDragEnd}
-            style={{ x, touchAction: "pan-y" }}
-            className="relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 cursor-pointer active:bg-muted/50 focus:outline-none"
-          >
-            {/* Icon */}
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Tag className="h-5 w-5 text-primary" />
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 min-w-0 text-left">
-              <div className="font-medium text-sm truncate">{context.name}</div>
-              {context.description && (
-                <div className="text-xs text-muted-foreground truncate">
-                  {context.description}
-                </div>
-              )}
-            </div>
-          </motion.div>
+          <span className="hidden" />
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="end" className="w-[200px]">
           <DropdownMenuItem onClick={() => onSelect(context)}>
@@ -121,7 +61,30 @@ function MobileContextRow({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+
+      <SwipeableItem
+        onEdit={() => onEdit(context)}
+        onDelete={() => onDelete(context.id)}
+        onClick={() => setOpen(true)}
+      >
+        <div className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 cursor-pointer active:bg-muted/50 focus:outline-none">
+          {/* Icon */}
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Tag className="h-5 w-5 text-primary" />
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 min-w-0 text-left">
+            <div className="font-medium text-sm truncate">{context.name}</div>
+            {context.description && (
+              <div className="text-xs text-muted-foreground truncate">
+                {context.description}
+              </div>
+            )}
+          </div>
+        </div>
+      </SwipeableItem>
+    </>
   );
 }
 

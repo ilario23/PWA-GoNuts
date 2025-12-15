@@ -6,7 +6,6 @@ import {
   GroupWithMembers,
 } from "@/hooks/useGroups";
 import { useAuth } from "@/contexts/AuthProvider";
-import { useSync } from "@/hooks/useSync";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +38,6 @@ import {
   Check,
   AlertTriangle,
   IdCard,
-  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { GroupCard } from "@/components/GroupCard";
@@ -57,7 +55,6 @@ export function GroupsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { sync, isSyncing } = useSync();
   const {
     groups,
     createGroup,
@@ -184,23 +181,6 @@ export function GroupsPage() {
         <h2 className="text-2xl font-bold tracking-tight">{t("groups")}</h2>
         <div className="flex gap-2">
           {/* Refresh Button */}
-          <Button
-            onClick={() => sync()}
-            disabled={isSyncing}
-            variant="outline"
-            size="icon"
-            className="md:w-auto md:px-4 md:h-10"
-            title={t("sync_now") || "Sync now"}
-          >
-            <RefreshCw
-              className={`h-4 w-4 md:mr-2 ${isSyncing ? "animate-spin" : ""}`}
-            />
-            <span className="hidden md:inline">
-              {isSyncing
-                ? t("syncing") || "Syncing..."
-                : t("sync_now") || "Sync"}
-            </span>
-          </Button>
           <Button
             variant="outline"
             size="icon"

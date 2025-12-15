@@ -49,9 +49,9 @@ interface TransactionListProps {
 }
 
 // Row heights for virtualization
-const MOBILE_ROW_HEIGHT = 80; // Reduced height for compact row + margin
-const MOBILE_HEADER_HEIGHT = 40;
-const DESKTOP_ROW_HEIGHT = 53;
+export const MOBILE_ROW_HEIGHT = 80; // Reduced height for compact row + margin
+export const MOBILE_HEADER_HEIGHT = 40;
+export const DESKTOP_ROW_HEIGHT = 53;
 
 type GroupedItem =
   | { type: "header"; date: string; label: string }
@@ -248,18 +248,18 @@ export function TransactionList({
             <time dateTime={t_item.date}>{t_item.date}</time>
           </TableCell>
           <TableCell>
-            <div className="flex items-center gap-2">
-              {t_item.description}
+            <div className="flex items-center gap-2 max-w-[200px] xl:max-w-[300px]">
+              <span className="truncate">{t_item.description}</span>
               {t_item.category_id === UNCATEGORIZED_CATEGORY.ID && (
-                <AlertCircle className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" aria-hidden="true" />
               )}
               <SyncStatusBadge isPending={t_item.pendingSync === 1} />
             </div>
           </TableCell>
           <TableCell className="w-[180px]">
             <div className="flex items-center gap-2">
-              {IconComp && <IconComp className="h-4 w-4" aria-hidden="true" />}
-              <span className={!category && t_item.category_id === UNCATEGORIZED_CATEGORY.ID ? "text-amber-500 font-medium" : ""}>
+              {IconComp && <IconComp className="h-4 w-4 shrink-0" aria-hidden="true" />}
+              <span className={`truncate max-w-[140px] ${!category && t_item.category_id === UNCATEGORIZED_CATEGORY.ID ? "text-amber-500 font-medium" : ""}`}>
                 {category?.name || (t_item.category_id === UNCATEGORIZED_CATEGORY.ID ? (t("needs_review") || "Needs Review") : "-")}
               </span>
             </div>

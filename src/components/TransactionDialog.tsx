@@ -26,9 +26,10 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion";
 import { CategorySelector } from "@/components/CategorySelector";
-import { ListFilter, SlidersHorizontal, Calculator as CalculatorIcon } from "lucide-react";
+import { SlidersHorizontal, Calculator as CalculatorIcon, ChevronUp } from "lucide-react";
 import { Calculator } from "@/components/Calculator";
 import { useRef } from "react";
+import { Label } from "@/components/ui/label";
 import { useCategoryBudgets } from "@/hooks/useCategoryBudgets";
 
 // ... (imports remain)
@@ -285,15 +286,13 @@ export function TransactionDialog({
                         type="single"
                         collapsible
                         value={activeSection}
-                        onValueChange={setActiveSection}
+                        onValueChange={(val) => setActiveSection(val || "main")}
                         className="w-full"
                     >
                         <AccordionItem value="main" className="border-b-0">
-                            <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
-                                <span className="flex items-center gap-2">
-                                    <ListFilter className="h-4 w-4" />
-                                    {t("transaction_details")}
-                                </span>
+                            {/* Hidden trigger for main section to allow programmatic control while hiding title */}
+                            <AccordionTrigger className="hidden">
+                                {t("transaction_details")}
                             </AccordionTrigger>
                             <AccordionContent className="space-y-4 pt-2 px-1">
                                 <div className="space-y-2">
@@ -400,8 +399,8 @@ export function TransactionDialog({
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">{t("category")}</label>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="category">{t("category")}</Label>
                                     <CategorySelector
                                         value={formData.category_id}
                                         onChange={(value) =>
@@ -409,7 +408,6 @@ export function TransactionDialog({
                                         }
                                         type={formData.type}
                                         groupId={formData.group_id}
-                                        modal
                                     />
                                 </div>
 
@@ -494,16 +492,33 @@ export function TransactionDialog({
                         <AccordionItem value="more" className="border-b-0 border-t">
                             <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
                                 <span className="flex items-center gap-2">
-                                    <SlidersHorizontal className="h-4 w-4" />
-                                    {t("more_options")}
-                                    {(formData.group_id || formData.context_id) && (
-                                        <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-2">
-                                            {
-                                                [formData.group_id, formData.context_id].filter(
-                                                    Boolean
-                                                ).length
-                                            }
-                                        </span>
+                                    {activeSection === "more" ? (
+                                        <>
+                                            <ChevronUp className="h-4 w-4" />
+                                            {t("back_to_details")}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <SlidersHorizontal className="h-4 w-4" />
+                                            {(() => {
+                                                const groupName = formData.group_id
+                                                    ? groups?.find(g => g.id === formData.group_id)?.name
+                                                    : null;
+                                                const contextName = formData.context_id
+                                                    ? contexts?.find(c => c.id === formData.context_id)?.name
+                                                    : null;
+
+                                                if (groupName && contextName) {
+                                                    return `${groupName} • ${contextName}`;
+                                                } else if (groupName) {
+                                                    return groupName;
+                                                } else if (contextName) {
+                                                    return `${t("personal_expense")} • ${contextName}`;
+                                                } else {
+                                                    return t("personal_expense");
+                                                }
+                                            })()}
+                                        </>
                                     )}
                                 </span>
                             </AccordionTrigger>

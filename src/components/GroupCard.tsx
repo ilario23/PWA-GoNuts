@@ -25,8 +25,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { SwipeableItem } from "@/components/ui/SwipeableItem";
 
 interface GroupCardProps {
   group: GroupWithMembers;
@@ -48,70 +48,17 @@ export function GroupCard({
   onStatistics,
 }: GroupCardProps) {
   const { t } = useTranslation();
-  const x = useMotionValue(0);
-  const [, setSwipedState] = useState<"none" | "left" | "right">("none");
-
-  // Background color based on swipe direction
-  const background = useTransform(
-    x,
-    [-100, 0, 100],
-    [
-      "rgb(239 68 68)", // Red for delete (left)
-      "rgb(255 255 255)", // White (center)
-      "rgb(59 130 246)", // Blue for edit (right)
-    ]
-  );
-
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 220; // Lower threshold for card swipe
-    if (info.offset.x < -threshold && group.isCreator) {
-      // Swiped left - Delete
-      onDelete(group);
-      setSwipedState("left");
-      setTimeout(() => x.set(0), 300); // Reset for now as delete has confirmation
-    } else if (info.offset.x > threshold && group.isCreator) {
-      // Swiped right - Edit
-      onEdit(group);
-      setSwipedState("right");
-      setTimeout(() => x.set(0), 300);
-    } else {
-      // Reset
-      setSwipedState("none");
-    }
-  };
-
-  const hasActions = group.isCreator;
+  const isMobile = useIsMobile();
+  const enabled = isMobile && group.isCreator;
 
   return (
-    <div className="relative overflow-hidden rounded-xl">
-      {/* Background Actions Layer - Only visible on mobile/touch when swiping */}
-      {hasActions && (
-        <motion.div
-          style={{ backgroundColor: background }}
-          className="absolute inset-0 flex items-center justify-between px-6 rounded-xl sm:hidden"
-        >
-          <div className="flex items-center text-white font-medium">
-            <Edit className="h-6 w-6 mr-2" />
-            {t("edit")}
-          </div>
-          <div className="flex items-center text-white font-medium">
-            {t("delete")}
-            <Trash2 className="h-6 w-6 ml-2" />
-          </div>
-        </motion.div>
-      )}
-
-      {/* Foreground Content Layer */}
-      <motion.div
-        drag={hasActions ? "x" : false}
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.7}
-        onDragEnd={handleDragEnd}
-        whileHover={{ y: -4 }}
-        whileTap={{ scale: 0.98 }}
-        style={{ x, touchAction: "pan-y" }}
-        className="relative bg-card rounded-xl border shadow-sm h-full flex flex-col"
-      >
+    <SwipeableItem
+      onEdit={() => onEdit(group)}
+      onDelete={() => onDelete(group)}
+      enabled={enabled}
+      className="rounded-xl h-full"
+    >
+      <div className="relative bg-card rounded-xl border shadow-sm h-full flex flex-col transition-all hover:-translate-y-1 active:scale-[0.98]">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="space-y-1 flex-1 min-w-0">
@@ -135,7 +82,10 @@ export function GroupCard({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={() => onEdit(group)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(group);
+                    }}
                     title={t("edit")}
                   >
                     <Edit className="h-3.5 w-3.5" />
@@ -144,7 +94,10 @@ export function GroupCard({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => onDelete(group)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(group);
+                    }}
                     title={t("delete")}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -244,7 +197,7 @@ export function GroupCard({
             </div>
           </div>
         </CardContent>
-      </motion.div>
-    </div>
+      </div>
+    </SwipeableItem>
   );
 }

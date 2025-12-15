@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+
 import {
     Select,
     SelectContent,
@@ -22,7 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { ListFilter, SlidersHorizontal } from "lucide-react";
+import { ListFilter, SlidersHorizontal, ChevronUp } from "lucide-react";
 import { CategorySelector } from "@/components/CategorySelector";
 import { IconSelector } from "@/components/IconSelector";
 import { useTranslation } from "react-i18next";
@@ -86,7 +86,7 @@ export function CategoryFormDialog({
                         className="w-full"
                     >
                         <AccordionItem value="main" className="border-b-0">
-                            <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
+                            <AccordionTrigger className="hidden">
                                 <span className="flex items-center gap-2">
                                     <ListFilter className="h-4 w-4" />
                                     {t("category_details")}
@@ -195,24 +195,23 @@ export function CategoryFormDialog({
                         <AccordionItem value="more" className="border-b-0 border-t">
                             <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
                                 <span className="flex items-center gap-2">
-                                    <SlidersHorizontal className="h-4 w-4" />
-                                    <span className="text-sm font-medium">
-                                        {t("more_options")}
-                                    </span>
-                                    {(formData.group_id ||
-                                        (formData.budget &&
-                                            parseFloat(formData.budget) > 0) ||
-                                        !formData.active) && (
-                                            <Badge className="ml-2">
-                                                {[
-                                                    formData.group_id ? 1 : 0,
-                                                    formData.budget && parseFloat(formData.budget) > 0
-                                                        ? 1
-                                                        : 0,
-                                                    !formData.active ? 1 : 0,
-                                                ].reduce((a, b) => a + b, 0)}
-                                            </Badge>
-                                        )}
+                                    {activeSection === "more" ? (
+                                        <>
+                                            <ChevronUp className="h-4 w-4" />
+                                            {t("back_to_details")}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <SlidersHorizontal className="h-4 w-4" />
+                                            {(() => {
+                                                const groupName = formData.group_id
+                                                    ? groups?.find(g => g.id === formData.group_id)?.name
+                                                    : null;
+
+                                                return groupName || t("personal_category");
+                                            })()}
+                                        </>
+                                    )}
                                 </span>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-4 pt-2 px-1">

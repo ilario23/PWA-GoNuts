@@ -38,6 +38,7 @@ export class ImportProcessor {
         transactions: number;
         recurring: number;
         orphanCount: number;
+        skippedCount?: number;
     }> {
         if (data.source === 'legacy_vue') {
             return this.processVueImport(data, onProgress, mergedCategoryIds, skippedRecurringIds);
@@ -283,13 +284,28 @@ export class ImportProcessor {
                 // Update UI every 50 transactions to not spam
                 if (currentStep % 50 === 0) onProgress?.(currentStep, totalSteps, 'Importing Transactions...');
 
-                let finalCatId = tx.category_id ? categoryIdMap.get(tx.category_id) : undefined;
-                if (!finalCatId) {
-                    finalCatId = UNCATEGORIZED_CATEGORY.ID;
-                    orphanCount++;
+                if (tx.category_id === 'SKIP') {
+                    continue;
                 }
 
-                const finalCtxId = tx.context_id ? contextIdMap.get(tx.context_id) : undefined;
+                let finalCatId = tx.category_id ? categoryIdMap.get(tx.category_id) : undefined;
+                if (!finalCatId) {
+                    // Check if the id is ALREADY a valid category ID (manual categorization)
+                    const isManualId = Array.from(existingCategoriesMap.values()).includes(tx.category_id || "");
+                    if (isManualId) {
+                        finalCatId = tx.category_id;
+                    } else if (tx.category_id && tx.category_id !== "UNCATEGORIZED") {
+                        // It has an ID but we don't know it? Maybe it's a new one not in map?
+                        // Should not happen if logic is correct, but default to uncategorized if fails
+                        finalCatId = UNCATEGORIZED_CATEGORY.ID;
+                        orphanCount++;
+                    } else {
+                        finalCatId = UNCATEGORIZED_CATEGORY.ID;
+                        orphanCount++;
+                    }
+                }
+
+                const finalCtxId = tx.context_id ? contextIdMap.get(tx.context_id!) : undefined;
 
                 // Normalize amount: always store as positive value
                 const normalizedAmount = Math.abs(tx.amount);
@@ -411,7 +427,7 @@ export class ImportProcessor {
             if (budgetsToInsert.length) await db.category_budgets.bulkPut(budgetsToInsert);
         });
 
-        return { categories: importedCategories, transactions: importedTransactions, recurring: importedRecurring, orphanCount };
+        return { categories: importedCategories, transactions: importedTransactions, recurring: importedRecurring, orphanCount, skippedCount: (data.transactions?.length || 0) - importedTransactions };
     }
 
     // --- VUE MIGRATION STRATEGY ---

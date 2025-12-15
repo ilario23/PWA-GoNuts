@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+
 import {
     Select,
     SelectContent,
@@ -21,7 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { ListFilter, SlidersHorizontal } from "lucide-react";
+import { ListFilter, SlidersHorizontal, ChevronUp } from "lucide-react";
 import { CategorySelector } from "@/components/CategorySelector";
 import { useTranslation } from "react-i18next";
 import { User } from "@supabase/supabase-js";
@@ -104,7 +104,7 @@ export function RecurringTransactionFormDialog({
                         className="w-full"
                     >
                         <AccordionItem value="main" className="border-b-0">
-                            <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
+                            <AccordionTrigger className="hidden">
                                 <span className="flex items-center gap-2">
                                     <ListFilter className="h-4 w-4" />
                                     {t("transaction_details")}
@@ -234,18 +234,33 @@ export function RecurringTransactionFormDialog({
                             <AccordionItem value="more" className="border-b-0 border-t">
                                 <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
                                     <span className="flex items-center gap-2">
-                                        <SlidersHorizontal className="h-4 w-4" />
-                                        <span className="text-sm font-medium">
-                                            {t("more_options")}
-                                        </span>
-                                        {(formData.group_id || formData.context_id) && (
-                                            <Badge className="ml-2">
-                                                {
-                                                    [formData.group_id, formData.context_id].filter(
-                                                        Boolean
-                                                    ).length
-                                                }
-                                            </Badge>
+                                        {activeSection === "more" ? (
+                                            <>
+                                                <ChevronUp className="h-4 w-4" />
+                                                {t("back_to_details")}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <SlidersHorizontal className="h-4 w-4" />
+                                                {(() => {
+                                                    const groupName = formData.group_id
+                                                        ? groups?.find(g => g.id === formData.group_id)?.name
+                                                        : null;
+                                                    const contextName = formData.context_id
+                                                        ? contexts?.find(c => c.id === formData.context_id)?.name
+                                                        : null;
+
+                                                    if (groupName && contextName) {
+                                                        return `${groupName} • ${contextName}`;
+                                                    } else if (groupName) {
+                                                        return groupName;
+                                                    } else if (contextName) {
+                                                        return `${t("personal_expense")} • ${contextName}`;
+                                                    } else {
+                                                        return t("personal_expense");
+                                                    }
+                                                })()}
+                                            </>
                                         )}
                                     </span>
                                 </AccordionTrigger>

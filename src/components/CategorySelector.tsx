@@ -1,8 +1,8 @@
 import * as React from "react";
-import { Check, ChevronsUpDown, ChevronRight, ArrowLeft, ListFilter } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { Check, ChevronsUpDown, ChevronRight, Search, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -14,27 +14,15 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
+  DrawerDescription,
 } from "@/components/ui/drawer";
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
-  BreadcrumbEllipsis,
-} from "@/components/ui/breadcrumb";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useCategories } from "@/hooks/useCategories";
 import { Category } from "@/lib/db";
 import { getIconComponent } from "@/lib/icons";
 import { useTranslation } from "react-i18next";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
+import { Badge } from "@/components/ui/badge";
+import { useGroups } from "@/hooks/useGroups";
 
 interface CategorySelectorProps {
   value?: string;
@@ -42,13 +30,9 @@ interface CategorySelectorProps {
   type?: "income" | "expense" | "investment";
   excludeId?: string;
   modal?: boolean;
-  groupId?: string | null; // Filter by group
+  groupId?: string | null; // Kept for API compatibility but ignored for filtering to show all
   triggerClassName?: string;
-}
-
-interface CategoryNode extends Category {
-  children: CategoryNode[];
-  level: number;
+  showSkipOption?: boolean;
 }
 
 export function CategorySelector({
@@ -57,18 +41,20 @@ export function CategorySelector({
   type,
   excludeId,
   modal = false,
-  groupId,
+  groupId, // Strict filter: null/undefined = Personal, string = Group
   triggerClassName,
+  showSkipOption = false,
 }: CategorySelectorProps) {
-  const { categories } = useCategories(groupId);
+  // Fetch ALL categories first, then filter strictly in memory for responsiveness
+  // Or should we trust the hook? Let's filter in memory to be sure.
+  const { categories } = useCategories(undefined);
+  const { groups } = useGroups();
   const { t } = useTranslation();
+
   const [open, setOpen] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
-
-  // Navigation state (used for both mobile and desktop)
-  const [navigationPath, setNavigationPath] = React.useState<CategoryNode[]>(
-    []
-  );
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [expandedRoots, setExpandedRoots] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -76,37 +62,6 @@ export function CategorySelector({
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-
-  // Reset navigation when selector closes
-  React.useEffect(() => {
-    if (!open) {
-      setNavigationPath([]);
-    }
-  }, [open]);
-
-  const buildTree = React.useCallback(
-    (
-      cats: Category[],
-      parentId: string | undefined = undefined,
-      level = 0
-    ): CategoryNode[] => {
-      return cats
-        .filter((c) => {
-          // Root categories: parent_id is null, undefined, or empty string
-          if (parentId === undefined) {
-            return !c.parent_id || c.parent_id === "";
-          }
-          return c.parent_id === parentId;
-        })
-        .map((c) => ({
-          ...c,
-          level,
-          children: buildTree(cats, c.id, level + 1),
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-    },
-    []
-  );
 
   // Get all descendant IDs of a category (to prevent circular references)
   const getDescendantIds = React.useCallback(
@@ -122,424 +77,247 @@ export function CategorySelector({
   );
 
   const filteredCategories = React.useMemo(() => {
-    if (!categories) return [];
-    // Use strict check for active status to ensure inactive categories (0) are excluded
-    let cats = categories.filter((c) => c.active === 1);
+    // 1. Strict Group Filter
+    let cats = categories?.filter((c) => {
+      if (groupId) {
+        return c.group_id === groupId;
+      } else {
+        return !c.group_id; // Personal categories only
+      }
+    }) || [];
 
-    // Exclude the local-only "Uncategorized" placeholder category
+    // 2. Active Check
+    cats = cats.filter((c) => c.active !== 0);
+
+    // 3. Exclude Uncategorized
     cats = cats.filter((c) => c.id !== UNCATEGORIZED_CATEGORY.ID);
 
+    // 4. Filter by Type
     if (type) {
       cats = cats.filter((c) => c.type === type);
     }
-    // Exclude the editing category and all its descendants
+
+    // 5. Exclude editing (for parents)
     if (excludeId) {
       const excludeIds = [excludeId, ...getDescendantIds(excludeId, cats)];
       cats = cats.filter((c) => !excludeIds.includes(c.id));
     }
-    return cats;
-  }, [categories, type, excludeId, getDescendantIds]);
 
-  const categoryTree = React.useMemo(() => {
-    return buildTree(filteredCategories);
-  }, [filteredCategories, buildTree]);
+    // 6. Search Filter
+    if (searchTerm) {
+      const lowerTerm = searchTerm.toLowerCase();
+      cats = cats.filter(c => c.name.toLowerCase().includes(lowerTerm));
+    }
+
+    return cats.sort((a, b) => a.name.localeCompare(b.name));
+  }, [categories, type, excludeId, getDescendantIds, searchTerm, groupId]);
+
+  // If searching, we show a flat list. If not, we show tree.
+  const isSearching = !!searchTerm;
+
+  const rootCategories = React.useMemo(() => {
+    if (isSearching) return filteredCategories; // Flat list for search
+
+    const visibleIds = new Set(filteredCategories.map((c) => c.id));
+    return filteredCategories.filter(c => {
+      // It is a root if:
+      // 1. No parent_id
+      // 2. OR parent_id exists but parent is NOT in the visible set (Orphan)
+      const isOrphan = c.parent_id && !visibleIds.has(c.parent_id);
+      return !c.parent_id || isOrphan;
+    });
+  }, [filteredCategories, isSearching]);
+
+  const getChildren = (parentId: string) => {
+    return filteredCategories.filter(c => c.parent_id === parentId);
+  };
 
   const selectedCategory = categories?.find((c) => c.id === value);
+  const selectedGroupName = selectedCategory?.group_id
+    ? groups.find(g => g.id === selectedCategory.group_id)?.name
+    : null;
 
-  const handleSelect = (category: CategoryNode | null) => {
-    if (!category) {
-      // Selecting "No Parent"
-      onChange("");
-      setOpen(false);
-      setNavigationPath([]);
-      return;
+  // Auto-expand the parent of the selected category on open
+  React.useEffect(() => {
+    if (open && selectedCategory && selectedCategory.parent_id) {
+      setExpandedRoots(prev => {
+        const newSet = new Set(prev);
+        newSet.add(selectedCategory.parent_id!);
+        return newSet;
+      });
     }
-
-    // Always allow selection, even if category has children
-    onChange(category.id);
-    setOpen(false);
-    setNavigationPath([]);
-  };
-
-  const handleNavigate = (category: CategoryNode) => {
-    // Navigate into category's children
-    if (category.children.length > 0) {
-      setNavigationPath([...navigationPath, category]);
-    }
-  };
-
-  const handleBreadcrumbClick = (index: number) => {
-    // Navigate back to that level (-1 means root)
-    if (index === -1) {
-      setNavigationPath([]);
-    } else {
-      setNavigationPath(navigationPath.slice(0, index + 1));
-    }
-  };
+  }, [open, selectedCategory]);
 
   const renderCategoryIcon = (iconName: string, color: string) => {
     const Icon = getIconComponent(iconName);
     return (
       <div
-        className="flex h-6 w-6 items-center justify-center rounded-full mr-2"
-        style={{ backgroundColor: color }}
+        className="flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0"
+        style={{ backgroundColor: `${color}20`, color: color }}
       >
-        {Icon && <Icon className="h-3 w-3 text-white" />}
+        {Icon ? <Icon className="h-3.5 w-3.5" /> : <div className="h-3.5 w-3.5 rounded-full bg-current opacity-50" />}
       </div>
     );
   };
 
-  // Get current level categories based on navigation path
-  const getCurrentLevelCategories = () => {
-    if (navigationPath.length === 0) {
-      return categoryTree;
-    }
-    const currentParent = navigationPath[navigationPath.length - 1];
-    return currentParent.children;
+  const handleSelect = (val: string) => {
+    onChange(val);
+    setOpen(false);
   };
 
-  const currentLevelCategories = getCurrentLevelCategories();
-  const currentParent =
-    navigationPath.length > 0
-      ? navigationPath[navigationPath.length - 1]
-      : null;
+  const toggleExpand = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setExpandedRoots(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
 
-  // Desktop View: Breadcrumb navigation
-  const DesktopContent = (
-    <div className="w-full">
-      {/* Breadcrumb */}
-      {navigationPath.length > 0 && (
-        <div className="border-b p-3">
-          <Breadcrumb>
-            <BreadcrumbList>
-              {/* Always show root */}
-              <BreadcrumbItem>
-                <BreadcrumbLink
-                  className="cursor-pointer"
-                  onClick={() => handleBreadcrumbClick(-1)}
-                >
-                  {t("categories")}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
+  const renderCategoryNode = (category: Category, depth = 0) => {
+    const children = isSearching ? [] : getChildren(category.id);
+    const hasChildren = children.length > 0;
+    const isExpanded = expandedRoots.has(category.id);
+    const isSelected = value === category.id;
+    const groupName = category.group_id ? groups.find(g => g.id === category.group_id)?.name : null;
 
-              {navigationPath.length <= 2 ? (
-                // Short path: show all items
-                navigationPath.map((cat, index) => (
-                  <React.Fragment key={cat.id}>
-                    <BreadcrumbItem>
-                      {index === navigationPath.length - 1 ? (
-                        <BreadcrumbPage>{cat.name}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink
-                          className="cursor-pointer"
-                          onClick={() => handleBreadcrumbClick(index)}
-                        >
-                          {cat.name}
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                    {index < navigationPath.length - 1 && (
-                      <BreadcrumbSeparator />
-                    )}
-                  </React.Fragment>
-                ))
-              ) : (
-                // Long path: show first, ellipsis with dropdown, and last
-                <>
-                  {/* First item */}
-                  <BreadcrumbItem>
-                    <BreadcrumbLink
-                      className="cursor-pointer"
-                      onClick={() => handleBreadcrumbClick(0)}
-                    >
-                      {navigationPath[0].name}
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
+    return (
+      <div key={category.id} className="mb-px">
+        <div
+          onClick={(e) => {
+            if (hasChildren && !isSearching) {
+              // Expand if has children (Drill-down behavior)
+              toggleExpand(category.id, e);
+            } else {
+              // Select if leaf
+              handleSelect(category.id);
+            }
+          }}
+          className={cn(
+            "flex items-center w-full p-2 rounded-md cursor-pointer transition-colors relative min-h-[48px]",
+            isSelected ? "bg-accent/50 text-accent-foreground" : "hover:bg-muted/50 text-foreground"
+          )}
+          style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        >
+          {/* Expand Toggle */}
+          {hasChildren && !isSearching && (
+            <div
+              className="absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center z-10"
+              onClick={(e) => toggleExpand(category.id, e)}
+            >
+              <ChevronRight
+                className={cn(
+                  "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                  isExpanded && "rotate-90"
+                )}
+              />
+            </div>
+          )}
 
-                  {/* Ellipsis with dropdown for middle items */}
-                  <BreadcrumbItem>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center gap-1">
-                        <BreadcrumbEllipsis className="h-4 w-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        {navigationPath.slice(1, -1).map((cat, index) => (
-                          <DropdownMenuItem
-                            key={cat.id}
-                            onClick={() => handleBreadcrumbClick(index + 1)}
-                          >
-                            {cat.name}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
+          {/* Spacer if no children */}
+          {(!hasChildren || isSearching) && <div className="w-2" />}
+          {hasChildren && !isSearching && <div className="w-6" />}
 
-                  {/* Last item */}
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>
-                      {navigationPath[navigationPath.length - 1].name}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
-              )}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      )}
+          {renderCategoryIcon(category.icon, category.color)}
 
-      {/* Category List */}
-      <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
-        {/* No Parent option when selecting parent category */}
-        {excludeId && navigationPath.length === 0 && (
-          <div
-            className={cn(
-              "flex items-center justify-between p-2 rounded-md hover:bg-accent cursor-pointer",
-              value === "" && "bg-accent"
+          <div className="flex-1 min-w-0 flex flex-col items-start gap-0.5">
+            <span className="truncate font-medium text-sm">{category.name}</span>
+            {groupName && (
+              <Badge variant="outline" className="text-[10px] h-4 px-1 py-0 flex items-center gap-1 text-muted-foreground">
+                <Users className="h-2 w-2" />
+                {groupName}
+              </Badge>
             )}
-            onClick={() => handleSelect(null)}
-          >
-            <span className="italic text-muted-foreground">
-              {t("no_parent") || "No Parent"}
-            </span>
-            {value === "" && <Check className="h-4 w-4" />}
+            {/* Show parent path in search */}
+            {isSearching && category.parent_id && (
+              <span className="text-xs text-muted-foreground">in {categories?.find(c => c.id === category.parent_id)?.name}</span>
+            )}
+          </div>
+
+          {isSelected && <Check className="ml-auto h-4 w-4 shrink-0 text-primary" />}
+        </div>
+
+        {/* Children and Parent Selection */}
+        {hasChildren && isExpanded && !isSearching && (
+          <div className="flex flex-col relative border-l border-border/40 ml-[19px] my-1 space-y-1">
+            {/* Option to select the parent itself */}
+            <div
+              onClick={() => handleSelect(category.id)}
+              className={cn(
+                "flex items-center w-full p-2 rounded-md cursor-pointer transition-colors h-10 bg-muted/30",
+                "hover:bg-accent hover:text-accent-foreground",
+                value === category.id ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground"
+              )}
+            >
+              <div className="flex items-center min-w-0 flex-1">
+                <div className="w-5 mr-3 flex justify-center">
+                  <Check
+                    className={cn(
+                      "h-3 w-3",
+                      value === category.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                </div>
+                <span className="truncate italic text-sm">{t("select_category_name", { name: category.name })}</span>
+              </div>
+            </div>
+
+            {children.map(child => renderCategoryNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const Content = (
+    <div className="flex flex-col h-full bg-background w-full">
+      <div className="flex items-center px-3 py-2 border-b gap-2">
+        <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+        <Input
+          placeholder={t("search_categories")}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="border-0 shadow-none focus-visible:ring-0 px-0 h-9"
+        />
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-2 w-full">
+        {showSkipOption && !isSearching && (
+          <div className="mb-1 pb-1 border-b border-border/40">
+            <div
+              onClick={() => handleSelect('SKIP')}
+              className={cn(
+                "flex items-center w-full p-2 rounded-md cursor-pointer transition-colors relative min-h-[48px]",
+                value === 'SKIP' ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400" : "hover:bg-muted/50 text-foreground"
+              )}
+            >
+              <div className="flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
+                <div className="h-2 w-3 bg-current rounded-sm" />
+              </div>
+              <div className="flex-1 min-w-0 flex flex-col items-start gap-0.5">
+                <span className="truncate font-medium text-sm">{t("import.skip_ignore", "⛔ Ignore / Skip")}</span>
+                <span className="text-[10px] text-muted-foreground">{t("import.skip_desc", "Transaction will be skipped")}</span>
+              </div>
+              {value === 'SKIP' && <Check className="ml-auto h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />}
+            </div>
           </div>
         )}
 
-        {currentLevelCategories.map((category) => (
-          <div
-            key={category.id}
-            className={cn(
-              "flex items-center justify-between p-2 rounded-md hover:bg-accent",
-              value === category.id && "bg-accent"
-            )}
-          >
-            <div
-              className="flex items-center flex-1 cursor-pointer"
-              onClick={() => handleSelect(category)}
-            >
-              {renderCategoryIcon(category.icon, category.color)}
-              <span>{category.name}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              {value === category.id && <Check className="h-4 w-4" />}
-              {category.children.length > 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleNavigate(category);
-                  }}
-                  className="p-1 hover:bg-accent-foreground/10 rounded"
-                  aria-label={
-                    t("show_subcategories") ||
-                    `Show subcategories of ${category.name}`
-                  }
-                >
-                  <ChevronRight
-                    className="h-4 w-4 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                </button>
-              )}
-            </div>
+        {/* No filtered results */}
+        {rootCategories.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            {t("no_categories_found")}
           </div>
-        ))}
+        )}
 
-        {currentLevelCategories.length === 0 &&
-          navigationPath.length === 0 &&
-          !excludeId && (
-            <div className="text-center text-muted-foreground py-8">
-              {t("no_categories")}
-            </div>
-          )}
-      </div>
-    </div>
-  );
-
-  // Mobile View: Drill-down Sheet with Animations
-  const [direction, setDirection] = React.useState(0);
-
-  const handleMobileNavigate = (category: CategoryNode) => {
-    setDirection(1);
-    handleNavigate(category);
-  };
-
-  const handleMobileBack = () => {
-    setDirection(-1);
-    if (navigationPath.length === 1) {
-      setNavigationPath([]);
-    } else {
-      setNavigationPath(navigationPath.slice(0, -1));
-    }
-  };
-
-  const variants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? "100%" : "-100%",
-      opacity: 0,
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (direction: number) => ({
-      x: direction < 0 ? "100%" : "-100%",
-      opacity: 0,
-    }),
-  };
-
-  const MobileContent = (
-    <div className="flex flex-col h-full overflow-hidden relative">
-      {/* Header only shown when navigating deep */}
-      {navigationPath.length > 0 && (
-        <div className="flex items-center p-4 border-b shrink-0 bg-background z-10 transition-all duration-300 ease-in-out">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMobileBack}
-            className="p-0 hover:bg-transparent"
-            aria-label={t("back_to_parent") || "Back to parent category"}
-          >
-            <ArrowLeft className="mr-2 h-5 w-5" />
-          </Button>
-          <span className="flex-1 text-center font-semibold text-lg" role="heading" aria-level={2}>
-            {currentParent?.name}
-          </span>
-          <div className="w-5" /> {/* Spacer for alignment */}
+        {/* List */}
+        <div className="space-y-1">
+          {rootCategories.map(root => renderCategoryNode(root))}
         </div>
-      )}
-
-      <div className="flex-1 overflow-hidden relative">
-        <AnimatePresence initial={false} custom={direction} mode="popLayout">
-          <motion.div
-            key={currentParent ? currentParent.id : "root"}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="absolute inset-0 overflow-y-auto p-4 space-y-2"
-          >
-            {/* "Select This Category" option (only when deep in hierarchy) */}
-            {currentParent && (
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label={t("select_category_name", { name: currentParent.name })}
-                className={cn(
-                  "flex items-center p-3 rounded-lg border-2 border-dashed border-muted bg-muted/20 cursor-pointer mb-4 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                  value === currentParent.id && "border-primary bg-primary/10"
-                )}
-                onClick={() => handleSelect(currentParent)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleSelect(currentParent);
-                  }
-                }}
-              >
-                <div className="flex items-center flex-1">
-                  {renderCategoryIcon(currentParent.icon, currentParent.color)}
-                  <span className="font-medium">
-                    {t("select_category_name", { name: currentParent.name })}
-                  </span>
-                </div>
-                {value === currentParent.id && <Check className="h-5 w-5 text-primary" />}
-              </div>
-            )}
-
-            {/* No Parent option (only at root) */}
-            {excludeId && navigationPath.length === 0 && (
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label={t("no_parent") || "Select no parent category"}
-                className={cn(
-                  "flex items-center p-3 rounded-lg border bg-card text-card-foreground shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                  value === "" && "border-primary"
-                )}
-                onClick={() => handleSelect(null)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleSelect(null);
-                  }
-                }}
-              >
-                <span className="flex-1 font-medium italic text-muted-foreground">
-                  {t("no_parent") || "No Parent"}
-                </span>
-                {value === "" && <Check className="h-5 w-5 text-primary" />}
-              </div>
-            )}
-
-            {currentLevelCategories.map((category) => {
-              const isParent = category.children.length > 0;
-              return (
-                <div
-                  key={category.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={isParent ? t("navigate_to_subcategory", { name: category.name }) : t("select_category_name", { name: category.name })}
-                  aria-expanded={isParent ? "false" : undefined}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card text-card-foreground shadow-sm active:scale-[0.98] transition-transform focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  onClick={() => {
-                    if (isParent) {
-                      handleMobileNavigate(category);
-                    } else {
-                      handleSelect(category);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      if (isParent) {
-                        handleMobileNavigate(category);
-                      } else {
-                        handleSelect(category);
-                      }
-                    }
-                  }}
-                >
-                  <div className="flex items-center flex-1">
-                    {renderCategoryIcon(category.icon, category.color)}
-                    <span className="font-medium text-base">{category.name}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {value === category.id && !isParent && (
-                      <Check className="h-5 w-5 text-primary" />
-                    )}
-                    {isParent && (
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-
-            {currentLevelCategories.length === 0 &&
-              !currentParent && /* Only show empty state at root if truly empty */
-              (
-                <div className="text-center text-muted-foreground py-10 flex flex-col items-center gap-2">
-                  <div className="p-3 rounded-full bg-muted">
-                    <ListFilter className="h-6 w-6 opacity-50" />
-                  </div>
-                  <p>{t("no_categories")}</p>
-                </div>
-              )}
-
-            {currentLevelCategories.length === 0 && currentParent && (
-              <div className="text-center text-muted-foreground py-4 text-sm">
-                {t("no_subcategories")}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
       </div>
     </div>
   );
@@ -554,13 +332,27 @@ export function CategorySelector({
             aria-expanded={open}
             className={cn("w-full justify-between", triggerClassName)}
           >
-            {selectedCategory ? (
-              <div className="flex items-center">
+            {value === 'SKIP' ? (
+              <div className="flex items-center min-w-0 text-red-600 dark:text-red-400">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
+                  <div className="h-2 w-3 bg-current rounded-sm" />
+                </div>
+                <div className="flex flex-col items-start text-left min-w-0 flex-1">
+                  <span className="truncate leading-none">{t("import.skip_ignore", "Ignore / Skip")}</span>
+                </div>
+              </div>
+            ) : selectedCategory ? (
+              <div className="flex items-center min-w-0">
                 {renderCategoryIcon(
                   selectedCategory.icon,
                   selectedCategory.color
                 )}
-                {selectedCategory.name}
+                <div className="flex flex-col items-start text-left min-w-0 flex-1">
+                  <span className="truncate leading-none">{selectedCategory.name}</span>
+                  {selectedGroupName && (
+                    <span className="text-[10px] text-muted-foreground leading-none mt-1">{selectedGroupName}</span>
+                  )}
+                </div>
               </div>
             ) : (
               t("select_category")
@@ -568,13 +360,14 @@ export function CategorySelector({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </DrawerTrigger>
-        <DrawerContent className="h-[85vh] flex flex-col">
-          <DrawerHeader className="border-b px-4 py-3 shrink-0">
+        <DrawerContent className="h-[85vh] flex flex-col fixed bottom-0 left-0 right-0 z-50">
+          <DrawerHeader className="border-b px-4 py-3 shrink-0 text-left">
             <DrawerTitle>{t("select_category")}</DrawerTitle>
+            <DrawerDescription className="sr-only">
+              {t("select_category")}
+            </DrawerDescription>
           </DrawerHeader>
-          <div className="flex-1 overflow-hidden">
-            {MobileContent}
-          </div>
+          {Content}
         </DrawerContent>
       </Drawer>
     );
@@ -589,13 +382,20 @@ export function CategorySelector({
           aria-expanded={open}
           className={cn("w-full justify-between", triggerClassName)}
         >
-          {selectedCategory ? (
-            <div className="flex items-center">
+          {value === 'SKIP' ? (
+            <div className="flex items-center min-w-0 text-red-600 dark:text-red-400">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
+                <div className="h-2 w-3 bg-current rounded-sm" />
+              </div>
+              <span className="truncate">{t("import.skip_ignore", "Ignore / Skip")}</span>
+            </div>
+          ) : selectedCategory ? (
+            <div className="flex items-center min-w-0">
               {renderCategoryIcon(
                 selectedCategory.icon,
                 selectedCategory.color
               )}
-              {selectedCategory.name}
+              <span className="truncate">{selectedCategory.name}</span>
             </div>
           ) : (
             t("select_category")
@@ -603,8 +403,10 @@ export function CategorySelector({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0" align="start">
-        {DesktopContent}
+      <PopoverContent className="w-[300px] p-0 shadow-xl" align="start">
+        <div className="h-[400px] flex flex-col">
+          {Content}
+        </div>
       </PopoverContent>
     </Popover>
   );
