@@ -12,7 +12,7 @@ import {
     ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { es, it, enUS } from "date-fns/locale";
+import { it, enUS } from "date-fns/locale";
 import { format } from "date-fns";
 import { Wallet } from "lucide-react";
 import { SmoothLoader } from "@/components/ui/smooth-loader";
