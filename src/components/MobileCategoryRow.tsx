@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { Category } from "@/lib/db";
 import { getIconComponent } from "@/lib/icons";
-import { Edit, Trash2, ChevronRight } from "lucide-react";
-import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
+import { ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { SwipeableItem } from "@/components/ui/SwipeableItem";
 
 interface MobileCategoryRowProps {
   category: Category;
@@ -34,32 +35,7 @@ export function MobileCategoryRow({
 }: MobileCategoryRowProps) {
   const { t } = useTranslation();
   const IconComp = category.icon ? getIconComponent(category.icon) : null;
-  const x = useMotionValue(0);
   const isInactive = category.active === 0;
-
-  // Background color based on swipe direction
-  const background = useTransform(
-    x,
-    [-100, 0, 100],
-    [
-      "rgb(239 68 68)", // Red for delete (left)
-      "rgb(255 255 255)", // White (center)
-      "rgb(59 130 246)", // Blue for edit (right)
-    ]
-  );
-
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 100;
-    if (info.offset.x < -threshold) {
-      // Swiped left - Delete
-      onDelete(category.id);
-    } else if (info.offset.x > threshold) {
-      // Swiped right - Edit
-      onEdit(category);
-      // Reset position after a delay
-      setTimeout(() => x.set(0), 300);
-    }
-  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -75,53 +51,16 @@ export function MobileCategoryRow({
   };
 
   return (
-    <div
+    <SwipeableItem
+      onEdit={() => onEdit(category)}
+      onDelete={() => onDelete(category.id)}
+      onClick={onClick ? () => onClick(category) : undefined}
       style={style}
-      className={`relative overflow-hidden rounded-lg mb-2 ${className}`}
+      className={className}
     >
-      {/* Background Actions Layer */}
-      <motion.div
-        style={{ backgroundColor: background }}
-        className="absolute inset-0 flex items-center justify-between px-4 rounded-lg"
-      >
-        <motion.div
-          style={{ scale: useTransform(x, [50, 100], [0.8, 1.2]) }}
-          className="flex items-center text-white font-medium"
-        >
-          <Edit className="h-5 w-5 mr-2" />
-          {t("edit")}
-        </motion.div>
-        <motion.div
-          style={{ scale: useTransform(x, [-50, -100], [0.8, 1.2]) }}
-          className="flex items-center text-white font-medium"
-        >
-          {t("delete")}
-          <Trash2 className="h-5 w-5 ml-2" />
-        </motion.div>
-      </motion.div>
-
-      {/* Foreground Content Layer */}
-      <motion.div
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.7}
-        onDragEnd={handleDragEnd}
-        onClick={() => {
-          // Only handle expand/collapse if there are children and user clicked (not dragged)
-          if (x.get() !== 0) return; // Don't click if dragging
-
-          if (onClick) {
-            onClick(category);
-          }
-        }}
-        whileTap={{ scale: 0.98 }}
-        style={{
-          x,
-          touchAction: "pan-y",
-          cursor: "grab",
-        }}
-        className={`relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] ${isInactive ? "opacity-60" : ""
-          } ${className}`}
+      <div
+        className={`relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] cursor-pointer ${isInactive ? "opacity-60" : ""
+          }`}
       >
         {/* Icon */}
         <div
@@ -212,7 +151,7 @@ export function MobileCategoryRow({
             )}
           </div>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </SwipeableItem>
   );
 }
