@@ -180,104 +180,12 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 }
 
 // ============================================================================
-// KEY WRAPPING (for session persistence)
-// ============================================================================
-
-/** Fixed salt for token-derived wrapping key (not secret, just ensures consistency) */
-const WRAP_KEY_SALT = new Uint8Array([
-    0x77, 0x72, 0x61, 0x70, 0x6b, 0x65, 0x79, 0x73,
-    0x61, 0x6c, 0x74, 0x76, 0x31, 0x30, 0x30, 0x30
-]); // "wrapkeysaltv1000" in bytes
-
-/**
- * Derive a wrapping key from a Supabase access token.
- * Uses PBKDF2 with a fixed salt (token is already high-entropy).
- *
- * @param token - Supabase JWT access token
- * @returns Promise resolving to a CryptoKey for wrapping/unwrapping
- */
-export async function deriveKeyFromToken(token: string): Promise<CryptoKey> {
-    const tokenKey = await crypto.subtle.importKey(
-        "raw",
-        new TextEncoder().encode(token),
-        "PBKDF2",
-        false,
-        ["deriveKey"]
-    );
-
-    // Use fewer iterations since token is already high-entropy
-    return crypto.subtle.deriveKey(
-        {
-            name: "PBKDF2",
-            salt: WRAP_KEY_SALT.buffer as ArrayBuffer,
-            iterations: 10_000, // Lower iterations OK since token is high-entropy
-            hash: "SHA-256",
-        },
-        tokenKey,
-        {
-            name: "AES-GCM",
-            length: 256,
-        },
-        false,
-        ["encrypt", "decrypt"]
-    );
-}
-
-/**
- * Wrap (encrypt) an encryption key for persistent storage.
- *
- * @param key - The encryption key to wrap (must be extractable)
- * @param wrappingKey - Key derived from session token
- * @returns Promise resolving to Base64-encoded wrapped key
- */
-export async function wrapKey(
-    key: CryptoKey,
-    wrappingKey: CryptoKey
-): Promise<string> {
-    // Export the key as JWK (JSON Web Key)
-    const exportedKey = await crypto.subtle.exportKey("jwk", key);
-    const keyString = JSON.stringify(exportedKey);
-
-    // Encrypt the exported key with the wrapping key
-    return encrypt(keyString, wrappingKey);
-}
-
-/**
- * Unwrap (decrypt) a stored encryption key.
- *
- * @param wrappedKeyString - Base64-encoded wrapped key
- * @param wrappingKey - Key derived from session token
- * @returns Promise resolving to the restored CryptoKey
- */
-export async function unwrapKey(
-    wrappedKeyString: string,
-    wrappingKey: CryptoKey
-): Promise<CryptoKey> {
-    // Decrypt to get the JWK string
-    const keyString = await decrypt(wrappedKeyString, wrappingKey);
-    const jwk = JSON.parse(keyString) as JsonWebKey;
-
-    // Re-import the key
-    return crypto.subtle.importKey(
-        "jwk",
-        jwk,
-        { name: "AES-GCM", length: 256 },
-        true, // extractable (so it can be wrapped again if needed)
-        ["encrypt", "decrypt"]
-    );
-}
-
-// ============================================================================
 // CRYPTO SERVICE SINGLETON
 // ============================================================================
-
-// Import storage functions (will be implemented in crypto-storage.ts)
-import { storeWrappedKey, getWrappedKey, clearWrappedKey } from "./crypto-storage";
 
 /**
  * Singleton service for managing encryption state.
  * Holds the derived key in memory for the session.
- * Supports key persistence via wrapping with session tokens.
  */
 class CryptoService {
     private key: CryptoKey | null = null;
@@ -298,89 +206,9 @@ class CryptoService {
      * @param salt - User's salt (from storage)
      */
     async initialize(password: string, salt: Uint8Array): Promise<void> {
-        // Create extractable key for wrapping capability
-        const passwordKey = await crypto.subtle.importKey(
-            "raw",
-            new TextEncoder().encode(password),
-            "PBKDF2",
-            false,
-            ["deriveKey"]
-        );
-
-        this.key = await crypto.subtle.deriveKey(
-            {
-                name: "PBKDF2",
-                salt: salt.buffer.slice(salt.byteOffset, salt.byteOffset + salt.byteLength) as ArrayBuffer,
-                iterations: PBKDF2_ITERATIONS,
-                hash: "SHA-256",
-            },
-            passwordKey,
-            {
-                name: "AES-GCM",
-                length: AES_KEY_LENGTH,
-            },
-            true, // extractable - needed for key wrapping
-            ["encrypt", "decrypt"]
-        );
+        this.key = await deriveKey(password, salt);
         this.isInitialized = true;
         console.log("[CryptoService] Initialized with derived key");
-    }
-
-    /**
-     * Wrap the current key and store it for session persistence.
-     * Call this after initialize() with a fresh session token.
-     *
-     * @param email - User's email (for storage key)
-     * @param accessToken - Supabase JWT access token
-     */
-    async wrapAndStoreKey(email: string, accessToken: string): Promise<void> {
-        if (!this.key) {
-            console.warn("[CryptoService] Cannot wrap key - not initialized");
-            return;
-        }
-
-        try {
-            const wrappingKey = await deriveKeyFromToken(accessToken);
-            const wrappedKey = await wrapKey(this.key, wrappingKey);
-            await storeWrappedKey(email, wrappedKey);
-            console.log("[CryptoService] Key wrapped and stored for session persistence");
-        } catch (error) {
-            console.error("[CryptoService] Failed to wrap and store key:", error);
-            // Non-fatal - app will still work, just won't persist across restarts
-        }
-    }
-
-    /**
-     * Restore the encryption key from wrapped storage.
-     * Call this on app load if session is valid but key not initialized.
-     *
-     * @param email - User's email (for storage key lookup)
-     * @param accessToken - Current Supabase JWT access token
-     * @returns true if key was restored, false otherwise
-     */
-    async restoreFromWrappedKey(email: string, accessToken: string): Promise<boolean> {
-        if (this.ready) {
-            console.log("[CryptoService] Already initialized, skipping restore");
-            return true;
-        }
-
-        try {
-            const wrappedKey = await getWrappedKey(email);
-            if (!wrappedKey) {
-                console.log("[CryptoService] No wrapped key found for user");
-                return false;
-            }
-
-            const wrappingKey = await deriveKeyFromToken(accessToken);
-            this.key = await unwrapKey(wrappedKey, wrappingKey);
-            this.isInitialized = true;
-            console.log("[CryptoService] Key restored from wrapped storage");
-            return true;
-        } catch (error) {
-            console.warn("[CryptoService] Failed to restore from wrapped key:", error);
-            // This can happen if token changed - user will need to re-login
-            return false;
-        }
     }
 
     /**
@@ -392,24 +220,12 @@ class CryptoService {
     }
 
     /**
-     * Clear the encryption key from memory and storage.
+     * Clear the encryption key from memory.
      * Call this on logout.
-     *
-     * @param email - Optional email to clear wrapped key from storage
      */
-    async clearKey(email?: string): Promise<void> {
+    clearKey(): void {
         this.key = null;
         this.isInitialized = false;
-
-        if (email) {
-            try {
-                await clearWrappedKey(email);
-                console.log("[CryptoService] Wrapped key cleared from storage");
-            } catch (error) {
-                console.warn("[CryptoService] Failed to clear wrapped key:", error);
-            }
-        }
-
         console.log("[CryptoService] Key cleared from memory");
     }
 
@@ -464,4 +280,3 @@ class CryptoService {
 
 /** Global crypto service instance */
 export const cryptoService = new CryptoService();
-
