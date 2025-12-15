@@ -32,6 +32,7 @@ interface CategorySelectorProps {
   modal?: boolean;
   groupId?: string | null; // Kept for API compatibility but ignored for filtering to show all
   triggerClassName?: string;
+  showSkipOption?: boolean;
 }
 
 export function CategorySelector({
@@ -42,6 +43,7 @@ export function CategorySelector({
   modal = false,
   groupId, // Strict filter: null/undefined = Personal, string = Group
   triggerClassName,
+  showSkipOption = false,
 }: CategorySelectorProps) {
   // Fetch ALL categories first, then filter strictly in memory for responsiveness
   // Or should we trust the hook? Let's filter in memory to be sure.
@@ -284,6 +286,27 @@ export function CategorySelector({
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 w-full">
+        {showSkipOption && !isSearching && (
+          <div className="mb-1 pb-1 border-b border-border/40">
+            <div
+              onClick={() => handleSelect('SKIP')}
+              className={cn(
+                "flex items-center w-full p-2 rounded-md cursor-pointer transition-colors relative min-h-[48px]",
+                value === 'SKIP' ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400" : "hover:bg-muted/50 text-foreground"
+              )}
+            >
+              <div className="flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
+                <div className="h-2 w-3 bg-current rounded-sm" />
+              </div>
+              <div className="flex-1 min-w-0 flex flex-col items-start gap-0.5">
+                <span className="truncate font-medium text-sm">{t("import.skip_ignore", "⛔ Ignore / Skip")}</span>
+                <span className="text-[10px] text-muted-foreground">{t("import.skip_desc", "Transaction will be skipped")}</span>
+              </div>
+              {value === 'SKIP' && <Check className="ml-auto h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />}
+            </div>
+          </div>
+        )}
+
         {/* No filtered results */}
         {rootCategories.length === 0 && (
           <div className="text-center py-8 text-muted-foreground text-sm">
@@ -309,7 +332,16 @@ export function CategorySelector({
             aria-expanded={open}
             className={cn("w-full justify-between", triggerClassName)}
           >
-            {selectedCategory ? (
+            {value === 'SKIP' ? (
+              <div className="flex items-center min-w-0 text-red-600 dark:text-red-400">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
+                  <div className="h-2 w-3 bg-current rounded-sm" />
+                </div>
+                <div className="flex flex-col items-start text-left min-w-0 flex-1">
+                  <span className="truncate leading-none">{t("import.skip_ignore", "Ignore / Skip")}</span>
+                </div>
+              </div>
+            ) : selectedCategory ? (
               <div className="flex items-center min-w-0">
                 {renderCategoryIcon(
                   selectedCategory.icon,
@@ -350,7 +382,14 @@ export function CategorySelector({
           aria-expanded={open}
           className={cn("w-full justify-between", triggerClassName)}
         >
-          {selectedCategory ? (
+          {value === 'SKIP' ? (
+            <div className="flex items-center min-w-0 text-red-600 dark:text-red-400">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
+                <div className="h-2 w-3 bg-current rounded-sm" />
+              </div>
+              <span className="truncate">{t("import.skip_ignore", "Ignore / Skip")}</span>
+            </div>
+          ) : selectedCategory ? (
             <div className="flex items-center min-w-0">
               {renderCategoryIcon(
                 selectedCategory.icon,
