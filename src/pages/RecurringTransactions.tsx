@@ -6,7 +6,7 @@ import { useContexts } from "@/hooks/useContexts";
 import { useGroups } from "@/hooks/useGroups";
 import { Button } from "@/components/ui/button";
 
-import { Plus, Play } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -25,7 +25,6 @@ export function RecurringTransactionsPage() {
     addRecurringTransaction,
     updateRecurringTransaction,
     deleteRecurringTransaction,
-    generateTransactions,
   } = useRecurringTransactions();
   const { categories } = useCategories();
   const { contexts } = useContexts();
@@ -204,22 +203,6 @@ export function RecurringTransactionsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("recurring")}</h1>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={async () => {
-              const count = await generateTransactions();
-              if (count > 0) {
-                toast.success(t("recurring_expenses_added", { count }));
-              } else {
-                toast.info(t("no_expenses_to_load"));
-              }
-            }}
-            size="icon"
-            className="md:w-auto md:px-4 md:h-10"
-          >
-            <Play className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">{t("run_now")}</span>
-          </Button>
           <Button
             onClick={openNew}
             size="icon"
