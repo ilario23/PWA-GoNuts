@@ -10,28 +10,20 @@
  * @module contexts/AuthProvider
  */
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  ReactNode,
-} from "react";
+import * as React from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { db } from "@/lib/db";
 import { syncManager } from "@/lib/sync";
 import { cleanupSoftDeletedRecords } from "@/lib/cleanup";
 import { User } from "@supabase/supabase-js";
-import { toast } from "sonner";
-import i18n from "@/i18n";
+import { SessionExpiredModal } from "@/components/auth/SessionExpiredModal";
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
 const CACHED_USER_KEY = "expense_tracker_cached_user";
-const SESSION_EXPIRED_COUNTDOWN_MS = 5000; // 5 seconds before auto-logout
 const PAGE_LOAD_KEY = "expense_tracker_page_loaded"; // Track page reloads
 
 // ============================================================================
@@ -45,8 +37,8 @@ interface AuthContextValue {
   loading: boolean;
   /** Whether the auth check used offline cache */
   isOffline: boolean;
-  /** Sign out and clear local data */
-  signOut: () => Promise<void>;
+  /** Sign out and clear local data. Pass { soft: true } to preserve data (e.g. for re-auth) */
+  signOut: (options?: { soft?: boolean }) => Promise<void>;
 }
 
 // ============================================================================
@@ -107,78 +99,6 @@ function markPageLoaded(): void {
   sessionStorage.setItem(PAGE_LOAD_KEY, "true");
 }
 
-/**
- * Handle session expiration with elegant toast countdown.
- * Returns cleanup function to prevent memory leaks.
- */
-function handleSessionExpired(signOutFn: () => Promise<any>): () => void {
-  const t = i18n.t;
-  let countdown = 5;
-  let dismissed = false;
-
-  // Show toast with action to cancel logout
-  const toastId = toast.warning(
-    `${t("session_expired") || "Session Expired"} - ${t("logging_out_in") || "Logging out in"
-    } ${countdown}s`,
-    {
-      description:
-        t("session_expired_description") ||
-        "Your session has expired. You will be logged out automatically.",
-      duration: SESSION_EXPIRED_COUNTDOWN_MS,
-      action: {
-        label: t("cancel") || "Cancel",
-        onClick: () => {
-          dismissed = true;
-          console.log("[Auth] User cancelled auto-logout");
-        },
-      },
-    }
-  );
-
-  // Update countdown every second
-  const countdownInterval = setInterval(() => {
-    countdown--;
-    if (countdown > 0 && !dismissed) {
-      toast.warning(
-        `${t("session_expired") || "Session Expired"} - ${t("logging_out_in") || "Logging out in"
-        } ${countdown}s`,
-        {
-          id: toastId,
-          description:
-            t("session_expired_description") ||
-            "Your session has expired. You will be logged out automatically.",
-          duration: 1000,
-          action: {
-            label: t("cancel") || "Cancel",
-            onClick: () => {
-              dismissed = true;
-            },
-          },
-        }
-      );
-    }
-  }, 1000);
-
-  // Auto-logout after countdown
-  const logoutTimeout = setTimeout(() => {
-    clearInterval(countdownInterval);
-    if (!dismissed) {
-      console.log("[Auth] Auto-logout after session expiration");
-      toast.dismiss(toastId);
-      signOutFn();
-    }
-  }, SESSION_EXPIRED_COUNTDOWN_MS);
-
-  // Return cleanup function to prevent memory leaks
-  return () => {
-    clearInterval(countdownInterval);
-    clearTimeout(logoutTimeout);
-    dismissed = true;
-    toast.dismiss(toastId);
-    console.log("[Auth] Session expiration timer cleaned up");
-  };
-}
-
 // ============================================================================
 // PROVIDER COMPONENT
 // ============================================================================
@@ -188,10 +108,11 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  // Initialize with cached user for instant offline support
-  const [user, setUser] = useState<User | null>(() => getCachedUser());
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+  const shouldPreserveDataRef = React.useRef(false);
 
   const updateUser = useCallback((newUser: User | null, offline = false) => {
     setUser(newUser);
@@ -200,26 +121,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(false);
   }, []);
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (options?: { soft?: boolean }) => {
+    if (options?.soft) {
+      shouldPreserveDataRef.current = true;
+    }
+
     // Clear cached user
     setCachedUser(null);
-    // Clear local cache before signing out
-    await db.clearLocalCache();
-    // Sign out and discard the return value (we don't need the error)
+
+    // Clear local cache before signing out ONLY if not soft logout
+    if (!options?.soft) {
+      await db.clearLocalCache();
+    }
+
+    // Sign out and discard the return value
     await supabase.auth.signOut();
+    setIsSessionExpired(false);
   }, []);
 
   // Register logout handler with sync manager to handle 403s from sync
   useEffect(() => {
     syncManager.registerLogoutHandler(() => {
       console.log("[AuthProvider] Received logout request from SyncManager (403 Forbidden)");
-      signOut();
+      setIsSessionExpired(true);
     });
-  }, [signOut]);
+  }, []);
 
   useEffect(() => {
     let isSubscribed = true;
-    let cleanupSessionExpired: (() => void) | null = null;
     let cleanupTimeout: NodeJS.Timeout | null = null;
 
     const initAuth = async () => {
@@ -269,14 +198,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
           // Handle 403 Forbidden specifically - immediate logout
           if (error.status === 403) {
-            console.error("[AuthProvider] 403 Forbidden during init - immediate logout");
-            signOut();
+            console.error("[AuthProvider] 403 Forbidden during init - session expired");
+            setIsSessionExpired(true);
             return;
           }
 
           // If we had a cached user but session is invalid, handle expiration
           if (cachedUser) {
-            cleanupSessionExpired = handleSessionExpired(signOut);
+            console.log("[AuthProvider] Session error with cached user -> expired");
+            setIsSessionExpired(true);
           } else {
             updateUser(null, false);
           }
@@ -297,8 +227,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } else {
           // No session but we had cached user - session expired
           if (cachedUser) {
-            console.log("[AuthProvider] Session expired");
-            cleanupSessionExpired = handleSessionExpired(signOut);
+            console.log("[AuthProvider] Session expired (no session, cached user exists)");
+            setIsSessionExpired(true);
           } else {
             updateUser(null, false);
           }
@@ -327,9 +257,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       updateUser(session?.user ?? null, false);
 
-      // Clear local cache on sign out
+      // Clear local cache on sign out IF preservation not requested
       if (event === "SIGNED_OUT") {
-        await db.clearLocalCache();
+        if (shouldPreserveDataRef.current) {
+          console.log("[AuthProvider] Soft logout - preserving local data");
+          shouldPreserveDataRef.current = false; // Reset flag
+        } else {
+          console.log("[AuthProvider] Hard logout - clearing local data");
+          await db.clearLocalCache();
+        }
+
         // Clear page load flag on sign out so next login triggers full sync
         sessionStorage.removeItem(PAGE_LOAD_KEY);
       }
@@ -391,11 +328,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (cleanupTimeout) {
         clearTimeout(cleanupTimeout);
       }
-
-      // Cleanup session expiration timer if exists
-      if (cleanupSessionExpired) {
-        cleanupSessionExpired();
-      }
     };
   }, [updateUser, signOut]);
 
@@ -406,7 +338,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOut,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <SessionExpiredModal
+        open={isSessionExpired}
+        onLogin={() => signOut({ soft: true })}
+      />
+    </AuthContext.Provider>
+  );
 }
 
 // ============================================================================

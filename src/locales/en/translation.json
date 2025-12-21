@@ -74,6 +74,8 @@
   "session_expired": "Session Expired",
   "logging_out_in": "Logging out in",
   "session_expired_description": "Your session has expired. You will be logged out automatically.",
+  "session_expired_soft_description": "Your session has expired. Please log in again to continue syncing your data. Your local changes are safe.",
+  "login": "Log In",
   "offline_no_session_title": "You're Offline",
   "offline_no_session_description": "Please connect to the internet to sign in. Once signed in, you can use the app offline.",
   "offline_no_session_hint": "The app will automatically reconnect when you're back online.",

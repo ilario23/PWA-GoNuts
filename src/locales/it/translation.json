@@ -74,6 +74,8 @@
   "session_expired": "Sessione Scaduta",
   "logging_out_in": "Logout tra",
   "session_expired_description": "La tua sessione è scaduta. Verrai disconnesso automaticamente.",
+  "session_expired_soft_description": "La sessione è scaduta. Accedi nuovamente per riprendere la sincronizzazione. I dati locali sono al sicuro.",
+  "login": "Accedi",
   "offline_no_session_title": "Sei Offline",
   "offline_no_session_description": "Connettiti a internet per accedere. Una volta effettuato l'accesso, potrai usare l'app offline.",
   "offline_no_session_hint": "L'app si riconnetterà automaticamente quando tornerai online.",

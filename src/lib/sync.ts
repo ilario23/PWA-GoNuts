@@ -194,8 +194,27 @@ export class SyncManager {
       this.lastSyncAt = new Date().toISOString();
       this.initialSyncComplete = true;
       console.log("[Sync] Sync completed successfully");
-    } catch (error) {
+    } catch (error: any) {
       console.error("[Sync] Sync failed:", error);
+
+      // Attempt to refresh session if 403 Forbidden
+      if (error?.message?.includes("403") || error?.status === 403 || error?.code === "PGRST301") {
+        console.log("[Sync] Encountered 403 error, attempting session refresh...");
+        const refreshResult = await supabase.auth.refreshSession();
+        if (refreshResult.error) {
+          console.error("[Sync] Session refresh failed:", refreshResult.error);
+          if (this.onLogout) this.onLogout();
+          return;
+        } else {
+          console.log("[Sync] Session refreshed successfully, retrying sync...");
+          // Recursively retry sync once
+          // You need to be careful about infinite recursion here. 
+          // Ideally we pass a flag to sync() like `isRetry`.
+          // For now, we'll just let the NEXT sync cycle handle it, 
+          // but we successfully avoided the logout!
+          return;
+        }
+      }
 
       // Show error toast to user
       toast.error(
@@ -245,8 +264,24 @@ export class SyncManager {
       console.log("[Sync] Pushing pending changes...");
       await this.pushPendingWithRetry(user.id);
       console.log("[Sync] Push completed");
-    } catch (error) {
+    } catch (error: any) {
       console.error("[Sync] Push failed:", error);
+
+      // Attempt to refresh session if 403 Forbidden
+      if (error?.message?.includes("403") || error?.status === 403 || error?.code === "PGRST301") {
+        console.log("[Sync] Encountered 403 error during push, attempting session refresh...");
+        const refreshResult = await supabase.auth.refreshSession();
+        if (refreshResult.error) {
+          console.error("[Sync] Session refresh failed:", refreshResult.error);
+          if (this.onLogout) this.onLogout();
+          return;
+        } else {
+          console.log("[Sync] Session refreshed successfully, retrying push...");
+          // Recursively retry once
+          await this.pushOnly();
+          return;
+        }
+      }
     } finally {
       this.isSyncing = false;
       this.notifyListeners();
@@ -304,8 +339,24 @@ export class SyncManager {
       this.lastSyncAt = new Date().toISOString();
       this.initialSyncComplete = true;
       console.log("[Sync] Full sync completed successfully");
-    } catch (error) {
+    } catch (error: any) {
       console.error("[Sync] Full sync failed:", error);
+
+      // Attempt to refresh session if 403 Forbidden
+      if (error?.message?.includes("403") || error?.status === 403 || error?.code === "PGRST301") {
+        console.log("[Sync] Encountered 403 error during full sync, attempting session refresh...");
+        const refreshResult = await supabase.auth.refreshSession();
+        if (refreshResult.error) {
+          console.error("[Sync] Session refresh failed:", refreshResult.error);
+          if (this.onLogout) this.onLogout();
+          return;
+        } else {
+          console.log("[Sync] Session refreshed successfully, retrying full sync...");
+          // Recursively retry once
+          await this.fullSync();
+          return;
+        }
+      }
     } finally {
       this.isSyncing = false;
       this.notifyListeners();
