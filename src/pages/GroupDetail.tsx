@@ -120,8 +120,8 @@ export function GroupDetailPage() {
 
     if (editingTransaction) {
       await updateTransaction(editingTransaction.id, {
-        amount: parseFloat(data.amount),
-        description: data.description,
+        amount: data.amount,
+        description: data.description || "",
         type: data.type,
         category_id: data.category_id,
         date: data.date,
@@ -132,8 +132,8 @@ export function GroupDetailPage() {
     } else {
       await addTransaction({
         user_id: user.id,
-        amount: parseFloat(data.amount),
-        description: data.description,
+        amount: data.amount,
+        description: data.description || "",
         type: data.type,
         category_id: data.category_id,
         date: data.date,

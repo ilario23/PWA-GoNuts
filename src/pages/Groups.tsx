@@ -8,19 +8,10 @@ import {
 import { useAuth } from "@/contexts/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { ContentLoader } from "@/components/ui/content-loader";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,16 +29,17 @@ import {
   Check,
   AlertTriangle,
   IdCard,
+  Search,
+  FilterX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { GroupCard } from "@/components/GroupCard";
 import { ManageMembersDrawer } from "@/components/ManageMembersDrawer";
 import { GroupBalanceDrawer } from "@/components/GroupBalanceDrawer";
+import { GroupFormDialog } from "@/components/groups/GroupFormDialog";
+import { GroupFormValues } from "@/lib/schemas";
 
-interface GroupFormData {
-  name: string;
-  description: string;
-}
+
 
 
 
@@ -79,12 +71,8 @@ export function GroupsPage() {
     ReturnType<typeof getGroupBalance>
   > | null>(null);
   const [copiedUserId, setCopiedUserId] = useState(false);
-  // balanceTab removed - GroupBalanceDrawer uses Accordion instead of Tabs
 
-  const [formData, setFormData] = useState<GroupFormData>({
-    name: "",
-    description: "",
-  });
+  const [searchQuery, setSearchQuery] = useState("");
   // Derive managingGroup from groups list to ensure reactivity
   const managingGroup = useMemo(() => {
     return groups?.find((g) => g.id === managingGroupId) || null;
@@ -103,29 +91,22 @@ export function GroupsPage() {
   }, [viewingBalance, groups, getGroupBalance]);
 
 
-  const handleCreateGroup = async () => {
-    if (!formData.name.trim()) {
-      toast.error(t("name_required"));
-      return;
+  const handleFormSubmit = async (data: GroupFormValues) => {
+    if (editingGroup) {
+      await updateGroup(editingGroup.id, {
+        name: data.name,
+        description: data.description || undefined,
+      });
+      toast.success(t("group_updated"));
+      setEditingGroup(null);
+    } else {
+      await createGroup(
+        data.name,
+        data.description || undefined
+      );
+      toast.success(t("group_created"));
+      setIsCreateDialogOpen(false);
     }
-    await createGroup(
-      formData.name.trim(),
-      formData.description.trim() || undefined
-    );
-    setFormData({ name: "", description: "" });
-    setIsCreateDialogOpen(false);
-    toast.success(t("group_created"));
-  };
-
-  const handleUpdateGroup = async () => {
-    if (!editingGroup || !formData.name.trim()) return;
-    await updateGroup(editingGroup.id, {
-      name: formData.name.trim(),
-      description: formData.description.trim() || undefined,
-    });
-    setEditingGroup(null);
-    setFormData({ name: "", description: "" });
-    toast.success(t("group_updated"));
   };
 
   const handleDeleteGroup = async () => {
@@ -151,7 +132,6 @@ export function GroupsPage() {
   };
 
   const openEditGroup = (group: GroupWithMembers) => {
-    setFormData({ name: group.name, description: group.description || "" });
     setEditingGroup(group);
   };
 
@@ -174,13 +154,20 @@ export function GroupsPage() {
     );
   }
 
+  const filteredGroups = useMemo(() => {
+    if (!groups) return [];
+    if (!searchQuery) return groups;
+    return groups.filter((g) =>
+      g.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [groups, searchQuery]);
+
   return (
     <div className="space-y-6 pb-10">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">{t("groups")}</h2>
         <div className="flex gap-2">
-          {/* Refresh Button */}
           <Button
             variant="outline"
             size="icon"
@@ -194,61 +181,42 @@ export function GroupsPage() {
             )}
             <span className="hidden md:inline">{t("copy_my_id")}</span>
           </Button>
-          <Dialog
-            open={isCreateDialogOpen}
-            onOpenChange={setIsCreateDialogOpen}
+
+          <Button
+            onClick={() => {
+              setEditingGroup(null);
+              setIsCreateDialogOpen(true);
+            }}
+            size="icon"
+            className="md:w-auto md:px-4 md:h-10"
           >
-            <DialogTrigger asChild>
-              <Button size="icon" className="md:w-auto md:px-4 md:h-10">
-                <Plus className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">{t("add_group")}</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t("add_group")}</DialogTitle>
-                <DialogDescription>{t("add_group_desc")}</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">{t("name")}</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder={t("group_name_placeholder")}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="description">{t("description")}</Label>
-                  <Input
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder={t("group_description_placeholder")}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCreateDialogOpen(false)}
-                >
-                  {t("cancel")}
-                </Button>
-                <Button onClick={handleCreateGroup}>{t("save")}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            <Plus className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">{t("add_group")}</span>
+          </Button>
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={t("search_groups") || "Search groups..."}
+          className="pl-8 pr-8"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+          >
+            <FilterX className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       {/* Groups Grid */}
-      {groups.length === 0 ? (
+      {filteredGroups.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
@@ -260,7 +228,7 @@ export function GroupsPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {groups.map((group) => (
+          {filteredGroups.map((group) => (
             <GroupCard
               key={group.id}
               group={group}
@@ -275,45 +243,18 @@ export function GroupsPage() {
         </div>
       )}
 
-      {/* Edit Group Dialog */}
-      <Dialog
-        open={!!editingGroup}
-        onOpenChange={(open) => !open && setEditingGroup(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("edit_group")}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">{t("name")}</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-description">{t("description")}</Label>
-              <Input
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingGroup(null)}>
-              {t("cancel")}
-            </Button>
-            <Button onClick={handleUpdateGroup}>{t("save")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Edit/Create Group Dialog */}
+      <GroupFormDialog
+        open={isCreateDialogOpen || !!editingGroup}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreateDialogOpen(false);
+            setEditingGroup(null);
+          }
+        }}
+        initialData={editingGroup}
+        onSubmit={handleFormSubmit}
+      />
 
       {/* Delete Group Dialog */}
       <AlertDialog
