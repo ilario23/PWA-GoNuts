@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useContexts } from "@/hooks/useContexts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,27 +11,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, Tag, Receipt } from "lucide-react";
+import { Plus, Edit, Trash2, Tag, Receipt, Search, FilterX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { Context } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { SwipeableItem } from "@/components/ui/SwipeableItem";
+import { ContextFormDialog } from "@/components/contexts/ContextFormDialog";
+import { ContextFormValues } from "@/lib/schemas";
 
 // Mobile swipeable row component for contexts
 function MobileContextRow({
@@ -96,10 +90,7 @@ export function ContextsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-  });
+  const [searchQuery, setSearchQuery] = useState("");
 
   const navigate = useNavigate();
 
@@ -107,39 +98,31 @@ export function ContextsPage() {
     navigate(`/transactions?contextId=${context.id}`);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = async (data: ContextFormValues) => {
     if (!user) return;
 
     if (editingId) {
       await updateContext(editingId, {
-        name: formData.name,
-        description: formData.description,
+        name: data.name,
+        description: data.description || "",
       });
     } else {
       await addContext({
         user_id: user.id,
-        name: formData.name,
-        description: formData.description,
+        name: data.name,
+        description: data.description || "",
       });
     }
     setIsOpen(false);
     setEditingId(null);
-    setFormData({ name: "", description: "" });
   };
 
   const handleEdit = (context: Context) => {
     setEditingId(context.id);
-    setFormData({
-      name: context.name,
-      description: context.description || "",
-    });
-    setIsOpen(true);
   };
 
   const openNew = () => {
     setEditingId(null);
-    setFormData({ name: "", description: "" });
     setIsOpen(true);
   };
 
@@ -155,63 +138,50 @@ export function ContextsPage() {
     }
   };
 
+  const filteredContexts = useMemo(() => {
+    if (!contexts) return [];
+    if (!searchQuery) return contexts;
+    return contexts.filter((c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [contexts, searchQuery]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("contexts")}</h1>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={openNew}
-              size="icon"
-              className="md:w-auto md:px-4 md:h-10"
-            >
-              <Plus className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">{t("add_context")}</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="w-[95vw] rounded-lg">
-            <DialogHeader>
-              <DialogTitle>
-                {editingId ? t("edit_context") || t("edit") : t("add_context")}
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                {editingId
-                  ? t("edit_context_description") || "Edit context details"
-                  : t("add_context_description") || "Add a new context"}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("name")}</label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  {t("description")}
-                </label>
-                <Input
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                />
-              </div>
-              <Button type="submit" className="w-full" autoFocus>
-                {t("save")}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          {/* Search Bar */}
+          <div className="relative flex-1 md:flex-none md:w-[250px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t("search_contexts") || "Search contexts..."}
+              className="pl-8 pr-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+              >
+                <FilterX className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          <Button
+            onClick={openNew}
+            size="icon"
+            className="md:w-auto md:px-4 md:h-10 shrink-0"
+          >
+            <Plus className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">{t("add_context")}</span>
+          </Button>
+        </div>
       </div>
 
-      {!contexts || contexts.length === 0 ? (
+      {!filteredContexts || filteredContexts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Tag className="h-12 w-12 text-muted-foreground mb-4" />
@@ -225,7 +195,7 @@ export function ContextsPage() {
         <>
           {/* Mobile View: Swipeable Cards */}
           <div className="space-y-1 md:hidden">
-            {contexts.map((c) => (
+            {filteredContexts.map((c) => (
               <MobileContextRow
                 key={c.id}
                 context={c}
@@ -247,7 +217,7 @@ export function ContextsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contexts.map((c) => (
+                {filteredContexts.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell>{c.name}</TableCell>
                     <TableCell>{c.description}</TableCell>
@@ -294,6 +264,13 @@ export function ContextsPage() {
           t("confirm_delete_context_description") ||
           t("confirm_delete_description")
         }
+      />
+
+      <ContextFormDialog
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        initialData={contexts?.find(c => c.id === editingId) || null}
+        onSubmit={handleFormSubmit}
       />
 
     </div>
