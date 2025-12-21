@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { toast } from "sonner";
 import { useCategories } from "@/hooks/useCategories";
@@ -6,18 +6,27 @@ import { useContexts } from "@/hooks/useContexts";
 import { useGroups } from "@/hooks/useGroups";
 import { Button } from "@/components/ui/button";
 
-import { Plus } from "lucide-react";
+import { Plus, Search, FilterX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { RecurringTransactionDetailDrawer } from "@/components/RecurringTransactionDetailDrawer";
 import { RecurringTransaction } from "@/lib/db";
 import { MobileRecurringTransactionRow } from "@/components/MobileRecurringTransactionRow";
-import { ValidationError } from "@/lib/validation";
+import { RecurringTransactionFormValues } from "@/lib/schemas";
 
 // Extracted components
 import { RecurringTransactionFormDialog } from "@/components/recurring/RecurringTransactionFormDialog";
 import { RecurringTransactionDesktopTable } from "@/components/recurring/RecurringTransactionDesktopTable";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function RecurringTransactionsPage() {
   const {
@@ -27,133 +36,80 @@ export function RecurringTransactionsPage() {
     deleteRecurringTransaction,
   } = useRecurringTransactions();
   const { categories } = useCategories();
+
+  const loadingTransactions = recurringTransactions === undefined;
+  const loadingCategories = categories === undefined;
   const { contexts } = useContexts();
   const { groups } = useGroups();
   const { user } = useAuth();
   const { t } = useTranslation();
+
   const [isOpen, setIsOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  // We store the transaction being edited as "initialData" for the form
+  const [editingTransaction, setEditingTransaction] = useState<
+    RecurringTransactionFormValues & { id: string } | null
+  >(null);
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<RecurringTransaction | null>(null);
   const [activeSection, setActiveSection] = useState("main");
-  const [formData, setFormData] = useState({
-    amount: "",
-    description: "",
-    type: "expense" as "income" | "expense" | "investment",
-    frequency: "monthly" as "daily" | "weekly" | "monthly" | "yearly",
-    start_date: new Date().toISOString().split("T")[0],
-    category_id: "",
-    context_id: "",
-    group_id: "" as string | null,
-    paid_by_member_id: "" as string | null,
-  });
 
-  // Reset category when type changes (only when creating new recurring transaction)
-  useEffect(() => {
-    if (!editingId && formData.category_id) {
-      setFormData((prev) => ({ ...prev, category_id: "" }));
-    }
-  }, [formData.type, editingId]);
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
-  // Reset category when group changes
-  useEffect(() => {
-    if (editingId === null) {
-      setFormData((prev) => ({ ...prev, category_id: "" }));
-    }
-  }, [formData.group_id, editingId]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (data: RecurringTransactionFormValues) => {
     if (!user) return;
-
-    if (!formData.category_id) {
-      toast.warning(t("category_required"));
-      return;
-    }
-
-    const groupId = formData.group_id || null;
-    let paidByMemberId = groupId ? formData.paid_by_member_id : null;
-
-    // Default to me if group selected but no payer selected
-    if (groupId && !paidByMemberId && groups) {
-      const group = groups.find((g) => g.id === groupId);
-      const member = group?.members.find((m) => m.user_id === user.id);
-      if (member) paidByMemberId = member.id;
-    }
+    setIsSubmitting(true);
 
     try {
-      if (editingId) {
-        await updateRecurringTransaction(editingId, {
-          amount: parseFloat(formData.amount),
-          description: formData.description,
-          type: formData.type,
-          frequency: formData.frequency,
-          start_date: formData.start_date,
-          category_id: formData.category_id,
-          context_id: formData.context_id || undefined,
-          group_id: groupId,
-          paid_by_member_id: paidByMemberId,
+      if (editingTransaction?.id) {
+        await updateRecurringTransaction(editingTransaction.id, {
+          ...data,
+          group_id: data.group_id || null, // Ensure explicit null if undefined/none
+          paid_by_member_id: data.paid_by_member_id || null,
+          context_id: data.context_id || undefined,
         });
         toast.success(t("transaction_updated"));
       } else {
         await addRecurringTransaction({
           user_id: user.id,
-          amount: parseFloat(formData.amount),
-          description: formData.description,
-          type: formData.type,
-          frequency: formData.frequency,
-          start_date: formData.start_date,
-          category_id: formData.category_id,
-          context_id: formData.context_id || undefined,
-          group_id: groupId,
-          paid_by_member_id: paidByMemberId,
+          ...data,
+          group_id: data.group_id || null,
+          paid_by_member_id: data.paid_by_member_id || null,
+          context_id: data.context_id || undefined,
         });
         toast.success(t("transaction_added"));
       }
-      closeAndReset();
+      setIsOpen(false);
+      setEditingTransaction(null);
+      setActiveSection("main");
     } catch (error) {
       console.error("Error saving recurring transaction:", error);
-      if (error instanceof ValidationError) {
-        const firstError = error.errors[0];
-        toast.error(`${firstError.path.join(".")}: ${firstError.message}`);
-      } else {
-        toast.error(t("error_saving_transaction"));
-      }
+      toast.error(t("error_saving_transaction"));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const closeAndReset = () => {
-    setIsOpen(false);
-    setEditingId(null);
-    setActiveSection("main");
-    setFormData({
-      amount: "",
-      description: "",
-      category_id: "",
-      type: "expense",
-      frequency: "monthly",
-      start_date: new Date().toISOString().split("T")[0],
-      context_id: "",
-      group_id: "",
-      paid_by_member_id: "",
-    });
-  };
-
-  const handleEdit = (transaction: any) => {
-    setEditingId(transaction.id);
-    setFormData({
-      amount: transaction.amount.toString(),
+  const handleEdit = (transaction: RecurringTransaction) => {
+    setEditingTransaction({
+      id: transaction.id,
+      amount: transaction.amount,
       description: transaction.description || "",
       type: transaction.type,
       frequency: transaction.frequency,
       start_date: transaction.start_date,
       category_id: transaction.category_id || "",
       context_id: transaction.context_id || "",
-      group_id: transaction.group_id || "",
-      paid_by_member_id: transaction.paid_by_member_id || "",
+      group_id: transaction.group_id || null,
+      paid_by_member_id: transaction.paid_by_member_id || null,
     });
     // Auto-open 'more' if advanced fields are present
     if (!!transaction.group_id || !!transaction.context_id) {
@@ -165,18 +121,7 @@ export function RecurringTransactionsPage() {
   };
 
   const openNew = () => {
-    setEditingId(null);
-    setFormData({
-      amount: "",
-      description: "",
-      category_id: "",
-      type: "expense",
-      frequency: "monthly",
-      start_date: new Date().toISOString().split("T")[0],
-      context_id: "",
-      group_id: "",
-      paid_by_member_id: "",
-    });
+    setEditingTransaction(null);
     setActiveSection("main");
     setIsOpen(true);
   };
@@ -198,6 +143,35 @@ export function RecurringTransactionsPage() {
     setDetailDrawerOpen(true);
   };
 
+  // Filter Logic
+  const filteredTransactions = useMemo(() => {
+    if (!recurringTransactions) return [];
+
+    return recurringTransactions.filter((tx) => {
+      // Search Query (Description)
+      if (
+        searchQuery &&
+        !tx.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // Type Filter
+      if (typeFilter !== "all" && tx.type !== typeFilter) {
+        return false;
+      }
+
+      // Category Filter
+      if (categoryFilter !== "all" && tx.category_id !== categoryFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [recurringTransactions, searchQuery, typeFilter, categoryFilter]);
+
+  const isLoading = loadingTransactions || loadingCategories;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -214,48 +188,116 @@ export function RecurringTransactionsPage() {
         </div>
       </div>
 
-      {/* Mobile View: Card Stack */}
-      <div className="space-y-2 md:hidden">
-        {recurringTransactions?.map((t_item) => (
-          <MobileRecurringTransactionRow
-            key={t_item.id}
-            transaction={t_item}
-            category={categories?.find((c) => c.id === t_item.category_id)}
-            context={contexts?.find((c) => c.id === t_item.context_id)}
-            group={groups?.find((g) => g.id === t_item.group_id)}
-            onEdit={handleEdit}
-            onDelete={handleDeleteClick}
-            onClick={handleTransactionClick}
+      {/* Search and Filters */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t("search_transactions") || "Search..."}
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-        ))}
-        {(!recurringTransactions || recurringTransactions.length === 0) && (
-          <div className="text-center text-muted-foreground py-8">
-            {t("no_recurring_transactions")}
-          </div>
-        )}
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder={t("type")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("all_types") || "All"}</SelectItem>
+              <SelectItem value="expense">{t("expense")}</SelectItem>
+              <SelectItem value="income">{t("income")}</SelectItem>
+              <SelectItem value="investment">{t("investment")}</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder={t("category")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("all_categories") || "All"}</SelectItem>
+              {categories?.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(searchQuery || typeFilter !== "all" || categoryFilter !== "all") && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setSearchQuery("");
+                setTypeFilter("all");
+                setCategoryFilter("all");
+              }}
+              title={t("clear_filters")}
+            >
+              <FilterX className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Desktop View: Table */}
-      <RecurringTransactionDesktopTable
-        recurringTransactions={recurringTransactions}
-        categories={categories}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
-      />
+      {/* Content */}
+      {isLoading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-[100px] w-full rounded-xl" />
+          <Skeleton className="h-[100px] w-full rounded-xl" />
+          <Skeleton className="h-[100px] w-full rounded-xl" />
+        </div>
+      ) : (
+        <>
+          {/* Mobile View: Card Stack */}
+          <div className="space-y-2 md:hidden">
+            {filteredTransactions.map((t_item) => (
+              <MobileRecurringTransactionRow
+                key={t_item.id}
+                transaction={t_item}
+                category={categories?.find((c) => c.id === t_item.category_id)}
+                context={contexts?.find((c) => c.id === t_item.context_id)}
+                group={groups?.find((g) => g.id === t_item.group_id)}
+                onEdit={handleEdit}
+                onDelete={handleDeleteClick}
+                onClick={handleTransactionClick}
+              />
+            ))}
+            {filteredTransactions.length === 0 && (
+              <div className="text-center text-muted-foreground py-8">
+                {recurringTransactions && recurringTransactions.length > 0
+                  ? t("no_results_found")
+                  : t("no_recurring_transactions")}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop View: Table */}
+          <div className="hidden md:block">
+            <RecurringTransactionDesktopTable
+              recurringTransactions={filteredTransactions}
+              categories={categories}
+              onEdit={handleEdit}
+              onDelete={handleDeleteClick}
+            />
+          </div>
+        </>
+      )}
 
       {/* Form Dialog */}
       <RecurringTransactionFormDialog
         open={isOpen}
         onOpenChange={setIsOpen}
-        editingId={editingId}
-        formData={formData}
-        setFormData={setFormData}
+        initialData={editingTransaction}
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         groups={groups}
         contexts={contexts}
         user={user}
         onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
       />
 
       <DeleteConfirmDialog

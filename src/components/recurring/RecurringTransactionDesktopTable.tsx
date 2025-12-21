@@ -23,6 +23,7 @@ import {
     format,
     startOfDay,
 } from "date-fns";
+import { it, enUS } from "date-fns/locale";
 
 interface RecurringTransactionDesktopTableProps {
     recurringTransactions: RecurringTransaction[] | undefined;
@@ -37,36 +38,45 @@ export function RecurringTransactionDesktopTable({
     onEdit,
     onDelete,
 }: RecurringTransactionDesktopTableProps) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+
+    const getDateLocale = () => {
+        return i18n.language === "it" ? it : enUS;
+    };
 
     const getNextOccurrence = (startDateStr: string, frequency: string) => {
         const startDate = parseISO(startDateStr);
         const today = startOfDay(new Date());
 
+        let targetDate = startDate;
+
         if (isAfter(startDate, today) || isSameDay(startDate, today)) {
-            return format(startDate, "yyyy-MM-dd");
+            targetDate = startDate;
+        } else {
+            // Calculate next occurrence
+            let nextDate = startDate;
+            while (isAfter(today, nextDate)) {
+                switch (frequency) {
+                    case "daily":
+                        nextDate = addDays(nextDate, 1);
+                        break;
+                    case "weekly":
+                        nextDate = addWeeks(nextDate, 1);
+                        break;
+                    case "monthly":
+                        nextDate = addMonths(nextDate, 1);
+                        break;
+                    case "yearly":
+                        nextDate = addYears(nextDate, 1);
+                        break;
+                    default:
+                        return startDateStr; // Fallback
+                }
+            }
+            targetDate = nextDate;
         }
 
-        let nextDate = startDate;
-        while (isAfter(today, nextDate)) {
-            switch (frequency) {
-                case "daily":
-                    nextDate = addDays(nextDate, 1);
-                    break;
-                case "weekly":
-                    nextDate = addWeeks(nextDate, 1);
-                    break;
-                case "monthly":
-                    nextDate = addMonths(nextDate, 1);
-                    break;
-                case "yearly":
-                    nextDate = addYears(nextDate, 1);
-                    break;
-                default:
-                    return startDateStr;
-            }
-        }
-        return format(nextDate, "yyyy-MM-dd");
+        return format(targetDate, "d MMM yyyy", { locale: getDateLocale() });
     };
 
     const getCategoryDisplay = (id?: string) => {
