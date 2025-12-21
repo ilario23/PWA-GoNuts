@@ -307,7 +307,7 @@ export function GroupsPage() {
       <ManageMembersDrawer
         group={managingGroup}
         open={!!managingGroupId}
-        onOpenChange={(open) => !open && setManagingGroupId(null)}
+        onOpenChange={(open: boolean) => !open && setManagingGroupId(null)}
       />
 
       {/* Group Balance Drawer (Mobile-First) */}

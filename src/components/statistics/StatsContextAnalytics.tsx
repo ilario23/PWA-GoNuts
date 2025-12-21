@@ -52,7 +52,7 @@ export function StatsContextAnalytics({
                                 />
                                 <span className="font-semibold">{ctx.name}</span>
                             </div>
-                            <span className="text-lg font-bold">€{ctx.total}</span>
+                            <span className="text-lg font-bold">€{Number(ctx.total).toFixed(2)}</span>
                         </div>
 
                         {/* Stats row */}
@@ -67,7 +67,7 @@ export function StatsContextAnalytics({
                                 <div className="text-muted-foreground text-xs">
                                     {t("average")}
                                 </div>
-                                <div className="font-medium">€{ctx.avgPerTransaction}</div>
+                                <div className="font-medium">€{Number(ctx.avgPerTransaction).toFixed(2)}</div>
                             </div>
                             <div className="text-center p-2 bg-muted rounded">
                                 <div className="text-muted-foreground text-xs">
@@ -101,7 +101,7 @@ export function StatsContextAnalytics({
                                                 />
                                             </div>
                                             <span className="font-medium w-16 text-right">
-                                                €{cat.amount}
+                                                €{Number(cat.amount).toFixed(2)}
                                             </span>
                                         </div>
                                     </div>

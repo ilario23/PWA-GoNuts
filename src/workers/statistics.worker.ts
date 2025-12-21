@@ -1,4 +1,4 @@
-import { Category, Transaction, GroupMember, Context } from "../lib/db";
+import { Category, Transaction, GroupMember, Context, CategoryBudget } from "../lib/db";
 import { StatisticsWorkerRequest } from "../types/worker";
 
 // Helper type for the worker context
@@ -617,12 +617,15 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
             contextStats.push({
                 id: context.id,
                 name: context.name,
-                total: data.total,
+                total: Math.round(data.total * 100) / 100,
                 transactionCount: data.count,
-                avgPerTransaction: data.total / data.count,
+                avgPerTransaction: Math.round((data.total / data.count) * 100) / 100,
                 topCategory,
-                topCategoryAmount,
-                categoryBreakdown: categoryBreakdownList.slice(0, 3), // Top 3
+                topCategoryAmount: Math.round(topCategoryAmount * 100) / 100,
+                categoryBreakdown: categoryBreakdownList.slice(0, 3).map(c => ({
+                    ...c,
+                    amount: Math.round(c.amount * 100) / 100
+                })), // Top 3
                 fill: `hsl(var(--chart-${(contextStats.length % 5) + 1}))`,
             });
         });
@@ -682,6 +685,14 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
         }
     }
 
+    // --- 12. Budget Health ---
+    const monthlyBudgetHealth = calculateBudgetHealth(
+        transactions,
+        categories,
+        event.data.payload.categoryBudgets,
+        groupShareMap
+    );
+
     // Send result back
     ctx.postMessage({
         type: "STATS_RESULT",
@@ -703,7 +714,89 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
             monthlyInvestments,
             monthlyContextTrends,
             monthlyRecurringSplit,
-            groupBalances
+            groupBalances,
+            monthlyBudgetHealth
         },
     });
+};
+
+// --- 12. Monthly Budget Health ---
+const calculateBudgetHealth = (
+    transactions: Transaction[] | undefined,
+    categories: Category[],
+    categoryBudgets: CategoryBudget[] | undefined,
+    groupShareMap: Map<string, number>
+) => {
+    const monthlyBudgetHealth: any[] = [];
+
+    if (!transactions || !categoryBudgets || categoryBudgets.length === 0) return monthlyBudgetHealth;
+
+    // Filter budgets for active user? Budget is personal usually.
+    // Assuming categoryBudgets passed are already filtered by user in hook or simply all budgets.
+    // The hook in useStatistics passes `db.category_budgets.toArray()`, which are all budgets.
+    // We should filter for current user or rely on the fact that local DB only has user's data?
+    // Local DB has user's data.
+
+    // Calculate spend per category for the month
+    const spendMap = new Map<string, number>();
+    transactions.forEach(t => {
+        if (t.deleted_at || t.type !== "expense") return;
+        const amount = getEffectiveAmount(t, groupShareMap);
+        spendMap.set(t.category_id, (spendMap.get(t.category_id) || 0) + amount);
+    });
+
+    const categoryMap = new Map(categories.map(c => [c.id, c]));
+
+    categoryBudgets.forEach(b => {
+        if (b.deleted_at || b.period !== "monthly") return;
+
+        const cat = categoryMap.get(b.category_id);
+        if (!cat) return;
+
+        // Check if this category has children and aggregate their spend?
+        // Or is budget strict per category ID? 
+        // Usually budget is per category. If parent, should include children?
+        // Let's assume strict for now, or aggregate if parent.
+
+        // Simple aggregation: check spendMap for this cat ID.
+        // Better: recursive aggregation.
+
+        let spent = 0;
+
+        // Find all categories that are descendants of this budget's category
+        // const descendants = [b.category_id];
+        // This is expensive to scan every time. 
+        // For now, let's just grab direct spend + direct children spend?
+        // Proper way: built a tree.
+        // Let's iterate all categories to find descendants.
+
+        const getDescendants = (parentId: string): string[] => {
+            const children = categories.filter(c => c.parent_id === parentId).map(c => c.id);
+            let res = [...children];
+            children.forEach(childId => {
+                res = [...res, ...getDescendants(childId)];
+            });
+            return res;
+        };
+
+        const allRelatedIds = [b.category_id, ...getDescendants(b.category_id)];
+
+        allRelatedIds.forEach(id => {
+            spent += spendMap.get(id) || 0;
+        });
+
+        monthlyBudgetHealth.push({
+            id: b.id,
+            categoryId: b.category_id,
+            categoryName: cat.name,
+            categoryColor: cat.color,
+            limit: b.amount,
+            spent: Math.round(spent * 100) / 100,
+            remaining: Math.round((b.amount - spent) * 100) / 100,
+            percentage: Math.min(Math.round((spent / b.amount) * 100), 100),
+            isOverBudget: spent > b.amount
+        });
+    });
+
+    return monthlyBudgetHealth.sort((a, b) => b.percentage - a.percentage);
 };

@@ -50,8 +50,8 @@ export function StatsContextTrends({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{t("stats.context_trends")}</CardTitle>
-                <CardDescription>{t("stats.context_trends_desc")}</CardDescription>
+                <CardTitle>{t("context_trends")}</CardTitle>
+                <CardDescription>{t("context_trends_desc")}</CardDescription>
             </CardHeader>
             <CardContent>
                 {isLoading ? (

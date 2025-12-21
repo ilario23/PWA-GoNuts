@@ -34,7 +34,7 @@ export function StatsRecurringSplit({
             color: "hsl(var(--chart-2))",
         },
         oneOff: {
-            label: t("one_off"),
+            label: t("onetime_transactions"),
             color: "hsl(var(--chart-1))",
         },
     } satisfies ChartConfig;
@@ -42,8 +42,8 @@ export function StatsRecurringSplit({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{t("recurring_vs_oneoff")}</CardTitle>
-                <CardDescription>{t("recurring_vs_oneoff_desc")}</CardDescription>
+                <CardTitle>{t("recurring_vs_onetime")}</CardTitle>
+                <CardDescription>{t("recurring_vs_onetime_desc")}</CardDescription>
             </CardHeader>
             <CardContent>
                 {isLoading ? (
