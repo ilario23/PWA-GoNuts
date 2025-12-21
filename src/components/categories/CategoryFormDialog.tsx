@@ -46,7 +46,9 @@ interface CategoryFormDialogProps {
     editingId: string | null; // Used to exclude self from parent selector
     groups: Group[];
     onSubmit: (data: CategoryFormValues) => void;
+    isUsed?: boolean;
 }
+
 
 export function CategoryFormDialog({
     open,
@@ -55,6 +57,7 @@ export function CategoryFormDialog({
     editingId,
     groups,
     onSubmit,
+    isUsed = false,
 }: CategoryFormDialogProps) {
     const { t } = useTranslation();
     const [activeSection, setActiveSection] = useState("main");
@@ -226,6 +229,7 @@ export function CategoryFormDialog({
                                                         <Button
                                                             type="button"
                                                             variant="outline"
+                                                            disabled={isUsed}
                                                             className={`w-full ${field.value === "expense"
                                                                 ? "bg-red-500 hover:bg-red-600 text-white"
                                                                 : ""
@@ -237,6 +241,7 @@ export function CategoryFormDialog({
                                                         <Button
                                                             type="button"
                                                             variant="outline"
+                                                            disabled={isUsed}
                                                             className={`w-full ${field.value === "income"
                                                                 ? "bg-green-500 hover:bg-green-600 text-white"
                                                                 : ""
@@ -248,6 +253,7 @@ export function CategoryFormDialog({
                                                         <Button
                                                             type="button"
                                                             variant="outline"
+                                                            disabled={isUsed}
                                                             className={`w-full ${field.value === "investment"
                                                                 ? "bg-blue-500 hover:bg-blue-600 text-white"
                                                                 : ""
@@ -258,6 +264,7 @@ export function CategoryFormDialog({
                                                         </Button>
                                                     </div>
                                                 </FormControl>
+                                                {isUsed && <p className="text-xs text-muted-foreground mt-1">{t("category_in_use_type_locked", "Cannot change type because this category is in use.")}</p>}
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -339,6 +346,7 @@ export function CategoryFormDialog({
                                                     <Select
                                                         value={field.value || "none"}
                                                         onValueChange={(val) => field.onChange(val === "none" ? null : val)}
+                                                        disabled={isUsed}
                                                     >
                                                         <FormControl>
                                                             <SelectTrigger>
@@ -356,6 +364,7 @@ export function CategoryFormDialog({
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
+                                                    {isUsed && <p className="text-xs text-muted-foreground mt-1">{t("category_in_use_group_locked", "Cannot change group because this category is in use.")}</p>}
                                                     <FormMessage />
                                                 </FormItem>
                                             )}

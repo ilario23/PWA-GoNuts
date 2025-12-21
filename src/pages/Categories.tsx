@@ -24,7 +24,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, EyeOff, Eye, Search, FilterX } from "lucide-react";
+import { Plus, Search, Filter, X } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthProvider";
 import { CategoryDetailDrawer } from "@/components/CategoryDetailDrawer";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -218,8 +232,8 @@ export function CategoriesPage() {
       (c) => c.parent_id === id && !c.deleted_at
     );
 
-    const category = categories?.find((c) => c.id === id);
-    const isGroupCategory = !!category?.group_id;
+    // category fetch moved to inside DeleteConfirmDialog description logic if needed, or re-fetched there
+
 
     const associatedRecurring = recurringTransactions?.filter(
       (r) => r.category_id === id && !r.deleted_at
@@ -236,9 +250,8 @@ export function CategoriesPage() {
       return;
     }
 
-    if (isGroupCategory) {
-      alert(t("group_category_delete_warning"));
-    }
+    // Group warning moved to DeleteConfirmDialog description
+
 
     if (hasChildren) {
       const currentCategory = categories?.find((c) => c.id === id);
@@ -380,11 +393,14 @@ export function CategoriesPage() {
     if (!categories) return [];
 
     return categories.filter((c) => {
-      // inactive check
-      if (!showInactive && c.active === 0) return false;
+      // Search filter
+      const matchesSearch = searchQuery && c.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // If not searching AND not showing inactive, hide inactive categories
+      if (!searchQuery && !showInactive && c.active === 0) return false;
 
       // search check
-      if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      if (searchQuery && !matchesSearch) {
         return false;
       }
 
@@ -393,16 +409,9 @@ export function CategoriesPage() {
         return false;
       }
 
-      // group check (already handled by hook? No, hook filters primarily for data fetching optimization/separation 
-      // but if we want strictly visual filtering here on top of what hook provides:
-      // excessive because hook `useCategories(selectedGroupFilter)` already does it?
-      // Let's verify hook usage.
-      // `useCategories(selectedGroupFilter)` is called. So `categories` already respect the group filter!
-      // So we don't filter by group here again.
-
       return true;
     });
-  }, [categories, showInactive, searchQuery, typeFilter]);
+  }, [categories, searchQuery, typeFilter, showInactive]);
 
   // Sort categories: Active first, then Alphabetical
   const sortedCategories = useMemo(() => {
@@ -489,25 +498,129 @@ export function CategoriesPage() {
     return getChildren(categoryId).length;
   };
 
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setTypeFilter("all");
+    setSelectedGroupFilter(undefined);
+    setShowInactive(false);
+  };
+
+  const FilterContent = () => (
+    <div className="space-y-4 py-4 px-4">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">{t("type")}</label>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder={t("all_types")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("all_types") || "All Types"}</SelectItem>
+            <SelectItem value="expense">{t("expense")}</SelectItem>
+            <SelectItem value="income">{t("income")}</SelectItem>
+            <SelectItem value="investment">{t("investment")}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {groups.length > 0 && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">{t("group")}</label>
+          <Select
+            value={selectedGroupFilter === undefined ? "all" : selectedGroupFilter === null ? "personal" : selectedGroupFilter}
+            onValueChange={(val) => setSelectedGroupFilter(val === "all" ? undefined : val === "personal" ? null : val)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={t("group")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("all_categories")}</SelectItem>
+              <SelectItem value="personal">{t("personal_categories")}</SelectItem>
+              {groups.map((g) => (
+                <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <label htmlFor="show-inactive" className="text-sm font-medium cursor-pointer">
+          {t("show_inactive")}
+        </label>
+        <Switch
+          id="show-inactive"
+          checked={showInactive}
+          onCheckedChange={setShowInactive}
+        />
+      </div>
+
+      <Button
+        variant="outline"
+        onClick={handleResetFilters}
+        className="w-full gap-2"
+      >
+        <X className="h-4 w-4" />
+        {t("reset_filters") || "Reset Filters"}
+      </Button>
+    </div>
+  );
+
   const isLoading = !categories;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">{t("categories")}</h1>
-        <Button
-          onClick={openNew}
-          size="icon"
-          className="md:w-auto md:px-4 md:h-10"
-        >
-          <Plus className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline">{t("add_category")}</span>
-        </Button>
+      {/* Top Bar with Title, Count, Filters, Add Button */}
+      <div className="flex flex-col gap-4">
+        {/* Row 1: Title and Actions */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">{t("categories")}</h1>
+            <Badge variant="secondary" className="px-2 py-0.5 h-6">
+              {filteredCategories.length}
+            </Badge>
+          </div>
+
+          <div className="flex gap-2">
+            {/* Desktop Search */}
+            <div className="relative hidden md:block w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t("search_categories") || "Search..."}
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Desktop Filter Popover */}
+            <div className="hidden md:block">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Filter className="h-4 w-4" />
+                    {t("filters") || "Filters"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <FilterContent />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <Button
+              onClick={openNew}
+              size="icon"
+              className="md:w-auto md:px-4 md:h-10"
+            >
+              <Plus className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">{t("add_category")}</span>
+            </Button>
+          </div>
+        </div>
       </div>
 
-
-      {/* Search and Filters */}
-      <div className="flex flex-col md:flex-row gap-3">
+      {/* Mobile Search Row */}
+      <div className="flex gap-2 md:hidden">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -517,74 +630,65 @@ export function CategoriesPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
-          {/* Type Filter */}
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder={t("type")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("all_types") || "All"}</SelectItem>
-              <SelectItem value="expense">{t("expense")}</SelectItem>
-              <SelectItem value="income">{t("income")}</SelectItem>
-              <SelectItem value="investment">{t("investment")}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Group Filter (Replacing DropdownMenu) */}
-          {groups.length > 0 && (
-            <Select
-              value={selectedGroupFilter === undefined ? "all" : selectedGroupFilter === null ? "personal" : selectedGroupFilter}
-              onValueChange={(val) => setSelectedGroupFilter(val === "all" ? undefined : val === "personal" ? null : val)}
-            >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder={t("group")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("all_categories")}</SelectItem>
-                <SelectItem value="personal">{t("personal_categories")}</SelectItem>
-                {groups.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          {/* Inactive Toggle as Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setShowInactive(!showInactive)}
-            className={`${showInactive
-              ? "bg-primary/10 text-primary border-primary/20"
-              : ""
-              }`}
-            title={t("show_inactive")}
-          >
-            {showInactive ? (
-              <Eye className="h-4 w-4" />
-            ) : (
-              <EyeOff className="h-4 w-4" />
-            )}
-          </Button>
-
-          {(searchQuery || typeFilter !== "all" || selectedGroupFilter !== undefined || showInactive) && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setSearchQuery("");
-                setTypeFilter("all");
-                setSelectedGroupFilter(undefined);
-                setShowInactive(false);
-              }}
-              title={t("clear_filters")}
-            >
-              <FilterX className="h-4 w-4" />
+        {/* Mobile Filter Sheet Trigger */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon">
+              <Filter className="h-4 w-4" />
             </Button>
-          )}
-        </div>
+          </SheetTrigger>
+          <SheetContent
+            side="left"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            <SheetHeader>
+              <SheetTitle>{t("filters")}</SheetTitle>
+            </SheetHeader>
+            <FilterContent />
+          </SheetContent>
+        </Sheet>
       </div>
+
+
+
+      {/* Active Filters Summary */}
+      {(typeFilter !== "all" || selectedGroupFilter !== undefined || showInactive || searchQuery) && (
+        <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
+          <span>{t("active_filters")}:</span>
+          {searchQuery && (
+            <span className="bg-muted px-2 py-1 rounded-md">
+              "{searchQuery}"
+            </span>
+          )}
+          {typeFilter !== "all" && (
+            <span className="bg-muted px-2 py-1 rounded-md capitalize">
+              {t(typeFilter)}
+            </span>
+          )}
+          {selectedGroupFilter !== undefined && (
+            <span className="bg-muted px-2 py-1 rounded-md">
+              {selectedGroupFilter === null
+                ? t("personal")
+                : groups.find((g) => g.id === selectedGroupFilter)?.name ||
+                t("group")}
+            </span>
+          )}
+          {showInactive && (
+            <span className="bg-muted px-2 py-1 rounded-md text-amber-600 dark:text-amber-400">
+              {t("show_inactive")}
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleResetFilters}
+            className="h-auto p-0 text-destructive hover:text-destructive"
+          >
+            <X className="h-3 w-3 mr-1" />
+            {t("clear")}
+          </Button>
+        </div>
+      )}
 
       {/* Mobile View */}
       <CategoryMobileList
@@ -623,6 +727,13 @@ export function CategoriesPage() {
         initialData={initialData}
         groups={groups}
         onSubmit={handleSubmit}
+        isUsed={(() => {
+          if (!editingId) return false;
+          // Check usage
+          const txCount = transactions?.filter(t => t.category_id === editingId && !t.deleted_at).length || 0;
+          const recCount = recurringTransactions?.filter(r => r.category_id === editingId && !r.deleted_at).length || 0;
+          return txCount > 0 || recCount > 0;
+        })()}
       />
 
       <DeleteConfirmDialog
@@ -630,7 +741,11 @@ export function CategoriesPage() {
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleConfirmDelete}
         title={t("confirm_delete_category")}
-        description={t("confirm_delete_category_description")}
+        description={
+          deletingId && categories?.find(c => c.id === deletingId)?.group_id
+            ? t("group_category_delete_warning_confirm", "This is a shared group category. Deleting it will remove it for all members.")
+            : t("confirm_delete_category_description")
+        }
       />
 
       <AlertDialog

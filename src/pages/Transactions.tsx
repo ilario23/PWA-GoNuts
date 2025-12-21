@@ -4,6 +4,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useContexts } from "@/hooks/useContexts";
 import { useGroups } from "@/hooks/useGroups";
+import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -55,11 +56,8 @@ export function TransactionsPage() {
   const { groups } = useGroups();
   const { user } = useAuth();
 
-  // Generate years for selector (last 5 years + current + next)
-  const currentYearNum = new Date().getFullYear();
-  const years = Array.from({ length: 7 }, (_, i) =>
-    (currentYearNum - 5 + i).toString()
-  );
+  // Get available years from database
+  const years = useAvailableYears();
 
   // Generate months
   const months = [
@@ -326,7 +324,7 @@ export function TransactionsPage() {
       <div className="space-y-2">
         <label className="text-sm font-medium">{t("description")}</label>
         <Input
-          placeholder={t("search_placeholder") || "Search..."}
+          placeholder={t("search_transactions") || "Search transactions..."}
           value={filters.text}
           onChange={(e) => setFilters({ ...filters, text: e.target.value })}
           autoFocus={false}
