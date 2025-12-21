@@ -189,8 +189,8 @@ export function Dashboard() {
 
       await addTransaction({
         user_id: user.id,
-        amount: parseFloat(data.amount),
-        description: data.description,
+        amount: data.amount,
+        description: data.description || "",
         type: data.type,
         category_id: data.category_id,
         date: data.date,
