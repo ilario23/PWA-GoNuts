@@ -1,4 +1,4 @@
-import { Category, Transaction, GroupMember, Context } from "../lib/db";
+import { Category, Transaction, GroupMember, Context, CategoryBudget } from "../lib/db";
 
 export type StatisticsWorkerRequest = {
     type: "CALCULATE_STATS";
@@ -14,6 +14,7 @@ export type StatisticsWorkerRequest = {
         userId?: string;
         groupMemberships?: GroupMember[];
         activeGroupMembers?: GroupMember[];
+        categoryBudgets?: CategoryBudget[];
     };
 };
 
@@ -38,5 +39,6 @@ export type StatisticsWorkerResponse = {
         monthlyContextTrends: any[];
         monthlyRecurringSplit: any[];
         groupBalances: any[];
+        monthlyBudgetHealth: any[];
     };
 };

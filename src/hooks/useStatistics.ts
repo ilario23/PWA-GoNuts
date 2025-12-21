@@ -119,6 +119,8 @@ export function useStatistics(params?: UseStatisticsParams) {
     [params?.groupId]
   );
 
+  const categoryBudgets = useLiveQuery(() => db.category_budgets.toArray());
+
   // --- Worker Management ---
   const workerRef = useRef<Worker | null>(null);
 
@@ -145,6 +147,7 @@ export function useStatistics(params?: UseStatisticsParams) {
     monthlyContextTrends: [],
     monthlyRecurringSplit: [],
     groupBalances: [],
+    monthlyBudgetHealth: [],
   });
 
   useEffect(() => {
@@ -188,6 +191,7 @@ export function useStatistics(params?: UseStatisticsParams) {
           userId,
           groupMemberships,
           activeGroupMembers,
+          categoryBudgets,
         },
       };
       workerRef.current.postMessage(message);
@@ -267,6 +271,70 @@ export function useStatistics(params?: UseStatisticsParams) {
     }
   }, [workerResult.monthlyStats, previousMonthTransactions, mode, getEffectiveAmount]);
 
+  const previousYearTransactions = useLiveQuery(
+    () =>
+      mode === "yearly"
+        ? db.transactions
+          .where("year_month")
+          .between(`${previousYear}-01`, `${previousYear}-12`, true, true)
+          .toArray()
+          .then(txs => params?.groupId
+            ? txs.filter(t => t.group_id === params.groupId)
+            : txs)
+        : Promise.resolve([] as Transaction[]),
+    [previousYear, mode, params?.groupId]
+  );
+
+  const yearlyComparison = useMemo(() => {
+    if (mode !== "yearly" || !yearlyTransactions || !previousYearTransactions)
+      return {
+        income: { current: 0, previous: 0, change: 0, trend: "neutral" },
+        expense: { current: 0, previous: 0, change: 0, trend: "neutral" },
+        balance: { current: 0, previous: 0, change: 0, trend: "neutral" },
+        savingRate: { current: 0, previous: 0, change: 0, trend: "neutral" },
+      };
+
+    const current = { income: workerResult.yearlyStats.income, expense: workerResult.yearlyStats.expense };
+    const previous = previousYearTransactions.reduce((acc, t) => {
+      const amt = getEffectiveAmount(t);
+      if (t.type === 'income') acc.income += amt;
+      if (t.type === 'expense') acc.expense += amt;
+      return acc;
+    }, { income: 0, expense: 0 });
+
+    const calculateChange = (curr: number, prev: number) => {
+      if (prev === 0) return curr === 0 ? 0 : 100;
+      return ((curr - prev) / prev) * 100;
+    };
+
+    return {
+      income: {
+        current: current.income,
+        previous: previous.income,
+        change: calculateChange(current.income, previous.income),
+        trend: current.income >= previous.income ? "up" : "down"
+      },
+      expense: {
+        current: current.expense,
+        previous: previous.expense,
+        change: calculateChange(current.expense, previous.expense),
+        trend: current.expense <= previous.expense ? "down" : "up"
+      },
+      balance: {
+        current: current.income - current.expense,
+        previous: previous.income - previous.expense,
+        change: calculateChange(current.income - current.expense, previous.income - previous.expense),
+        trend: (current.income - current.expense) >= (previous.income - previous.expense) ? "up" : "down"
+      },
+      savingRate: {
+        current: current.income ? ((current.income - current.expense) / current.income) * 100 : 0,
+        previous: previous.income ? ((previous.income - previous.expense) / previous.income) * 100 : 0,
+        change: 0,
+        trend: "neutral"
+      }
+    }
+  }, [workerResult.yearlyStats, previousYearTransactions, mode, getEffectiveAmount]);
+
   const burnRate = useMemo(() => {
     const [yearStr, monthStr] = currentMonth.split("-");
     const daysInMonth = new Date(parseInt(yearStr), parseInt(monthStr), 0).getDate();
@@ -290,6 +358,7 @@ export function useStatistics(params?: UseStatisticsParams) {
   return {
     ...workerResult,
     monthlyComparison,
+    yearlyComparison,
     burnRate,
     // Map trend data to localized names
     monthlyTrendData: workerResult.monthlyTrendData.map(d => ({
@@ -325,12 +394,6 @@ export function useStatistics(params?: UseStatisticsParams) {
     // Placeholders
     yearlyBurnRate: { total: 0, dailyAverage: 0, projectedTotal: 0, daysElapsed: 0, daysRemaining: 0 },
     previousMonthComparison: null,
-    yearlyComparison: {
-      income: { current: 0, previous: 0, change: 0, trend: "neutral" },
-      expense: { current: 0, previous: 0, change: 0, trend: "neutral" },
-      balance: { current: 0, previous: 0, change: 0, trend: "neutral" },
-      savingRate: { current: 0, previous: 0, change: 0, trend: "neutral" },
-    },
     categoryComparison: [] as any[],
     previousMonth,
     previousYear,

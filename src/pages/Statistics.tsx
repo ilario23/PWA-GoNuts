@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useStatistics } from "@/hooks/useStatistics";
 import { useGroups } from "@/hooks/useGroups";
 import { useSettings } from "@/hooks/useSettings";
+import { useAvailableYears } from "@/hooks/useAvailableYears";
 
 import { LazyChart } from "@/components/LazyChart";
 import {
@@ -61,6 +62,7 @@ import { StatsExpenseBreakdown } from "@/components/statistics/StatsExpenseBreak
 import { StatsContextTrends } from "@/components/statistics/StatsContextTrends";
 import { StatsRecurringSplit } from "@/components/statistics/StatsRecurringSplit";
 import { StatsGroupBalances } from "@/components/statistics/StatsGroupBalances";
+import { StatsBudgetHealth } from "@/components/statistics/StatsBudgetHealth";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 
@@ -141,6 +143,7 @@ export function StatisticsPage() {
     monthlyContextTrends,
     monthlyRecurringSplit,
     groupBalances,
+    monthlyBudgetHealth,
   } = useStatistics({
     selectedMonth,
     selectedYear,
@@ -216,11 +219,8 @@ export function StatisticsPage() {
 
 
 
-  // Generate years for selector (last 5 years + current + next)
-  const currentYearNum = new Date().getFullYear();
-  const years = Array.from({ length: 7 }, (_, i) =>
-    (currentYearNum - 5 + i).toString()
-  );
+  // Get available years from database
+  const years = useAvailableYears();
 
   // Generate months
   const months = [
@@ -1411,6 +1411,11 @@ export function StatisticsPage() {
             contexts={contexts}
             isLoading={isLoading}
           />
+        )}
+
+        {/* Budget Health - Monthly Only */}
+        {activeTab === "monthly" && monthlyBudgetHealth.length > 0 && (
+          <StatsBudgetHealth data={monthlyBudgetHealth} />
         )}
 
         {/* Burn Rate / Spending Projection Card - Yearly */}
