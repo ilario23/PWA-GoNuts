@@ -253,7 +253,20 @@ export function TransactionList({
               {t_item.category_id === UNCATEGORIZED_CATEGORY.ID && (
                 <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" aria-hidden="true" />
               )}
-              <SyncStatusBadge isPending={t_item.pendingSync === 1} />
+              <TooltipProvider delayDuration={300}>
+                {t_item.pendingSync === 1 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help">
+                        <SyncStatusBadge isPending={true} />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{t("changes_pending_sync")}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TooltipProvider>
             </div>
           </TableCell>
           <TableCell className="w-[180px]">
@@ -336,29 +349,45 @@ export function TransactionList({
                 role="group"
                 aria-label={t("actions")}
               >
-                {onEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit(t_item)}
-                    aria-label={t("edit")}
-                  >
-                    <Edit className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                )}
-                {onDelete && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(t_item.id)}
-                    aria-label={t("delete")}
-                  >
-                    <Trash2
-                      className="h-4 w-4 text-destructive"
-                      aria-hidden="true"
-                    />
-                  </Button>
-                )}
+                <TooltipProvider delayDuration={300}>
+                  {onEdit && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onEdit(t_item)}
+                          aria-label={t("edit")}
+                        >
+                          <Edit className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t("edit")}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {onDelete && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onDelete(t_item.id)}
+                          aria-label={t("delete")}
+                        >
+                          <Trash2
+                            className="h-4 w-4 text-destructive"
+                            aria-hidden="true"
+                          />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t("delete")}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </TooltipProvider>
               </div>
             </TableCell>
           )}
