@@ -26,6 +26,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SwipeableItem } from "@/components/ui/SwipeableItem";
 import { ContextFormDialog } from "@/components/contexts/ContextFormDialog";
 import { ContextFormValues } from "@/lib/schemas";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Mobile swipeable row component for contexts
 function MobileContextRow({
@@ -43,42 +49,41 @@ function MobileContextRow({
   const [open, setOpen] = useState(false);
 
   return (
-    <>
+    <SwipeableItem
+      onEdit={() => onEdit(context)}
+      onDelete={() => onDelete(context.id)}
+      onClick={() => setOpen(true)}
+    >
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <span className="hidden" />
+          <div
+            className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 cursor-pointer active:bg-muted/50 focus:outline-none"
+            onClick={(e) => e.preventDefault()}
+          >
+            {/* Icon */}
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Tag className="h-5 w-5 text-primary" />
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1 min-w-0 text-left">
+              <div className="font-medium text-sm truncate">{context.name}</div>
+              {context.description && (
+                <div className="text-xs text-muted-foreground truncate">
+                  {context.description}
+                </div>
+              )}
+            </div>
+          </div>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end" className="w-[200px]">
+        <DropdownMenuContent side="bottom" align="start" className="w-[200px]">
           <DropdownMenuItem onClick={() => onSelect(context)}>
             <Receipt className="mr-2 h-4 w-4" />
             <span>{t("view_transactions_context")}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <SwipeableItem
-        onEdit={() => onEdit(context)}
-        onDelete={() => onDelete(context.id)}
-        onClick={() => setOpen(true)}
-      >
-        <div className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 cursor-pointer active:bg-muted/50 focus:outline-none">
-          {/* Icon */}
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Tag className="h-5 w-5 text-primary" />
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 min-w-0 text-left">
-            <div className="font-medium text-sm truncate">{context.name}</div>
-            {context.description && (
-              <div className="text-xs text-muted-foreground truncate">
-                {context.description}
-              </div>
-            )}
-          </div>
-        </div>
-      </SwipeableItem>
-    </>
+    </SwipeableItem>
   );
 }
 
@@ -148,8 +153,18 @@ export function ContextsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("contexts")}</h1>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">{t("contexts")}</h1>
+          <Button
+            onClick={openNew}
+            size="icon"
+            className="md:hidden shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+
         <div className="flex items-center gap-2">
           {/* Search Bar */}
           <div className="relative flex-1 md:flex-none md:w-[250px]">
@@ -173,7 +188,7 @@ export function ContextsPage() {
           <Button
             onClick={openNew}
             size="icon"
-            className="md:w-auto md:px-4 md:h-10 shrink-0"
+            className="hidden md:inline-flex md:w-auto md:px-4 md:h-10 shrink-0"
           >
             <Plus className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">{t("add_context")}</span>
@@ -223,28 +238,52 @@ export function ContextsPage() {
                     <TableCell>{c.description}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title={t("view_transactions_context")}
-                          onClick={() => navigate(`/transactions?contextId=${c.id}`)}
-                        >
-                          <Receipt className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(c)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteClick(c.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <TooltipProvider delayDuration={300}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate(`/transactions?contextId=${c.id}`)}
+                              >
+                                <Receipt className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("view_transactions_context")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(c)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("edit")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteClick(c.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("delete")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </TableCell>
                   </TableRow>
