@@ -15,7 +15,10 @@ import {
     Squirrel,
     Plus,
     Settings2,
+    HelpCircle,
+    BookOpen,
 } from "lucide-react";
+import { HelpSystemWrapper } from "@/components/help/HelpSystem";
 import {
     Dialog,
     DialogContent,
@@ -103,6 +106,13 @@ const STEPS = [
         iconColor: "#64748b",
         titleKey: "welcome.step_offline_title",
         descKey: "welcome.step_offline_desc",
+    },
+    {
+        id: "help_promo",
+        icon: BookOpen,
+        iconColor: "#8b5cf6",
+        titleKey: "help.help_and_resources",
+        descKey: "help.help_resources_desc",
     },
 ] as const;
 
@@ -454,6 +464,25 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
                         currentTheme={settings?.theme as Theme || 'light'}
                         setTheme={(val) => updateSettings({ theme: val })}
                     />
+
+                );
+
+            case "help_promo":
+                return (
+                    <div className="flex flex-col items-center text-center space-y-6 max-w-xs mx-auto pt-4">
+                        <div className="space-y-2">
+                            <h3 className="font-semibold text-lg">{t("help.open_user_guide")}</h3>
+                            <p className="text-sm text-muted-foreground">{t("help.user_guide_desc")}</p>
+                        </div>
+
+                        <HelpSystemWrapper>
+                            <Button size="lg" className="w-full gap-2 group">
+                                <HelpCircle className="w-5 h-5" />
+                                {t("help.open_user_guide")}
+                                <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1 transition-transform" />
+                            </Button>
+                        </HelpSystemWrapper>
+                    </div>
                 );
 
             default:
@@ -482,6 +511,9 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
                             <p className="text-[10px] sm:text-xs font-medium text-primary truncate max-w-[120px] sm:max-w-none">
                                 {t(currentStepData.titleKey)}
                             </p>
+
+
+
                             {/* Language toggle */}
                             <button
                                 onClick={() => {
