@@ -68,7 +68,7 @@ function SwipeDemo() {
     const { t } = useTranslation();
 
     return (
-        <div className="bg-muted/30 p-4 rounded-xl border flex flex-col items-center gap-4 my-2">
+        <div className="bg-muted/50 dark:bg-muted/20 border border-transparent dark:border-border/50 rounded-xl flex flex-col items-center gap-4 my-2 p-4">
             <p className="text-sm text-muted-foreground mb-2">{t("help.demo_swipe_hint", "Swipe left to delete, right to edit")}</p>
 
             <div className="relative w-full max-w-[300px] h-[60px] bg-background border rounded-lg overflow-hidden shadow-sm">
@@ -131,7 +131,7 @@ function TableDemo() {
     const { t } = useTranslation();
 
     return (
-        <div className="bg-muted/30 p-4 rounded-xl border flex flex-col items-center gap-4 my-2">
+        <div className="bg-muted/50 dark:bg-muted/20 border border-transparent dark:border-border/50 rounded-xl flex flex-col items-center gap-4 my-2 p-4">
             <p className="text-sm text-muted-foreground mb-2">{t("help.demo_table_hint", "Hover over rows to reveal actions")}</p>
 
             <div className="w-full max-w-[400px] border rounded-lg bg-background overflow-hidden shadow-sm text-sm">
@@ -253,7 +253,7 @@ const useHelpTopics = () => {
             descriptionKey: "help.data_logic_desc",
             content: (
                 <div className="space-y-4 text-sm">
-                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <div className="p-3 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/20 dark:border-amber-500/30 rounded-lg">
                         <h4 className="font-semibold text-amber-600 mb-1 flex items-center gap-2">
                             <Trash2 className="h-4 w-4" />
                             {t("help.deleting_categories_title", "Deleting Categories")}
@@ -261,7 +261,7 @@ const useHelpTopics = () => {
                         <p>{t("help.deleting_categories_expl", "If you delete a Category that has existing transactions, those transactions will NOT be deleted. Instead, they will be moved to 'Uncategorized' so you don't lose your financial records.")}</p>
                     </div>
 
-                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <div className="p-3 bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/20 dark:border-blue-500/30 rounded-lg">
                         <h4 className="font-semibold text-blue-600 mb-1 flex items-center gap-2">
                             <Edit className="h-4 w-4" />
                             {t("help.editing_recurring_title", "Editing Recurring")}
@@ -280,21 +280,21 @@ const useHelpTopics = () => {
                 <div className="space-y-4 text-sm">
                     <p>{t("help.sync_intro")}</p>
                     <div className="grid gap-3">
-                        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg space-y-2">
+                        <div className="p-3 bg-green-500/10 dark:bg-green-500/20 border border-green-500/20 dark:border-green-500/30 rounded-lg space-y-2">
                             <h4 className="font-semibold text-green-600 flex items-center gap-2">
                                 <WifiOff className="h-4 w-4" />
                                 {t("help.sync_local_title")}
                             </h4>
                             <p className="text-xs text-muted-foreground">{t("help.sync_local_expl")}</p>
                         </div>
-                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-2">
+                        <div className="p-3 bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/20 dark:border-blue-500/30 rounded-lg space-y-2">
                             <h4 className="font-semibold text-blue-600 flex items-center gap-2">
                                 <Cloud className="h-4 w-4" />
                                 {t("help.sync_cloud_title")}
                             </h4>
                             <p className="text-xs text-muted-foreground">{t("help.sync_cloud_expl")}</p>
                         </div>
-                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg space-y-2">
+                        <div className="p-3 bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-lg space-y-2">
                             <h4 className="font-semibold text-red-600 flex items-center gap-2">
                                 <LogOut className="h-4 w-4" />
                                 {t("help.logout_title")}
@@ -313,7 +313,7 @@ const useHelpTopics = () => {
             content: (
                 <div className="space-y-4 text-sm">
                     <p>{t("help.contexts_intro")}</p>
-                    <div className="p-4 bg-muted/50 border rounded-xl space-y-3">
+                    <div className="p-4 bg-muted/50 dark:bg-muted/20 border border-transparent dark:border-border/50 rounded-xl space-y-3">
                         <div className="flex items-start gap-3">
                             <div className="p-2 bg-primary/10 rounded-lg">
                                 <Tags className="h-5 w-5 text-primary" />
@@ -404,14 +404,14 @@ const useHelpTopics = () => {
                 <div className="space-y-4 text-sm">
                     <p>{t("help.recurring_intro")}</p>
                     <div className="grid gap-3">
-                        <div className="p-3 bg-muted rounded-lg space-y-1">
+                        <div className="p-3 bg-muted/50 dark:bg-muted/20 border border-transparent dark:border-border/50 rounded-lg space-y-1">
                             <h4 className="font-semibold flex items-center gap-2">
                                 <RefreshCw className="h-4 w-4" />
                                 {t("help.recurring_auto_gen")}
                             </h4>
                             <p className="text-muted-foreground text-xs">{t("help.recurring_auto_gen_expl")}</p>
                         </div>
-                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-1">
+                        <div className="p-3 bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/20 dark:border-blue-500/30 rounded-lg space-y-1">
                             <h4 className="font-semibold text-blue-600 flex items-center gap-2">
                                 <Edit className="h-4 w-4" />
                                 {t("help.editing_recurring_title")}
@@ -431,15 +431,15 @@ const useHelpTopics = () => {
                 <div className="space-y-4 text-sm">
                     <p>{t("help.import_intro")}</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="p-3 bg-muted rounded-lg">
+                        <div className="p-3 bg-muted/50 dark:bg-muted/20 border border-transparent dark:border-border/50 rounded-lg">
                             <h4 className="font-semibold mb-1">{t("help.import_formats_title")}</h4>
                             <p className="text-xs text-muted-foreground">{t("help.import_formats_expl")}</p>
                         </div>
-                        <div className="p-3 bg-muted rounded-lg">
+                        <div className="p-3 bg-muted/50 dark:bg-muted/20 border border-transparent dark:border-border/50 rounded-lg">
                             <h4 className="font-semibold mb-1">{t("help.import_generic_title")}</h4>
                             <p className="text-xs text-muted-foreground">{t("help.import_generic_expl")}</p>
                         </div>
-                        <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg sm:col-span-2">
+                        <div className="p-3 bg-purple-500/10 dark:bg-purple-500/20 border border-purple-500/20 dark:border-purple-500/30 rounded-lg sm:col-span-2">
                             <h4 className="font-semibold mb-1 text-purple-600 flex items-center gap-2">
                                 <Sparkles className="h-3 w-3" />
                                 {t("help.import_rules_title")}
@@ -498,7 +498,7 @@ const useHelpTopics = () => {
                     <p>{t("help.profile_intro")}</p>
 
                     <div className="grid gap-3">
-                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-2">
+                        <div className="p-3 bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/20 dark:border-blue-500/30 rounded-lg space-y-2">
                             <h4 className="font-semibold text-blue-600 flex items-center gap-2">
                                 <User2 className="h-4 w-4" />
                                 {t("help.profile_identity_title", "Public Identity")}
@@ -508,7 +508,7 @@ const useHelpTopics = () => {
                             </div>
                         </div>
 
-                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg space-y-2">
+                        <div className="p-3 bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-lg space-y-2">
                             <h4 className="font-semibold text-red-600 flex items-center gap-2">
                                 <ShieldAlert className="h-4 w-4" />
                                 {t("help.profile_security_title", "Device Security")}
@@ -530,21 +530,21 @@ const useHelpTopics = () => {
                 <div className="space-y-4 text-sm">
                     <p>{t("help.stats_intro")}</p>
                     <div className="grid gap-3">
-                        <div className="p-3 bg-muted rounded-lg space-y-2">
+                        <div className="p-3 bg-muted/50 dark:bg-muted/20 border border-transparent dark:border-border/50 rounded-lg space-y-2">
                             <h4 className="font-semibold flex items-center gap-2">
                                 <PieChart className="h-4 w-4" />
                                 {t("help.stats_charts_title")}
                             </h4>
                             <p className="text-xs text-muted-foreground">{t("help.stats_charts_expl")}</p>
                         </div>
-                        <div className="p-3 bg-muted rounded-lg space-y-2">
+                        <div className="p-3 bg-muted/50 dark:bg-muted/20 border border-transparent dark:border-border/50 rounded-lg space-y-2">
                             <h4 className="font-semibold flex items-center gap-2">
                                 <Activity className="h-4 w-4" />
                                 {t("help.stats_metrics_title")}
                             </h4>
                             <p className="text-xs text-muted-foreground">{t("help.stats_metrics_expl")}</p>
                         </div>
-                        <div className="p-3 bg-muted rounded-lg space-y-2">
+                        <div className="p-3 bg-muted/50 dark:bg-muted/20 border border-transparent dark:border-border/50 rounded-lg space-y-2">
                             <h4 className="font-semibold flex items-center gap-2">
                                 <ArrowLeftRight className="h-4 w-4" />
                                 {t("help.stats_comparison_title")}
@@ -564,14 +564,14 @@ const useHelpTopics = () => {
                 <div className="space-y-4 text-sm">
                     <p>{t("help.budget_intro")}</p>
                     <div className="grid gap-3">
-                        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg space-y-2">
+                        <div className="p-3 bg-green-500/10 dark:bg-green-500/20 border border-green-500/20 dark:border-green-500/30 rounded-lg space-y-2">
                             <h4 className="font-semibold text-green-600 flex items-center gap-2">
                                 <Wallet className="h-4 w-4" />
                                 {t("help.budget_monthly_title")}
                             </h4>
                             <p className="text-xs text-muted-foreground">{t("help.budget_monthly_expl")}</p>
                         </div>
-                        <div className="p-3 bg-muted rounded-lg space-y-2">
+                        <div className="p-3 bg-muted/50 dark:bg-muted/20 border border-transparent dark:border-border/50 rounded-lg space-y-2">
                             <h4 className="font-semibold flex items-center gap-2">
                                 <Tags className="h-4 w-4" />
                                 {t("help.budget_category_title")}
@@ -591,7 +591,7 @@ const useHelpTopics = () => {
                 <div className="space-y-4 text-sm">
                     <p>{t("help.tips_intro")}</p>
                     <div className="grid gap-3">
-                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg space-y-2">
+                        <div className="p-3 bg-yellow-500/10 dark:bg-yellow-500/20 border border-yellow-500/20 dark:border-yellow-500/30 rounded-lg space-y-2">
                             <h4 className="font-semibold text-yellow-600 flex items-center gap-2">
                                 <EyeOff className="h-4 w-4" />
                                 {t("help.tips_visibility_title")}
@@ -699,7 +699,7 @@ export function HelpSystemWrapper({
 
                     <div className="flex flex-1 overflow-hidden">
                         {/* Sidebar */}
-                        <div className="w-1/3 border-r bg-muted/30 overflow-y-auto p-4 space-y-2">
+                        <div className="w-1/3 border-r bg-muted/30 dark:bg-muted/10 overflow-y-auto p-4 space-y-2">
                             {sections.map(section => {
                                 const sectionTopics = section.topicIds
                                     .map(id => topics.find(t => t.id === id))
@@ -864,7 +864,7 @@ export function HelpSystemWrapper({
                                                                 type="button"
                                                                 onClick={() => setSelectedTopicId(topic.id)}
                                                                 onPointerDown={(e) => e.stopPropagation()}
-                                                                className="group relative flex items-center w-full p-3.5 rounded-xl border border-border/40 bg-card/40 hover:bg-card/60 active:scale-[0.98] transition-all duration-200 shadow-sm text-left overflow-hidden touch-manipulation"
+                                                                className="group relative flex items-center w-full p-3.5 rounded-xl border border-transparent dark:border-border/50 bg-muted/50 dark:bg-muted/20 hover:bg-muted/70 active:scale-[0.98] transition-all duration-200 shadow-sm text-left overflow-hidden touch-manipulation"
                                                             >
                                                                 {/* Gradient Background Effect on Hover/Active */}
                                                                 <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/0 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
