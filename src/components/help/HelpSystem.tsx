@@ -188,6 +188,13 @@ type HelpTopic = {
     content?: React.ReactNode;
 };
 
+type HelpSection = {
+    id: string;
+    titleKey: string;
+    descriptionKey: string;
+    topicIds: string[];
+};
+
 const useHelpTopics = () => {
     const { t } = useTranslation();
     // Move dependency logic here
@@ -266,22 +273,34 @@ const useHelpTopics = () => {
         },
         {
             id: "account",
-            icon: LogOut,
-            titleKey: "help.account_title",
-            descriptionKey: "help.account_desc",
+            icon: RefreshCw,
+            titleKey: "account_sync_title",
+            descriptionKey: "account_sync_desc",
             content: (
                 <div className="space-y-4 text-sm">
-                    <div className="space-y-2">
-                        <h4 className="font-medium">{t("help.logout_title", "Logging Out")}</h4>
-                        <p className="text-muted-foreground">{t("help.logout_expl", "When you log out, your local data is cleared for security. Always ensure your data is 'Synced' (Green checkmark) before logging out to avoid data loss.")}</p>
-                    </div>
-
-                    <div className="space-y-2">
-                        <h4 className="font-medium flex items-center gap-2">
-                            <WifiOff className="h-4 w-4" />
-                            {t("help.offline_title", "Offline Mode")}
-                        </h4>
-                        <p className="text-muted-foreground">{t("help.offline_expl", "You can use the app completely offline. All changes are saved locally and will automatically sync to the cloud once your connection is restored.")}</p>
+                    <p>{t("help.sync_intro")}</p>
+                    <div className="grid gap-3">
+                        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg space-y-2">
+                            <h4 className="font-semibold text-green-600 flex items-center gap-2">
+                                <WifiOff className="h-4 w-4" />
+                                {t("help.sync_local_title")}
+                            </h4>
+                            <p className="text-xs text-muted-foreground">{t("help.sync_local_expl")}</p>
+                        </div>
+                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-2">
+                            <h4 className="font-semibold text-blue-600 flex items-center gap-2">
+                                <Cloud className="h-4 w-4" />
+                                {t("help.sync_cloud_title")}
+                            </h4>
+                            <p className="text-xs text-muted-foreground">{t("help.sync_cloud_expl")}</p>
+                        </div>
+                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg space-y-2">
+                            <h4 className="font-semibold text-red-600 flex items-center gap-2">
+                                <LogOut className="h-4 w-4" />
+                                {t("help.logout_title")}
+                            </h4>
+                            <p className="text-xs text-muted-foreground">{t("help.logout_expl")}</p>
+                        </div>
                     </div>
                 </div>
             )
@@ -293,26 +312,32 @@ const useHelpTopics = () => {
             descriptionKey: "help.contexts_desc",
             content: (
                 <div className="space-y-4 text-sm">
-                    <p>{t("help.contexts_intro", "Contexts act like flexible 'Tags' or 'Labels' that you can add to any transaction, regardless of its Category.")}</p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="p-3 bg-muted rounded-lg space-y-2">
-                            <h4 className="font-semibold flex items-center gap-2">
-                                <Tags className="h-4 w-4 text-orange-500" />
-                                {t("help.examples", "Examples")}
-                            </h4>
-                            <ul className="list-disc pl-4 space-y-1 text-muted-foreground text-xs">
-                                <li><strong>#Vacation2024:</strong> {t("help.ctx_ex_1", "Track how much you spend on a specific trip across Food, Transport, and Lodging categories.")}</li>
-                                <li><strong>#WorkExpense:</strong> {t("help.ctx_ex_2", "Tag reimbursable expenses.")}</li>
-                                <li><strong>#Renovation:</strong> {t("help.ctx_ex_3", "Group all costs for a home project.")}</li>
-                            </ul>
+                    <p>{t("help.contexts_intro")}</p>
+                    <div className="p-4 bg-muted/50 border rounded-xl space-y-3">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                                <Tags className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <h4 className="font-medium text-primary">Categories</h4>
+                                <p className="text-xs text-muted-foreground mt-1">Food, Transport, Utilities</p>
+                            </div>
                         </div>
-                        <div className="p-3 bg-muted rounded-lg space-y-2">
-                            <h4 className="font-semibold">{t("help.vs_categories", "Context vs Category")}</h4>
-                            <p className="text-xs text-muted-foreground">
-                                {t("help.vs_cat_expl", "A transaction can only have ONE Category (e.g., 'Food'), but can be part of many logical Contexts. Use Categories for the 'What' and Contexts for the 'Why' or 'When'.")}
-                            </p>
+                        <div className="flex justify-center">
+                            <ArrowLeftRight className="h-4 w-4 text-muted-foreground rotate-90" />
                         </div>
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-purple-500/10 rounded-lg">
+                                <Layers className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-medium text-purple-600">Contexts</h4>
+                                <p className="text-xs text-muted-foreground mt-1">Weekend Trip, Office Renovation</p>
+                            </div>
+                        </div>
+                        <p className="text-xs pt-2 border-t mt-2">
+                            {t("help.contexts_vs_cat_expl")}
+                        </p>
                     </div>
                 </div>
             )
@@ -577,113 +602,10 @@ const useHelpTopics = () => {
                 </div>
             )
         },
-        {
-            id: "groups",
-            icon: Users,
-            titleKey: "help.groups_title",
-            descriptionKey: "help.groups_desc",
-            content: (
-                <div className="space-y-4 text-sm">
-                    <p>{t("help.groups_intro")}</p>
-                    <div className="grid gap-3">
-                        <div className="p-3 bg-muted rounded-lg space-y-2">
-                            <h4 className="font-semibold flex items-center gap-2">
-                                <Users className="h-4 w-4" />
-                                {t("help.groups_create_expl").split(".")[0]}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">{t("help.groups_create_expl")}</p>
-                        </div>
-                        <div className="p-3 bg-muted rounded-lg space-y-2">
-                            <h4 className="font-semibold flex items-center gap-2">
-                                <Percent className="h-4 w-4" />
-                                {t("help.groups_split_expl").split(".")[0]}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">{t("help.groups_split_expl")}</p>
-                        </div>
-                    </div>
-                </div>
-            )
-        },
-        {
-            id: "sync",
-            icon: RefreshCw,
-            titleKey: "help.sync_title",
-            descriptionKey: "help.sync_desc",
-            content: (
-                <div className="space-y-4 text-sm">
-                    <p>{t("help.sync_intro")}</p>
-                    <div className="grid gap-3">
-                        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg space-y-2">
-                            <h4 className="font-semibold text-green-600 flex items-center gap-2">
-                                <WifiOff className="h-4 w-4" />
-                                {t("help.sync_local_title")}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">{t("help.sync_local_expl")}</p>
-                        </div>
-                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-2">
-                            <h4 className="font-semibold text-blue-600 flex items-center gap-2">
-                                <Cloud className="h-4 w-4" />
-                                {t("help.sync_cloud_title")}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">{t("help.sync_cloud_expl")}</p>
-                        </div>
-                    </div>
-                </div>
-            )
-        },
-        {
-            id: "gestures",
-            icon: TouchpadOff,
-            titleKey: "help.gestures_title",
-            descriptionKey: "help.gestures_desc",
-            content: (
-                <div className="space-y-4 text-sm">
-                    <p>{t("help.gestures_intro")}</p>
-                    <SwipeDemo />
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground p-2 bg-muted rounded-lg">
-                        <Hand className="h-4 w-4" />
-                        <span>{t("help.demo_swipe_hint")}</span>
-                    </div>
-                </div>
-            )
-        },
-        {
-            id: "contexts",
-            icon: Layers,
-            titleKey: "help.contexts_title",
-            descriptionKey: "help.contexts_desc",
-            content: (
-                <div className="space-y-4 text-sm">
-                    <p>{t("help.contexts_intro")}</p>
-                    <div className="p-4 bg-muted/50 border rounded-xl space-y-3">
-                        <div className="flex items-start gap-3">
-                            <div className="p-2 bg-primary/10 rounded-lg">
-                                <Tags className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                                <h4 className="font-medium text-primary">Categories</h4>
-                                <p className="text-xs text-muted-foreground mt-1">Food, Transport, Utilities</p>
-                            </div>
-                        </div>
-                        <div className="flex justify-center">
-                            <ArrowLeftRight className="h-4 w-4 text-muted-foreground rotate-90" />
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <div className="p-2 bg-purple-500/10 rounded-lg">
-                                <Layers className="h-5 w-5 text-purple-600" />
-                            </div>
-                            <div>
-                                <h4 className="font-medium text-purple-600">Contexts</h4>
-                                <p className="text-xs text-muted-foreground mt-1">Weekend Trip, Office Renovation</p>
-                            </div>
-                        </div>
-                        <p className="text-xs pt-2 border-t mt-2">
-                            {t("help.contexts_vs_cat_expl")}
-                        </p>
-                    </div>
-                </div>
-            )
-        },
+
+
+
+
         {
             id: "pwa",
             icon: Smartphone,
@@ -702,7 +624,41 @@ const useHelpTopics = () => {
         }
     ];
 
-    return topics;
+    // Define sections for mobile grouping
+    const sections: HelpSection[] = [
+        {
+            id: "essentials",
+            titleKey: "help.section_essentials_title",
+            descriptionKey: "help.section_essentials_desc",
+            topicIds: ["actions", "pwa", "customization"]
+        },
+        {
+            id: "daily",
+            titleKey: "help.section_daily_title",
+            descriptionKey: "help.section_daily_desc",
+            topicIds: ["recurring", "import", "tips"]
+        },
+        {
+            id: "organization",
+            titleKey: "help.section_org_title",
+            descriptionKey: "help.section_org_desc",
+            topicIds: ["groups", "contexts", "data_logic"]
+        },
+        {
+            id: "analytics",
+            titleKey: "help.section_analytics_title",
+            descriptionKey: "help.section_analytics_desc",
+            topicIds: ["statistics", "budget"]
+        },
+        {
+            id: "account",
+            titleKey: "help.section_account_title",
+            descriptionKey: "help.section_account_desc",
+            topicIds: ["profile", "account"]
+        }
+    ];
+
+    return { topics, sections };
 };
 
 
@@ -717,12 +673,12 @@ export function HelpSystemWrapper({
 }) {
     const [open, setOpen] = useState(false);
     const isDesktop = useMediaQuery("(min-width: 768px)");
-    const topics = useHelpTopics();
+    const { topics, sections } = useHelpTopics();
     const { t } = useTranslation();
 
     // Mobile specific state
     const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
-    const selectedTopic = topics.find(t => t.id === selectedTopicId);
+    const selectedTopic = topics.find(topic => topic.id === selectedTopicId);
 
     if (isDesktop) {
         return (
@@ -744,24 +700,38 @@ export function HelpSystemWrapper({
                     <div className="flex flex-1 overflow-hidden">
                         {/* Sidebar */}
                         <div className="w-1/3 border-r bg-muted/30 overflow-y-auto p-4 space-y-2">
-                            {topics.map(topic => (
-                                <button
-                                    key={topic.id}
-                                    onClick={() => setSelectedTopicId(topic.id)}
-                                    className={cn(
-                                        "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
-                                        selectedTopicId === topic.id
-                                            ? "bg-primary/10 text-primary"
-                                            : "hover:bg-muted"
-                                    )}
-                                >
-                                    <topic.icon className="h-5 w-5 shrink-0" />
-                                    <div>
-                                        <div className="font-medium text-sm">{t(topic.titleKey)}</div>
-                                        {/* <div className="text-xs text-muted-foreground line-clamp-1">{t(topic.descriptionKey)}</div> */}
+                            {sections.map(section => {
+                                const sectionTopics = section.topicIds
+                                    .map(id => topics.find(t => t.id === id))
+                                    .filter((t): t is HelpTopic => t !== undefined);
+
+                                if (sectionTopics.length === 0) return null;
+
+                                return (
+                                    <div key={section.id}>
+                                        <h3 className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                            {t(section.titleKey)}
+                                        </h3>
+                                        <div className="space-y-1">
+                                            {sectionTopics.map(topic => (
+                                                <button
+                                                    key={topic.id}
+                                                    onClick={() => setSelectedTopicId(topic.id)}
+                                                    className={cn(
+                                                        "w-full flex items-center gap-3 p-2 px-3 rounded-md text-left transition-colors text-sm",
+                                                        selectedTopicId === topic.id
+                                                            ? "bg-primary/10 text-primary font-medium"
+                                                            : "hover:bg-muted text-foreground/80 hover:text-foreground"
+                                                    )}
+                                                >
+                                                    <topic.icon className="h-4 w-4 shrink-0" />
+                                                    <span>{t(topic.titleKey)}</span>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                </button>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {/* Content Area */}
@@ -868,29 +838,51 @@ export function HelpSystemWrapper({
                                 className="absolute inset-0"
                             >
                                 <ScrollArea className="h-full px-5 pb-8 pt-2">
-                                    <div className="grid grid-cols-1 gap-3 pb-20">
-                                        {topics.map((topic, index) => (
-                                            <motion.button
-                                                key={topic.id}
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: index * 0.05 }}
-                                                onClick={() => setSelectedTopicId(topic.id)}
-                                                className="group relative flex items-center p-4 rounded-2xl border border-border/40 bg-card/40 hover:bg-card/60 active:scale-[0.98] transition-all duration-200 shadow-sm text-left overflow-hidden"
-                                            >
-                                                {/* Gradient Background Effect on Hover/Active */}
-                                                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/0 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="space-y-6 pb-20">
+                                        {sections.map((section) => {
+                                            const sectionTopics = section.topicIds
+                                                .map(id => topics.find(t => t.id === id))
+                                                .filter((t): t is HelpTopic => t !== undefined);
 
-                                                <div className="h-10 w-10 mr-4 rounded-xl bg-background/80 flex items-center justify-center shadow-sm text-primary group-hover:text-primary/80 transition-colors">
-                                                    <topic.icon className="h-5 w-5" />
+                                            if (sectionTopics.length === 0) return null;
+
+                                            return (
+                                                <div key={section.id}>
+                                                    {/* Section Header */}
+                                                    <div className="flex items-center gap-2 mb-3 px-1">
+                                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                                                            {t(section.titleKey)}
+                                                        </h3>
+                                                        <div className="flex-1 h-px bg-border/50" />
+                                                    </div>
+
+                                                    {/* Section Topics */}
+                                                    <div className="space-y-2">
+                                                        {sectionTopics.map((topic) => (
+                                                            <button
+                                                                key={topic.id}
+                                                                type="button"
+                                                                onClick={() => setSelectedTopicId(topic.id)}
+                                                                onPointerDown={(e) => e.stopPropagation()}
+                                                                className="group relative flex items-center w-full p-3.5 rounded-xl border border-border/40 bg-card/40 hover:bg-card/60 active:scale-[0.98] transition-all duration-200 shadow-sm text-left overflow-hidden touch-manipulation"
+                                                            >
+                                                                {/* Gradient Background Effect on Hover/Active */}
+                                                                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/0 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                                                                <div className="h-9 w-9 mr-3 rounded-lg bg-background/80 flex items-center justify-center shadow-sm text-primary group-hover:text-primary/80 transition-colors">
+                                                                    <topic.icon className="h-4 w-4" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h4 className="font-medium text-sm text-foreground/90 truncate">{t(topic.titleKey)}</h4>
+                                                                    <p className="text-xs text-muted-foreground truncate opacity-80">{t(topic.descriptionKey)}</p>
+                                                                </div>
+                                                                <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary/50 transition-colors" />
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="font-semibold text-foreground/90 truncate">{t(topic.titleKey)}</h3>
-                                                    <p className="text-xs text-muted-foreground truncate opacity-80">{t(topic.descriptionKey)}</p>
-                                                </div>
-                                                <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary/50 transition-colors" />
-                                            </motion.button>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </ScrollArea>
                             </motion.div>

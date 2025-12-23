@@ -853,6 +853,9 @@
     "contexts_intro": "Understand the power of multi-dimensional tagging.",
     "contexts_vs_cat_title": "What's the difference?",
     "contexts_vs_cat_expl": "Categories are WHAT you buy (e.g. Food). Contexts are WHY or WHERE (e.g. Vacation, Work). Use both for deeper insights.",
+    "sync_title": "Synchronization",
+    "sync_desc": "Local & Cloud",
+    "sync_intro": "Keep your data synced across all devices.",
     "section_essentials_title": "Essentials",
     "section_essentials_desc": "Interface, PWA & Customization",
     "section_daily_title": "Daily Use",
@@ -861,6 +864,8 @@
     "section_org_desc": "Groups, Contexts & Categories",
     "section_analytics_title": "Analytics",
     "section_analytics_desc": "Stats, Budget & Reports",
+    "account_sync_title": "Account & Sync",
+    "account_sync_desc": "Data, Cloud & Security",
     "section_account_title": "Account & Data",
     "section_account_desc": "Profile, Sync & Privacy"
   }
