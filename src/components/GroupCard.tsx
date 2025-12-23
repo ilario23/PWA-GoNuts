@@ -17,14 +17,9 @@ import {
   Users,
   ArrowUpRight,
   BarChart3,
-  ChevronDown,
+
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SwipeableItem } from "@/components/ui/SwipeableItem";
 import { SyncStatusBadge } from "@/components/SyncStatus";
@@ -56,6 +51,7 @@ export function GroupCard({
     <SwipeableItem
       onEdit={() => onEdit(group)}
       onDelete={() => onDelete(group)}
+      onClick={() => onView(group)}
       enabled={enabled}
       className="rounded-xl h-full"
     >
@@ -161,41 +157,50 @@ export function GroupCard({
               )}
             </div>
 
-            {/* Mobile Actions - Dropdown */}
-            <div className="sm:hidden pt-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
-                    <span className="flex items-center">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      {t("actions")}
-                    </span>
-                    <ChevronDown className="h-4 w-4 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => onView(group)}>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    {t("view")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onBalance(group)}>
-                    <ArrowUpRight className="h-4 w-4 mr-2 text-green-500" />
-                    {t("balance")}
-                  </DropdownMenuItem>
-                  {group.isCreator && (
-                    <DropdownMenuItem onClick={() => onMembers(group)}>
-                      <Users className="h-4 w-4 mr-2" />
-                      {t("members")}
-                    </DropdownMenuItem>
-                  )}
-                  {onStatistics && (
-                    <DropdownMenuItem onClick={() => onStatistics(group)}>
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      {t("statistics")}
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+            {/* Mobile Actions - Action Strip */}
+            <div className="sm:hidden flex items-center justify-between gap-1 mt-3 pt-3 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 flex flex-col gap-1 h-auto py-2 hover:bg-muted"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBalance(group);
+                }}
+              >
+                <ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <span className="text-[10px] uppercase tracking-wide font-medium">{t("balance")}</span>
+              </Button>
+
+              {onStatistics && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 flex flex-col gap-1 h-auto py-2 hover:bg-muted"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStatistics(group);
+                  }}
+                >
+                  <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-[10px] uppercase tracking-wide font-medium">{t("statistics")}</span>
+                </Button>
+              )}
+
+              {group.isCreator && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 flex flex-col gap-1 h-auto py-2 hover:bg-muted"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMembers(group);
+                  }}
+                >
+                  <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                  <span className="text-[10px] uppercase tracking-wide font-medium">{t("members")}</span>
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
