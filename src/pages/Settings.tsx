@@ -49,7 +49,9 @@ import {
   Wrench,
   Check,
   Compass,
+  BookOpen,
 } from "lucide-react";
+import { HelpSystemWrapper } from "@/components/help/HelpSystem";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
 import { THEME_COLORS } from "@/lib/theme-colors";
@@ -330,19 +332,36 @@ export function SettingsPage() {
           </Card>
 
           {/* Review Tutorial */}
+          {/* Help & Resources */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("welcome.review_tutorial")}</CardTitle>
-              <CardDescription>{t("welcome.review_tutorial_desc")}</CardDescription>
+              <CardTitle className="text-base">{t("help_and_resources", "Help & Resources")}</CardTitle>
+              <CardDescription>{t("help_resources_desc", "Learn how to use the app to its full potential.")}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
+              <HelpSystemWrapper triggerAsChild>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 gap-3 touch-manipulation justify-start"
+                >
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <div className="flex flex-col items-start gap-0.5">
+                    <span className="font-medium text-sm">{t("open_user_guide", "Open User Guide")}</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">{t("user_guide_desc", "Documentation, gestures & tips")}</span>
+                  </div>
+                </Button>
+              </HelpSystemWrapper>
+
               <Button
                 variant="outline"
-                className="w-full h-12 gap-3 touch-manipulation"
+                className="w-full h-12 gap-3 touch-manipulation justify-start"
                 onClick={() => welcomeWizard.reset()}
               >
                 <Compass className="h-5 w-5 text-primary" />
-                {t("welcome.review_tutorial")}
+                <div className="flex flex-col items-start gap-0.5">
+                  <span className="font-medium text-sm">{t("welcome.review_tutorial")}</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">{t("welcome.review_tutorial_desc")}</span>
+                </div>
               </Button>
             </CardContent>
           </Card>
