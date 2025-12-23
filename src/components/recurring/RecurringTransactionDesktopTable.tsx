@@ -11,6 +11,12 @@ import { Edit, Trash2 } from "lucide-react";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { getIconComponent } from "@/lib/icons";
 import { useTranslation } from "react-i18next";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { RecurringTransaction, Category } from "@/lib/db";
 import {
     addDays,
@@ -123,7 +129,20 @@ export function RecurringTransactionDesktopTable({
                                 <TableCell>
                                     <div className="flex items-center gap-2">
                                         {getCategoryDisplay(t_item.category_id)}
-                                        <SyncStatusBadge isPending={t_item.pendingSync === 1} />
+                                        <TooltipProvider delayDuration={300}>
+                                            {t_item.pendingSync === 1 && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <span className="cursor-help">
+                                                            <SyncStatusBadge isPending={true} />
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{t("changes_pending_sync")}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+                                        </TooltipProvider>
                                     </div>
                                 </TableCell>
                                 <TableCell className="capitalize">
@@ -138,20 +157,37 @@ export function RecurringTransactionDesktopTable({
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex items-center justify-end gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => onEdit(t_item)}
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => onDelete(t_item.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
+                                        <TooltipProvider delayDuration={300}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => onEdit(t_item)}
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{t("edit")}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => onDelete(t_item.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{t("delete")}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
                                 </TableCell>
                             </TableRow>

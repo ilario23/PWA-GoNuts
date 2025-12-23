@@ -14,6 +14,12 @@ import { getIconComponent } from "@/lib/icons";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { SmoothLoader } from "@/components/ui/smooth-loader";
 import { ContentLoader } from "@/components/ui/content-loader";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Category, Group } from "@/lib/db";
 
 interface CategoryListProps {
@@ -136,7 +142,20 @@ function DesktopCategoryRows({
                                             {children.length}
                                         </Badge>
                                     )}
-                                    <SyncStatusBadge isPending={c.pendingSync === 1} />
+                                    <TooltipProvider delayDuration={300}>
+                                        {c.pendingSync === 1 && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="cursor-help">
+                                                        <SyncStatusBadge isPending={true} />
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{t("changes_pending_sync")}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
+                                    </TooltipProvider>
                                 </div>
                             </TableCell>
                             <TableCell className={`capitalize ${isRoot ? "" : "text-sm"}`}>
@@ -162,28 +181,45 @@ function DesktopCategoryRows({
                             </TableCell>
                             <TableCell>
                                 <div className="flex items-center justify-end gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className={isRoot ? "h-8 w-8" : "h-7 w-7"}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onEdit(c);
-                                        }}
-                                    >
-                                        <Edit className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className={isRoot ? "h-8 w-8" : "h-7 w-7"}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onDelete(c.id);
-                                        }}
-                                    >
-                                        <Trash2 className={`${isRoot ? "h-4 w-4" : "h-3 w-3"} text-destructive`} />
-                                    </Button>
+                                    <TooltipProvider delayDuration={300}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className={isRoot ? "h-8 w-8" : "h-7 w-7"}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onEdit(c);
+                                                    }}
+                                                >
+                                                    <Edit className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{t("edit")}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className={isRoot ? "h-8 w-8" : "h-7 w-7"}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onDelete(c.id);
+                                                    }}
+                                                >
+                                                    <Trash2 className={`${isRoot ? "h-4 w-4" : "h-3 w-3"} text-destructive`} />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{t("delete")}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -254,7 +290,7 @@ export function CategoryDesktopTable({
                         <TableHead className="w-8"></TableHead>
                         <TableHead>{t("name")}</TableHead>
                         <TableHead>{t("type")}</TableHead>
-                        <TableHead>{t("status")}</TableHead>
+                        <TableHead>{t("sync_short")}</TableHead>
                         <TableHead></TableHead>
                     </TableRow>
                 </TableHeader>
