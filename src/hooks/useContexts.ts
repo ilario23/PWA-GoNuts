@@ -43,12 +43,12 @@ export function useContexts() {
     context: Omit<
       Context,
       "id" | "sync_token" | "pendingSync" | "deleted_at" | "active"
-    >
+    > & { active?: boolean }
   ) => {
     // Validate input data (schema expects boolean for active)
     const validatedData = validate(getContextInputSchema(t), {
       ...context,
-      active: true,
+      active: context.active !== undefined ? (context.active ? 1 : 0) : 1, // Validation schema expects number? Let's check validation.ts
     });
 
     const { active, ...rest } = validatedData;
@@ -57,7 +57,7 @@ export function useContexts() {
     await db.contexts.add({
       ...rest,
       description: rest.description === null ? undefined : rest.description,
-      active: active ? 1 : 0,
+      active: active, // Schema active is number, validatedData.active is number
       id,
       pendingSync: 1,
       deleted_at: null,
@@ -67,16 +67,23 @@ export function useContexts() {
 
   const updateContext = async (
     id: string,
-    updates: Partial<Omit<Context, "id" | "sync_token" | "pendingSync">>
+    updates: Partial<Omit<Context, "id" | "sync_token" | "pendingSync" | "active">> & { active?: boolean | number }
   ) => {
-    // Validate update data
-    const validatedUpdates = validate(getContextUpdateSchema(t), updates);
+    // Prepare updates for validation (which expects number for active)
+    const updatesForValidation = { ...updates };
+    if (typeof updates.active === 'boolean') {
+      // @ts-ignore
+      updatesForValidation.active = updates.active ? 1 : 0;
+    }
 
-    // Convert active boolean to number safely
+    // Validate update data
+    const validatedUpdates = validate(getContextUpdateSchema(t), updatesForValidation);
+
+    // Convert active boolean to number safely (if validation passed through boolean? no schema enforces number)
     const { active, description, ...rest } = validatedUpdates;
     const finalUpdates: any = { ...rest };
     if (active !== undefined) {
-      finalUpdates.active = active ? 1 : 0;
+      finalUpdates.active = active; // validatedData active is already number from schema
     }
     if (description !== undefined) {
       finalUpdates.description = description === null ? undefined : description;
@@ -90,9 +97,19 @@ export function useContexts() {
   };
 
   const deleteContext = async (id: string) => {
-    await db.contexts.update(id, {
-      deleted_at: new Date().toISOString(),
-      pendingSync: 1,
+    // Transactional update: Detach from transactions AND soft delete context
+    await db.transaction('rw', db.transactions, db.contexts, async () => {
+      // 1. Detach from transactions (set context_id to null and mark for sync)
+      await db.transactions
+        .where("context_id")
+        .equals(id)
+        .modify({ context_id: null as any, pendingSync: 1 });
+
+      // 2. Soft delete context
+      await db.contexts.update(id, {
+        deleted_at: new Date().toISOString(),
+        pendingSync: 1,
+      });
     });
     syncManager.schedulePush();
   };

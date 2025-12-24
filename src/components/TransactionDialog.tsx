@@ -650,11 +650,13 @@ export function TransactionDialog({
                                                                     <SelectItem value="none">
                                                                         {t("no_contexts")}
                                                                     </SelectItem>
-                                                                    {contexts.map((ctx) => (
-                                                                        <SelectItem key={ctx.id} value={ctx.id}>
-                                                                            {ctx.name}
-                                                                        </SelectItem>
-                                                                    ))}
+                                                                    {contexts
+                                                                        .filter(c => c.active !== 0 || c.id === field.value)
+                                                                        .map((ctx) => (
+                                                                            <SelectItem key={ctx.id} value={ctx.id}>
+                                                                                {ctx.name}
+                                                                            </SelectItem>
+                                                                        ))}
                                                                 </SelectContent>
                                                             </Select>
                                                             <FormMessage />

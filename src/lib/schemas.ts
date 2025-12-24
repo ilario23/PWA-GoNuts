@@ -60,6 +60,7 @@ export type GroupFormValues = z.infer<typeof groupSchema>;
 export const contextSchema = z.object({
     name: z.string().min(1, "Name is required"),
     description: z.string().optional(),
+    active: z.boolean().optional().default(true),
 });
 
 export type ContextFormValues = z.infer<typeof contextSchema>;

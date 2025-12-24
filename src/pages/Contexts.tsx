@@ -10,21 +10,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, Tag, Receipt, Search, FilterX } from "lucide-react";
+import { Plus, Edit, Trash2, Tag, Search, FilterX, Info, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { Context } from "@/lib/db";
+import { Context, db } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { SwipeableItem } from "@/components/ui/SwipeableItem";
 import { ContextFormDialog } from "@/components/contexts/ContextFormDialog";
+import { ContextDetailDrawer } from "@/components/contexts/ContextDetailDrawer";
 import { ContextFormValues } from "@/lib/schemas";
 import {
   Tooltip,
@@ -38,51 +34,38 @@ function MobileContextRow({
   context,
   onEdit,
   onDelete,
-  onSelect,
+  onClick,
 }: {
   context: Context;
   onEdit: (context: Context) => void;
   onDelete: (id: string) => void;
-  onSelect: (context: Context) => void;
+  onClick: (context: Context) => void;
 }) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-
   return (
     <SwipeableItem
       onEdit={() => onEdit(context)}
       onDelete={() => onDelete(context.id)}
-      onClick={() => setOpen(true)}
+      onClick={() => onClick(context)}
     >
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>
-          <div
-            className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 cursor-pointer active:bg-muted/50 focus:outline-none"
-            onClick={(e) => e.preventDefault()}
-          >
-            {/* Icon */}
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Tag className="h-5 w-5 text-primary" />
-            </div>
+      <div
+        className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 cursor-pointer active:bg-muted/50 focus:outline-none"
+        onClick={() => onClick(context)}
+      >
+        {/* Icon */}
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          <Tag className="h-5 w-5 text-primary" />
+        </div>
 
-            {/* Main Content */}
-            <div className="flex-1 min-w-0 text-left">
-              <div className="font-medium text-sm truncate">{context.name}</div>
-              {context.description && (
-                <div className="text-xs text-muted-foreground truncate">
-                  {context.description}
-                </div>
-              )}
+        {/* Main Content */}
+        <div className="flex-1 min-w-0 text-left">
+          <div className="font-medium text-sm truncate">{context.name}</div>
+          {context.description && (
+            <div className="text-xs text-muted-foreground truncate">
+              {context.description}
             </div>
-          </div>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="bottom" align="start" className="w-[200px]">
-          <DropdownMenuItem onClick={() => onSelect(context)}>
-            <Receipt className="mr-2 h-4 w-4" />
-            <span>{t("view_transactions_context")}</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          )}
+        </div>
+      </div>
     </SwipeableItem>
   );
 }
@@ -95,13 +78,24 @@ export function ContextsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteDescription, setDeleteDescription] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
+
+
+
+  // Details Drawer State
+  const [selectedContext, setSelectedContext] = useState<Context | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleViewTransactions = (context: Context) => {
-    navigate(`/transactions?contextId=${context.id}`);
+  const handleOpenDetail = (context: Context) => {
+    setSelectedContext(context);
+    setDetailOpen(true);
   };
+
+
 
   const handleFormSubmit = async (data: ContextFormValues) => {
     if (!user) return;
@@ -110,12 +104,14 @@ export function ContextsPage() {
       await updateContext(editingId, {
         name: data.name,
         description: data.description || "",
+        active: data.active,
       });
     } else {
       await addContext({
         user_id: user.id,
         name: data.name,
         description: data.description || "",
+        active: data.active !== undefined ? data.active : true,
       });
     }
     setIsOpen(false);
@@ -124,6 +120,7 @@ export function ContextsPage() {
 
   const handleEdit = (context: Context) => {
     setEditingId(context.id);
+    setIsOpen(true);
   };
 
   const openNew = () => {
@@ -131,8 +128,14 @@ export function ContextsPage() {
     setIsOpen(true);
   };
 
-  const handleDeleteClick = (id: string) => {
+  const handleDeleteClick = async (id: string) => {
     setDeletingId(id);
+    const count = await db.transactions.where("context_id").equals(id).count();
+    if (count > 0) {
+      setDeleteDescription(t("context_delete_warning_count", { count }) || `Careful! This context is used in ${count} transactions. Deleting it will detach it from these transactions.`);
+    } else {
+      setDeleteDescription("");
+    }
     setDeleteDialogOpen(true);
   };
 
@@ -145,24 +148,42 @@ export function ContextsPage() {
 
   const filteredContexts = useMemo(() => {
     if (!contexts) return [];
-    if (!searchQuery) return contexts;
-    return contexts.filter((c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [contexts, searchQuery]);
+    let res = contexts;
+
+    if (!showInactive) {
+      res = res.filter(c => c.active !== 0);
+    }
+
+    if (searchQuery) {
+      res = res.filter((c) =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return res;
+  }, [contexts, searchQuery, showInactive]);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">{t("contexts")}</h1>
-          <Button
-            onClick={openNew}
-            size="icon"
-            className="md:hidden shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2 md:hidden">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowInactive(!showInactive)}
+              className="shrink-0"
+            >
+              {showInactive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+            <Button
+              onClick={openNew}
+              size="icon"
+              className="shrink-0"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -184,6 +205,16 @@ export function ContextsPage() {
               </button>
             )}
           </div>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowInactive(!showInactive)}
+            className="hidden md:inline-flex shrink-0 mr-2"
+            title={showInactive ? t("hide_archived") : t("show_archived")}
+          >
+            {showInactive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </Button>
 
           <Button
             onClick={openNew}
@@ -216,7 +247,7 @@ export function ContextsPage() {
                 context={c}
                 onEdit={handleEdit}
                 onDelete={handleDeleteClick}
-                onSelect={handleViewTransactions}
+                onClick={handleOpenDetail}
               />
             ))}
           </div>
@@ -244,15 +275,17 @@ export function ContextsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => navigate(`/transactions?contextId=${c.id}`)}
+                                onClick={() => handleOpenDetail(c)}
                               >
-                                <Receipt className="h-4 w-4" />
+                                <Info className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>{t("view_transactions_context")}</p>
+                              <p>{t("info") || "Info"}</p>
                             </TooltipContent>
                           </Tooltip>
+
+
 
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -300,6 +333,7 @@ export function ContextsPage() {
         onConfirm={handleConfirmDelete}
         title={t("confirm_delete_context") || t("confirm_delete")}
         description={
+          deleteDescription ||
           t("confirm_delete_context_description") ||
           t("confirm_delete_description")
         }
@@ -308,8 +342,21 @@ export function ContextsPage() {
       <ContextFormDialog
         open={isOpen}
         onOpenChange={setIsOpen}
-        initialData={contexts?.find(c => c.id === editingId) || null}
+        initialData={(() => {
+          const ctx = contexts?.find(c => c.id === editingId);
+          if (!ctx) return null;
+          return {
+            ...ctx,
+            active: ctx.active === 1
+          };
+        })()}
         onSubmit={handleFormSubmit}
+      />
+
+      <ContextDetailDrawer
+        context={selectedContext}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
       />
 
     </div>

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useEffect } from "react";
 
 interface ContextFormDialogProps {
@@ -44,6 +45,7 @@ export function ContextFormDialog({
         defaultValues: {
             name: "",
             description: "",
+            active: true,
         },
     });
 
@@ -53,11 +55,13 @@ export function ContextFormDialog({
                 form.reset({
                     name: initialData.name,
                     description: initialData.description || "",
+                    active: initialData.active !== undefined ? initialData.active : true,
                 });
             } else {
                 form.reset({
                     name: "",
                     description: "",
+                    active: true,
                 });
             }
         }
@@ -115,6 +119,27 @@ export function ContextFormDialog({
                                         />
                                     </FormControl>
                                     <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField<ContextFormValues, "active">
+                            control={form.control as any}
+                            name="active"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">{t("active")}</FormLabel>
+                                        <div className="text-sm text-muted-foreground">
+                                            {t("context_active_desc") || "Enable or disable this context"}
+                                        </div>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
                                 </FormItem>
                             )}
                         />
