@@ -28,7 +28,8 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                 </Button>
             </div>
 
-            <div className="border rounded-lg overflow-hidden max-h-[60vh] overflow-y-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block border rounded-lg overflow-hidden max-h-[60vh] overflow-y-auto">
                 <Table>
                     <TableHeader className="bg-slate-50 dark:bg-slate-900 sticky top-0 z-10">
                         <TableRow>
@@ -96,6 +97,60 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+                {parsedData.transactions.map((tx, i) => (
+                    <div key={i} className="bg-card border rounded-lg p-3 shadow-sm space-y-3">
+                        <div className="flex justify-between items-start">
+                            <span className="text-xs font-mono text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                {format(new Date(tx.date), 'dd/MM/yyyy')}
+                            </span>
+                            <span className={`font-bold ${tx.type === 'income' ? 'text-green-600' : ''}`}>
+                                {tx.amount.toFixed(2)} €
+                            </span>
+                        </div>
+
+                        <div className="text-sm font-medium leading-tight">
+                            {tx.description}
+                        </div>
+
+                        <div className="pt-2 border-t flex items-center gap-2">
+                            <div className="flex-1">
+                                <CategorySelector
+                                    value={tx.category_id}
+                                    onChange={(catId) => onManualCategoryChange(tx, catId)}
+                                    triggerClassName="w-full h-9 text-sm"
+                                    showSkipOption={true}
+                                />
+                            </div>
+
+                            <div className="flex items-center border-l pl-2 gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`h-9 w-9 ${tx.category_id && tx.category_id !== "UNCATEGORIZED" ? "text-purple-500 bg-purple-500/10" : "text-slate-300"}`}
+                                    onClick={() => {
+                                        if (tx.category_id) onCreateRule(tx, tx.category_id);
+                                    }}
+                                    disabled={!tx.category_id || tx.category_id === 'UNCATEGORIZED'}
+                                >
+                                    <Wand2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    onClick={() => onDeleteTransaction(i)}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             <div className="text-right text-xs text-muted-foreground">
                 {t("import.total_transactions", "Total Transactions: {{count}}", { count: parsedData.transactions.length })}
             </div>

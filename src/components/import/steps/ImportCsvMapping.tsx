@@ -86,7 +86,8 @@ export function ImportCsvMapping({ csvHeaders, csvPreviewRows, csvMapping, setCs
                 </div>
             </div>
 
-            <div className="border rounded-lg overflow-x-auto w-full relative max-w-[80vw] sm:max-w-[720px]">
+            {/* Desktop Table Preview */}
+            <div className="hidden md:block border rounded-lg overflow-x-auto w-full relative max-w-[80vw] sm:max-w-[720px]">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -106,6 +107,25 @@ export function ImportCsvMapping({ csvHeaders, csvPreviewRows, csvMapping, setCs
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Mobile List Preview */}
+            <div className="md:hidden space-y-4">
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                    {t("import.preview_mobile_title", "Data Preview (First 3 rows)")}
+                </h4>
+                {csvPreviewRows.slice(0, 3).map((row, i) => (
+                    <div key={i} className="border rounded-lg p-3 bg-card space-y-2 text-xs">
+                        <div className="font-mono text-muted-foreground mb-2 border-b pb-1">Row {i + 1}</div>
+                        {csvHeaders.map(h => (
+                            <div key={h} className="grid grid-cols-3 gap-2">
+                                <span className="font-medium text-muted-foreground truncate">{h}:</span>
+                                <span className="col-span-2 truncate">{row[h]}</span>
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+
             <p className="text-xs text-muted-foreground">{t("import.preview_rows", "Showing first 5 rows for preview.")}</p>
         </div>
     );
