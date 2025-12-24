@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { useNavigate } from "react-router-dom";
+
 import { Plus, Edit, Trash2, Tag, Search, FilterX, Info, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
