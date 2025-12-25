@@ -610,7 +610,9 @@
     "partial_sync": "{{synced}} synced, {{pending}} pending",
     "group_warning_title": "Group Data Detected",
     "group_warning_desc": "This file contains transactions associated with a group. Group associations will be removed and transactions imported as personal expenses.",
-    "group_warning_count": "Affected transactions: {{count}}"
+    "group_warning_count": "Affected transactions: {{count}}",
+    "regenerate_colors": "Regenerate colors with modern palette",
+    "regenerate_colors_desc": "Override colors from the previous backup with a vibrant, semantically-colored palette based on type (expenses=warm, income=green, investments=blue)"
   },
   "export_data": "Export Data",
   "export_data_desc": "Download all your data as a JSON backup file",

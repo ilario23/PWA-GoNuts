@@ -609,7 +609,9 @@
     "partial_sync": "{{synced}} sincronizzati, {{pending}} in attesa",
     "group_warning_title": "Dati di Gruppo Rilevati",
     "group_warning_desc": "Questo file contiene transazioni associate a un gruppo. Le associazioni di gruppo verranno rimosse e le transazioni importate come spese personali.",
-    "group_warning_count": "Transazioni interessate: {{count}}"
+    "group_warning_count": "Transazioni interessate: {{count}}",
+    "regenerate_colors": "Rigenera colori con palette moderna",
+    "regenerate_colors_desc": "Sovrascrivi i colori del backup precedente con una palette semantica basata sul tipo (spese=caldi, entrate=verde, investimenti=blu)"
   },
   "export_data": "Esporta Dati",
   "export_data_desc": "Scarica tutti i tuoi dati come file di backup JSON",

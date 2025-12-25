@@ -1,17 +1,22 @@
 import { useTranslation } from "react-i18next";
 import { ParsedData } from "../../../lib/import/types";
 import { ImportProcessor } from "../../../lib/import/ImportProcessor";
-import { AlertTriangle, Turtle } from "lucide-react";
+import { AlertTriangle, Turtle, Palette } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
 
 interface ImportPreviewProps {
     parsedData: ParsedData;
+    regenerateColors?: boolean;
+    onRegenerateColorsChange?: (value: boolean) => void;
 }
 
 // NOTE: We need useAuth here to initialize ImportProcessor for group analysis
 // Or we can pass it down. Let's use internal logic if it's purely utility.
 // ImportProcessor needs userId constructor.
-export function ImportPreview({ parsedData }: ImportPreviewProps) {
+export function ImportPreview({ parsedData, regenerateColors, onRegenerateColorsChange }: ImportPreviewProps) {
     const { t } = useTranslation();
     const { user } = useAuth();
 
@@ -47,9 +52,32 @@ export function ImportPreview({ parsedData }: ImportPreviewProps) {
             </div>
 
             {parsedData.source === 'legacy_vue' && (
-                <div className="text-sm p-3 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded border border-blue-100 dark:border-blue-900">
-                    <p><strong>{t("import.migration_mode", "Migration Mode")}:</strong> {t("import.migration_mode_desc", "We will automatically migrate your categories to the new structure.")}</p>
-                </div>
+                <>
+                    <div className="text-sm p-3 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded border border-blue-100 dark:border-blue-900">
+                        <p><strong>{t("import.migration_mode", "Migration Mode")}:</strong> {t("import.migration_mode_desc", "We will automatically migrate your categories to the new structure.")}</p>
+                    </div>
+
+                    {/* Regenerate Colors Option */}
+                    {onRegenerateColorsChange && (
+                        <div className="flex items-center justify-between gap-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded border border-purple-100 dark:border-purple-900">
+                            <div className="flex-1">
+                                <Label htmlFor="regenerate-colors" className="flex items-center gap-2 text-purple-700 dark:text-purple-300 font-medium cursor-pointer">
+                                    <Palette className="w-4 h-4" />
+                                    {t("import.regenerate_colors", "Regenerate colors with modern palette")}
+                                </Label>
+                                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                                    {t("import.regenerate_colors_desc", "Assign vibrant, semantically-colored palette to categories based on type (expenses=warm, income=green, investments=blue)")}
+                                </p>
+                            </div>
+                            <Switch
+                                id="regenerate-colors"
+                                checked={regenerateColors}
+                                onCheckedChange={onRegenerateColorsChange}
+                            />
+                        </div>
+                    )}
+
+                </>
             )}
 
 
@@ -83,3 +111,4 @@ export function ImportPreview({ parsedData }: ImportPreviewProps) {
         </div>
     );
 }
+
