@@ -144,11 +144,31 @@ export function useCategories(groupId?: string | null) {
     syncManager.schedulePush();
   };
 
+  const deleteCategoryTransactions = async (id: string) => {
+    await db.transactions.where("category_id").equals(id).modify({
+      deleted_at: new Date().toISOString(),
+      pendingSync: 1,
+    });
+
+    await db.recurring_transactions.where("category_id").equals(id).modify({
+      deleted_at: new Date().toISOString(),
+      pendingSync: 1,
+    });
+    syncManager.schedulePush();
+  };
+
+  const deleteCategoryData = async (id: string) => {
+    await deleteCategoryTransactions(id);
+    await deleteCategory(id);
+  };
+
   return {
     categories: filteredCategories,
     addCategory,
     updateCategory,
     deleteCategory,
+    deleteCategoryData,
+    deleteCategoryTransactions,
     reparentChildren,
     migrateTransactions,
   };

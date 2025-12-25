@@ -22,6 +22,7 @@ interface CategoryMigrationDialogProps {
     setMigrationTargetId: (id: string) => void;
     categories: Category[] | undefined;
     onResolve: () => void;
+    onDeleteAll: () => void;
 }
 
 export function CategoryMigrationDialog({
@@ -32,6 +33,7 @@ export function CategoryMigrationDialog({
     setMigrationTargetId,
     categories,
     onResolve,
+    onDeleteAll,
 }: CategoryMigrationDialogProps) {
     const { t } = useTranslation();
 
@@ -76,6 +78,33 @@ export function CategoryMigrationDialog({
                         disabled={!migrationTargetId}
                     >
                         {t("migrate_and_delete")}
+                    </Button>
+                </div>
+
+                <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                            {t("or")}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="p-4 border border-destructive rounded-md">
+                    <h4 className="text-sm font-medium text-destructive mb-2">
+                        {t("danger_zone")}
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        {t("delete_category_data_desc")}
+                    </p>
+                    <Button
+                        variant="destructive"
+                        className="w-full"
+                        onClick={onDeleteAll}
+                    >
+                        {t("delete_all_transactions")}
                     </Button>
                 </div>
             </DialogContent>

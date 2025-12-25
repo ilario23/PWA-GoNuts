@@ -66,6 +66,50 @@ This document details the exact sequence of events for critical application proc
 
 ---
 
+## 5. Category Deletion & Migration
+**Goal**: Safeguard data integrity when removing categories with associated data.
+
+**File**: `src/pages/Categories.tsx` & `src/components/categories/CategoryMigrationDialog.tsx`
+
+1.  **Conflict Detection**: Before deleting, the system checks for:
+    *   Associated Transactions.
+    *   Associated Recurring Transactions.
+    *   Child Categories (Subcategories).
+2.  **Sequential Resolution**:
+    *   **Phase 1 (Transactions)**: User must choose to either **Migrate** transactions to a new category or **Delete All** (dangerous action).
+    *   **Phase 2 (Subcategories)**: Once transactions are handled, if subcategories exist, the user must decide to move them to the parent level or delete them.
+3.  **Execution**:
+    *   Updates are performed in a Dexie transaction to ensure atomicity.
+    *   `pendingSync` is set for all affected records.
+
+---
+
+## 6. Bank Import Wizard
+**Goal**: Flexible CSV/JSON data ingestion with mobile optimization.
+
+**File**: `src/components/import/ImportWizard.tsx`
+
+1.  **File Loading**: Supports JSON (legacy app) and CSV (custom mapping).
+2.  **Preview Phase**: Displays a card-based summary of incoming data.
+3.  **Mapping Phase**: User maps CSV columns to Transaction fields (Amount, Date, Description).
+4.  **Reconciliation**: Categorizes transactions based on keyword matching or manual selection.
+5.  **Finalize**: Batch writes validated records to Dexie.
+
+---
+
+## 7. Category Color Semantic Palette
+**Goal**: Assign meaningful colors based on category types.
+
+**File**: `src/lib/colors.ts`
+
+1.  **Type-Based Seed**:
+    *   `Expense`: Warm colors (Reds/Oranges).
+    *   `Income`: Green tones.
+    *   `Investment`: Blue/Vibrant Indigo.
+2.  **Variation Engine**: Uses a HSL-based generator to produce unique variations for subcategories, ensuring siblings are distinguishable while maintaining type-consistency.
+
+---
+
 ## 4. Reset & Clear Data
 **Goal**: Handle logout or "Fresh Start".
 

@@ -355,11 +355,41 @@ export function useStatistics(params?: UseStatisticsParams) {
   }, [currentMonth, workerResult.monthlyStats.expense]);
 
 
+
+  const yearlyBurnRate = useMemo(() => {
+    const year = parseInt(currentYear);
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    const daysInYear = isLeapYear ? 366 : 365;
+
+    const today = new Date();
+    const isCurrentYear = currentYear === today.getFullYear().toString();
+
+    let daysElapsed = daysInYear;
+    if (isCurrentYear) {
+      const startOfYear = new Date(year, 0, 0);
+      const diff = today.getTime() - startOfYear.getTime();
+      const oneDay = 1000 * 60 * 60 * 24;
+      daysElapsed = Math.floor(diff / oneDay);
+    }
+
+    const daysRemaining = daysInYear - daysElapsed;
+    const expense = workerResult.yearlyStats.expense;
+
+    return {
+      total: expense,
+      dailyAverage: daysElapsed > 0 ? expense / daysElapsed : 0,
+      projectedTotal: daysElapsed > 0 ? (expense / daysElapsed) * daysInYear : 0,
+      daysElapsed,
+      daysRemaining
+    }
+  }, [currentYear, workerResult.yearlyStats.expense]);
+
   return {
     ...workerResult,
     monthlyComparison,
     yearlyComparison,
     burnRate,
+    yearlyBurnRate,
     // Map trend data to localized names
     monthlyTrendData: workerResult.monthlyTrendData.map(d => ({
       ...d,
@@ -392,7 +422,6 @@ export function useStatistics(params?: UseStatisticsParams) {
     groupBalances: workerResult.groupBalances || [], // No mapping needed as it uses member IDs/names
 
     // Placeholders
-    yearlyBurnRate: { total: 0, dailyAverage: 0, projectedTotal: 0, daysElapsed: 0, daysRemaining: 0 },
     previousMonthComparison: null,
     categoryComparison: [] as any[],
     previousMonth,

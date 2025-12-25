@@ -78,6 +78,9 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
     const [revolutIncludeSavings, setRevolutIncludeSavings] = useState(false);
     const [detectedParser, setDetectedParser] = useState<TransactionParser | null>(null);
 
+    // Turtlet Import Options
+    const [regenerateColors, setRegenerateColors] = useState(true);
+
     // Reconciliation State
     const categories = useLiveQuery(() => db.categories.where('user_id').equals(user?.id || 'missing').toArray(), [user?.id]);
     const activeCategories = categories?.filter(c => c.active === 1 && !c.deleted_at);
@@ -103,6 +106,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
         setDetectedParser(null);
         setImportResult(null);
         setIsSyncing(false);
+        setRegenerateColors(true);
     };
 
     const handleOpenChange = (newOpen: boolean) => {
@@ -358,7 +362,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                 const pct = Math.round((current / total) * 100);
                 setProgress(pct);
                 setProgressMessage(msg);
-            }, mergeMap, skippedRecurringIds);
+            }, mergeMap, skippedRecurringIds, { regenerateColors });
 
             setImportResult(result);
             setStep('success');
@@ -459,7 +463,11 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
 
                     {step === 'preview' && parsedData && (
                         <div className="space-y-4">
-                            <ImportPreview parsedData={parsedData} />
+                            <ImportPreview
+                                parsedData={parsedData}
+                                regenerateColors={regenerateColors}
+                                onRegenerateColorsChange={setRegenerateColors}
+                            />
                             <div className="flex justify-end gap-2 pt-4">
                                 <Button variant="outline" onClick={resetState}>
                                     {t("common.cancel", "Cancel")}

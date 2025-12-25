@@ -5,6 +5,7 @@ import { useGroups } from "@/hooks/useGroups";
 import { useContexts } from "@/hooks/useContexts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getLocalDate } from "@/lib/utils";
 import {
     Dialog,
     DialogContent,
@@ -98,7 +99,7 @@ export function TransactionDialog({
             description: "",
             type: defaultType,
             category_id: "",
-            date: new Date().toISOString().split("T")[0],
+            date: getLocalDate(),
             context_id: null,
             group_id: defaultGroupId,
             paid_by_member_id: null,
@@ -130,7 +131,7 @@ export function TransactionDialog({
                     description: "",
                     type: defaultType,
                     category_id: "",
-                    date: new Date().toISOString().split("T")[0],
+                    date: getLocalDate(),
                     context_id: null,
                     group_id: defaultGroupId,
                     paid_by_member_id: null,

@@ -114,7 +114,7 @@ export function GroupCard({
               <span className="text-muted-foreground">{t("your_share")}</span>
               <span className="font-medium">{group.myShare}%</span>
             </div>
-            <Separator />
+            <Separator className="hidden sm:block" />
 
             {/* Action Buttons - Now with text for both mobile and desktop */}
             {/* Desktop Actions */}

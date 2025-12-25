@@ -58,7 +58,7 @@ import { THEME_COLORS } from "@/lib/theme-colors";
 import { toast } from "sonner";
 import { ImportWizard } from "@/components/import/ImportWizard";
 import { ImportRulesManager } from "@/components/settings/ImportRulesManager";
-import { cn } from "@/lib/utils";
+import { cn, getLocalDate } from "@/lib/utils";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
 
@@ -182,7 +182,7 @@ export function SettingsPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `expense-tracker-export-${new Date().toISOString().split("T")[0]}.json`;
+      link.download = `expense-tracker-export-${getLocalDate()}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

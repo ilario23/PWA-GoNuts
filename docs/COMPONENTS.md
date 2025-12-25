@@ -31,6 +31,14 @@ src/components/
 │   ├── StatsBurnRateCard.tsx
 │   ├── StatsContextAnalytics.tsx
 │   └── StatsPeriodComparison.tsx
+├── import/                 # Bank import components
+│   ├── ImportWizard.tsx
+│   ├── ImportPreview.tsx
+│   ├── ImportCsvMapping.tsx
+│   └── ImportReconciliation.tsx
+├── members/                # Group member management
+│   ├── MemberList.tsx
+│   └── MemberActionButtons.tsx
 └── [shared components]     # Top-level shared components
     ├── TransactionList.tsx
     ├── TransactionDialog.tsx
@@ -74,6 +82,22 @@ src/components/
 | `StatsBurnRateCard` | Daily burn rate indicator with projections |
 | `StatsContextAnalytics` | Context-based expense breakdown |
 | `StatsPeriodComparison` | Monthly/yearly comparison charts |
+
+### Import (`src/pages/Import.tsx`)
+
+| Component | Purpose |
+|-----------|---------|
+| `ImportWizard` | Main controller for the multi-step import flow |
+| `ImportPreview` | Displays summary cards of the loaded file |
+| `ImportCsvMapping` | Interface for manual column mapping (mobile-first) |
+| `ImportReconciliation` | Category and context matching for new transactions |
+
+### Manage Members (`src/pages/ManageMembers.tsx`)
+
+| Component | Purpose |
+|-----------|---------|
+| `MemberList` | List of group members with profile resolution |
+| `MemberActionButtons` | Actions for sharing, editing, or removing members |
 
 ## Component Design Patterns
 

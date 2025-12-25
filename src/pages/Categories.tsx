@@ -66,6 +66,7 @@ export function CategoriesPage() {
     deleteCategory,
     reparentChildren,
     migrateTransactions,
+    deleteCategoryTransactions,
   } = useCategories(selectedGroupFilter);
 
   const { groups } = useGroups();
@@ -222,36 +223,10 @@ export function CategoriesPage() {
     setIsOpen(true);
   };
 
-  const handleDeleteClick = (id: string) => {
-    const associatedTransactions = transactions?.filter(
-      (t) => t.category_id === id && !t.deleted_at
-    );
-    const transactionCount = associatedTransactions?.length || 0;
-
+  const checkChildrenAndProceedDelete = (id: string) => {
     const hasChildren = categories?.some(
       (c) => c.parent_id === id && !c.deleted_at
     );
-
-    // category fetch moved to inside DeleteConfirmDialog description logic if needed, or re-fetched there
-
-
-    const associatedRecurring = recurringTransactions?.filter(
-      (r) => r.category_id === id && !r.deleted_at
-    );
-    const recurringCount = associatedRecurring?.length || 0;
-
-    if (transactionCount > 0 || recurringCount > 0) {
-      setMigrationData({
-        oldCategoryId: id,
-        transactionCount,
-        recurringCount,
-      });
-      setMigrationDialogOpen(true);
-      return;
-    }
-
-    // Group warning moved to DeleteConfirmDialog description
-
 
     if (hasChildren) {
       const currentCategory = categories?.find((c) => c.id === id);
@@ -273,6 +248,30 @@ export function CategoriesPage() {
 
     setDeletingId(id);
     setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    const associatedTransactions = transactions?.filter(
+      (t) => t.category_id === id && !t.deleted_at
+    );
+    const transactionCount = associatedTransactions?.length || 0;
+
+    const associatedRecurring = recurringTransactions?.filter(
+      (r) => r.category_id === id && !r.deleted_at
+    );
+    const recurringCount = associatedRecurring?.length || 0;
+
+    if (transactionCount > 0 || recurringCount > 0) {
+      setMigrationData({
+        oldCategoryId: id,
+        transactionCount,
+        recurringCount,
+      });
+      setMigrationDialogOpen(true);
+      return;
+    }
+
+    checkChildrenAndProceedDelete(id);
   };
 
   const handleConfirmDelete = () => {
@@ -353,11 +352,25 @@ export function CategoriesPage() {
     if (!migrationData || !migrationTargetId) return;
 
     await migrateTransactions(migrationData.oldCategoryId, migrationTargetId);
-    await deleteCategory(migrationData.oldCategoryId);
 
     setMigrationDialogOpen(false);
     setMigrationData(null);
     setMigrationTargetId("");
+
+    // Resume to check for children
+    checkChildrenAndProceedDelete(migrationData.oldCategoryId);
+  };
+
+  const handleMigrationDeleteAll = async () => {
+    if (!migrationData) return;
+    await deleteCategoryTransactions(migrationData.oldCategoryId);
+
+    setMigrationDialogOpen(false);
+    setMigrationData(null);
+    setMigrationTargetId("");
+
+    // Resume to check for children
+    checkChildrenAndProceedDelete(migrationData.oldCategoryId);
   };
 
   // Budget handlers
@@ -413,17 +426,35 @@ export function CategoriesPage() {
     });
   }, [categories, searchQuery, typeFilter, showInactive]);
 
-  // Sort categories: Active first, then Alphabetical
+  // Sort categories: Group (Personal first), then Active, then Alphabetical
   const sortedCategories = useMemo(() => {
     return [...filteredCategories].sort((a, b) => {
-      // 1. Sort by Active status (Active=1 first, Inactive=0 last)
+      // 1. Sort by Group
+      const aGroupId = a.group_id;
+      const bGroupId = b.group_id;
+
+      if (aGroupId !== bGroupId) {
+        // Personal categories (no group_id) come first
+        if (!aGroupId) return -1;
+        if (!bGroupId) return 1;
+
+        // Both belong to groups, sort by Group Name
+        const groupA = groups.find((g) => g.id === aGroupId);
+        const groupB = groups.find((g) => g.id === bGroupId);
+        const nameA = groupA?.name || "";
+        const nameB = groupB?.name || "";
+
+        return nameA.localeCompare(nameB);
+      }
+
+      // 2. Sort by Active status (Active=1 first, Inactive=0 last)
       if (a.active !== b.active) {
         return b.active - a.active;
       }
-      // 2. Sort by Name
+      // 3. Sort by Name
       return a.name.localeCompare(b.name);
     });
-  }, [filteredCategories]);
+  }, [filteredCategories, groups]);
 
   // Build a map of parent_id -> children for quick lookup
   const childrenMap = useMemo(() => {
@@ -693,7 +724,7 @@ export function CategoriesPage() {
       {/* Mobile View */}
       <CategoryMobileList
         categories={categories}
-        filteredCategories={filteredCategories}
+        filteredCategories={sortedCategories}
         expandedCategoryIds={expandedCategoryIds}
         setExpandedCategoryIds={setExpandedCategoryIds}
         groups={groups}
@@ -758,6 +789,7 @@ export function CategoriesPage() {
             <AlertDialogDescription>
               {t("subcategory_conflict_description", {
                 count: conflictData?.childrenCount,
+                action: t(conflictData?.action || "delete"),
                 parentName: conflictData?.parentName || t("root_category"),
               })}
             </AlertDialogDescription>
@@ -819,6 +851,7 @@ export function CategoriesPage() {
         setMigrationTargetId={setMigrationTargetId}
         categories={categories}
         onResolve={handleMigrationResolve}
+        onDeleteAll={handleMigrationDeleteAll}
       />
     </div>
   );

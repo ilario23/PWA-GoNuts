@@ -41,10 +41,10 @@ graph TD
 ### 2. The Sync Engine
 *   **Role**: Keeping Local and Remote in sync.
 *   **Implementation**: `src/lib/sync.ts` & `src/hooks/useRealtimeSync.ts`
-*   **Strategy**: "Delta Sync" + "Last Write Wins".
-    *   **Push**: Watches for records with `pendingSync: 1` and uploads them.
-    *   **Pull**: Asks server for "All records where `sync_token` > `last_token`".
-    *   **Realtime**: Subscribes to PostgreSQL changes for instant updates from other devices.
+*   **Strategy**: Hybrid strategy consisting of:
+    *   **Push**: Watches for records with `pendingSync: 1` and uploads them (debounced).
+    *   **Pull**: On-demand or scheduled delta fetch (watermark: `sync_token`).
+    *   **Realtime**: Subscribes via `supabase.channel` to PostgreSQL changes for instant cross-device updates.
 
 ### 3. The Auth Provider
 *   **Role**: Manages User Identity.

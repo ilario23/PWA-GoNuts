@@ -75,12 +75,22 @@ Collaborative budgeting features.
 
 **Group Members**:
 *   `group_id`: Link to Group.
-*   `user_id`: Link to User (Nullable for "Guest" members).
+*   `user_id`: Link to User (Points to `profiles.id` or `auth.users.id`).
 *   `is_guest`: `boolean`/`number`.
 *   `guest_name`: Name for users not in the system.
 *   `share`: `number` (0-100). Split percentage.
 
-### 5. User Settings (`user_settings`)
+### 5. Profiles (`profiles`)
+Caches user identity information for display purposes.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | UUID (Primary Key, matches Auth User ID). |
+| `full_name` | `string?` | Display name. |
+| `avatar_url` | `string?` | Link to profile picture. |
+| `email` | `string?` | User email (often used as fallback). |
+
+### 6. User Settings (`user_settings`)
 One-to-one mapping with `users`. Contains preferences.
 
 | Field | Type | Description |
@@ -106,5 +116,6 @@ When moving data between `db.ts` (Dexie) and `supabase.ts` (API), certain transf
 See `src/lib/db.ts` constructor for the exact index configuration.
 *   **Transactions**: `[id, user_id, category_id, context_id, type, date, year_month, pendingSync, deleted_at]`
 *   **Groups**: `[id, created_by, pendingSync]`
+*   **Profiles**: `[id, email]`
 
 *Note: Any field you want to filter/sort by efficiently in a `useLiveQuery` MUST be in this index list.*

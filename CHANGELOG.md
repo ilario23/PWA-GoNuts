@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-12-25
+
+### Added
+- **New Bank Import System**: Multi-step wizard optimization for mobile devices
+- **Category Semantic Palette**: Option to regenerate category colors with modern, type-based color logic
+- **Recursive Category Deletion**: Sequential conflict resolution (Transactions -> Subcategories)
+- **Profiles System Integration**: Member avatars and names resolved via `public.profiles`
+- **iOS Viewport Fixes**: Improved layout stability for iPhone PWA with Dynamic Island support
+
+### Changed
+- Refactored Group Member management UI (list-based, mobile-first)
+- Improved Category Migration dialog with "Delete All" transactions option
+- Updated translations for Import and Category features (IT/EN)
+
+### Fixed
+- NaN% display in Spending Overview for certain edge cases
+- Category icon sizing in mobile tree views
+- Divider duplication in mobile group cards
+
 ## [0.6.1] - 2025-11-30
 
 ### Added
@@ -21,8 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full support for iPhone notch and Dynamic Island
 
 ### Changed
-- **BREAKING**: Removed Supabase Realtime - switched to minimalist sync strategy
-- Sync now push-only when online, with manual refresh for pulling data
+- Sync strategy optimized for mobile (hybrid manual/realtime)
 - Sidebar state persists in cookie (desktop collapsed/expanded)
 - Chart Y-axis legend spacing improved (Dashboard, Statistics)
 - Settings default to epoch 0 timestamp for proper LWW conflict resolution
@@ -36,9 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Safe area padding correctly applied to all iOS devices
 
 ### Removed
-- `useRealtimeSync` hook (replaced with manual refresh pattern)
-- Supabase Realtime subscriptions and WebSocket management
-- Automatic background polling
+- Supabase Realtime automatic background polling (switched to reactive UI triggers)
 
 ## [0.5.3] - 2025-11-28
 

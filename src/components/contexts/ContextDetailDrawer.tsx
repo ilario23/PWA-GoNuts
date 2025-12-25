@@ -114,7 +114,7 @@ export function ContextDetailDrawer({
                     <div className="bg-muted/30 p-3 rounded-lg border flex flex-col items-center justify-center text-center">
                         <div className="flex items-center text-muted-foreground text-xs mb-1">
                             <Calendar className="h-3 w-3 mr-1" />
-                            {t("current_month") || "Current Month"}
+                            {t("current_month")}
                         </div>
                         <div className="text-xl font-bold text-red-500">
                             {(stats?.expensesMonth || 0).toFixed(2)} €
@@ -123,7 +123,7 @@ export function ContextDetailDrawer({
                     <div className="bg-muted/30 p-3 rounded-lg border flex flex-col items-center justify-center text-center">
                         <div className="flex items-center text-muted-foreground text-xs mb-1">
                             <Calendar className="h-3 w-3 mr-1" />
-                            {t("current_year") || "Current Year"}
+                            {t("current_year")}
                         </div>
                         <div className="text-xl font-bold text-red-500">
                             {(stats?.expensesYear || 0).toFixed(2)} €

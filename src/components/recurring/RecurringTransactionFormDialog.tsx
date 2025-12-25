@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { getLocalDate } from "@/lib/utils";
 import {
     Dialog,
     DialogContent,
@@ -76,7 +77,7 @@ export function RecurringTransactionFormDialog({
             description: "",
             type: "expense",
             frequency: "monthly",
-            start_date: new Date().toISOString().split("T")[0],
+            start_date: getLocalDate(),
             category_id: "",
             context_id: "",
             group_id: null,
@@ -103,7 +104,7 @@ export function RecurringTransactionFormDialog({
                     description: "",
                     type: "expense",
                     frequency: "monthly",
-                    start_date: new Date().toISOString().split("T")[0],
+                    start_date: getLocalDate(),
                     category_id: "",
                     context_id: "",
                     group_id: null,

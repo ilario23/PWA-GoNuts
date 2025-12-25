@@ -190,10 +190,14 @@ function OfflineAuthFallback() {
 }
 
 import { useSettings } from "@/hooks/useSettings";
+import { useViewportHeight } from "@/hooks/useViewportHeight";
 import { useEffect } from "react";
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
+
+  // Fix iOS viewport height issues in PWA/Safari
+  useViewportHeight();
 
   useEffect(() => {
     if (settings?.theme) {

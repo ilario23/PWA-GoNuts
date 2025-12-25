@@ -88,3 +88,20 @@ export function createColorShade(
     0
   )}%, ${newLightness.toFixed(0)}%)`;
 }
+
+// ============================================
+// DATE UTILITIES
+// ============================================
+
+/**
+ * Returns the current date in YYYY-MM-DD format relying on local time.
+ * This avoids the issue where converting to UTC string pushes the date
+ * to the previous day for users in timezones ahead of UTC.
+ */
+export function getLocalDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}

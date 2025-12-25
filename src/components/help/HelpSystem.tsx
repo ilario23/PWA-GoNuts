@@ -791,8 +791,9 @@ export function HelpSystemWrapper({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="-ml-2 gap-1 text-muted-foreground hover:text-foreground"
+                                className="-ml-2 gap-1 text-muted-foreground hover:text-foreground z-50 px-4"
                                 onClick={() => setSelectedTopicId(null)}
+                                onPointerDown={(e) => e.stopPropagation()}
                             >
                                 <ArrowLeft className="h-4 w-4" />
                                 {t("back", "Back")}

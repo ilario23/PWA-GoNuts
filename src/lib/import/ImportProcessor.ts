@@ -8,6 +8,12 @@ import { v4 as uuidv4 } from "uuid";
 import { AVAILABLE_ICONS } from "../icons";
 import { findBestMatch } from "../stringUtils";
 import { UNCATEGORIZED_CATEGORY } from "../constants";
+import { generateSemanticColor } from "./colorUtils";
+
+// Types
+export interface ImportOptions {
+    regenerateColors?: boolean;
+}
 
 // Helpers
 const VALID_ICON_NAMES = new Set(AVAILABLE_ICONS.map(i => i.name));
@@ -33,7 +39,7 @@ export class ImportProcessor {
         this.userId = userId;
     }
 
-    async process(data: ParsedData, onProgress?: ImportProgressCallback, mergedCategoryIds?: Map<string, string>, skippedRecurringIds?: Set<string>): Promise<{
+    async process(data: ParsedData, onProgress?: ImportProgressCallback, mergedCategoryIds?: Map<string, string>, skippedRecurringIds?: Set<string>, options?: ImportOptions): Promise<{
         categories: number;
         transactions: number;
         recurring: number;
@@ -41,7 +47,7 @@ export class ImportProcessor {
         skippedCount?: number;
     }> {
         if (data.source === 'legacy_vue') {
-            return this.processVueImport(data, onProgress, mergedCategoryIds, skippedRecurringIds);
+            return this.processVueImport(data, onProgress, mergedCategoryIds, skippedRecurringIds, options);
         } else {
             return this.processStandardImport(data, onProgress, mergedCategoryIds, skippedRecurringIds);
         }
@@ -431,7 +437,7 @@ export class ImportProcessor {
     }
 
     // --- VUE MIGRATION STRATEGY ---
-    private async processVueImport(data: ParsedData, onProgress?: ImportProgressCallback, mergedCategoryIds?: Map<string, string>, skippedRecurringIds?: Set<string>) {
+    private async processVueImport(data: ParsedData, onProgress?: ImportProgressCallback, mergedCategoryIds?: Map<string, string>, skippedRecurringIds?: Set<string>, options?: ImportOptions) {
         // Logic extracted from Settings.tsx
         const ROOT_CATEGORY_TYPES: Record<string, "expense" | "income" | "investment"> = {
             "533d4482-df54-47e5-b8d8-000000000001": "expense",
@@ -486,6 +492,13 @@ export class ImportProcessor {
         const existingCategoriesMap = new Map(existingCategories.filter(c => !c.deleted_at).map(c => [c.name.toLowerCase(), c.id]));
         // Keep track of IDs we decide to insert, to avoid re-inserting same ID
         const finalCategoryIdsSet = new Set<string>();
+
+        // Color generation counters (per type) for semantic colors
+        const colorCounters: Record<"expense" | "income" | "investment", number> = {
+            expense: 0,
+            income: 0,
+            investment: 0
+        };
 
         // Categories
         if (data.categories) {
@@ -547,13 +560,21 @@ export class ImportProcessor {
                     newParentId = categoryIdMap.get(parentId);
                 }
 
+                // Determine color: use semantic generation if enabled, otherwise original
+                const categoryType = resolveCategoryType(vueCat.id);
+                let categoryColor = vueCat.color || "#6366f1";
+                if (options?.regenerateColors) {
+                    categoryColor = generateSemanticColor(categoryType, colorCounters[categoryType]);
+                    colorCounters[categoryType]++;
+                }
+
                 categoriesToInsert.push({
                     id: mappedId,
                     user_id: this.userId,
                     name: vueCat.title,
                     icon: validateIcon(vueCat.icon),
-                    color: vueCat.color || "#6366f1",
-                    type: resolveCategoryType(vueCat.id),
+                    color: categoryColor,
+                    type: categoryType,
                     parent_id: newParentId,
                     active: vueCat.active ? 1 : 0,
                     deleted_at: null,
