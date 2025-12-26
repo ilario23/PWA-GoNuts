@@ -349,11 +349,23 @@
 
   /* Root container - safe areas handled by individual components for fixed positioning compatibility */
   #root {
-    /* Fallback chain: try JS-calculated height first, then dvh, then vh */
-    min-height: 100vh;
-    min-height: 100dvh;
-    min-height: calc(var(--vh, 1vh) * 100);
-    /* Dynamic viewport height for mobile browsers */
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html {
+    height: 100dvh;
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    position: fixed;
   }
 }
 

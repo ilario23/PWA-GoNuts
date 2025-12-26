@@ -25,7 +25,6 @@ import {
 } from "@/components/dashboard/DashboardChartCard";
 import { DashboardStatCard } from "@/components/dashboard/DashboardStatCard";
 import { DashboardSummaryCards } from "@/components/dashboard/DashboardSummaryCards";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Dashboard() {
   const { transactions, addTransaction } = useTransactions();
@@ -35,7 +34,6 @@ export function Dashboard() {
   const { settings } = useSettings();
   const { user } = useAuth();
   const { t } = useTranslation();
-  const isMobile = useIsMobile();
   const now = new Date();
   const currentMonth = format(now, "yyyy-MM");
 
@@ -237,14 +235,7 @@ export function Dashboard() {
   };
 
   return (
-    <div
-      className="flex flex-col md:block md:h-auto gap-4 md:space-y-4"
-      style={isMobile ? {
-        // Use JS-calculated viewport height for iOS PWA compatibility
-        // Formula: 100vh - header (4rem=64px) - main padding (2rem top + safe area bottom) - header safe area
-        height: 'calc(var(--vh, 1vh) * 100 - 12rem - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
-      } : undefined}
-    >
+    <div className="flex flex-col md:block h-[calc(100dvh-12rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
       <h1 className="text-2xl font-bold shrink-0">{t("dashboard")}</h1>
 
       {/* Mobile Summary Stats - Smart FlipCard Carousel */}

@@ -129,13 +129,11 @@ const SidebarProvider = React.forwardRef<
                             {
                                 "--sidebar-width": SIDEBAR_WIDTH,
                                 "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-                                // Use JS-calculated viewport height for iOS PWA compatibility
-                                minHeight: 'calc(var(--vh, 1vh) * 100)',
                                 ...style,
                             } as React.CSSProperties
                         }
                         className={cn(
-                            "group/sidebar-wrapper flex w-full has-[[data-variant=inset]]:bg-sidebar",
+                            "group/sidebar-wrapper flex min-h-dvh w-full has-[[data-variant=inset]]:bg-sidebar",
                             className
                         )}
                         ref={ref}
@@ -211,7 +209,7 @@ const Sidebar = React.forwardRef<
             <div
                 ref={ref}
                 className={cn(
-                    "group peer hidden md:flex h-svh sticky top-0 flex-col border-r bg-sidebar text-sidebar-foreground shrink-0",
+                    "group peer hidden md:flex h-dvh sticky top-0 flex-col border-r bg-sidebar text-sidebar-foreground shrink-0",
                     "w-[--sidebar-width] transition-[width] duration-300 ease-linear",
                     variant === "floating" || variant === "inset"
                         ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]"
@@ -298,13 +296,9 @@ const SidebarInset = React.forwardRef<
     return (
         <main
             ref={ref}
-            style={{
-                // Use JS-calculated viewport height for iOS PWA compatibility
-                minHeight: 'calc(var(--vh, 1vh) * 100)',
-            }}
             className={cn(
-                "relative flex flex-1 flex-col bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] min-w-0",
-                "md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
+                "relative flex min-h-dvh flex-1 flex-col bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] min-w-0",
+                "peer-data-[variant=inset]:min-h-[calc(100dvh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
                 className
             )}
             {...props}
