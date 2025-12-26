@@ -618,6 +618,8 @@
   "export_json": "Esporta JSON",
   "export_success": "Dati esportati con successo",
   "export_error": "Esportazione fallita",
+  "export_confirm_title": "Esporta i tuoi dati?",
+  "export_confirm_desc": "Verrà scaricato un file JSON contenente tutti i tuoi dati: transazioni, categorie, contesti, spese ricorrenti, budget e gruppi. Vuoi procedere?",
   "orphaned_warning": "Attenzione: {{count}} elemento/i avevano categorie mancanti e sono stati spostati in 'Non categorizzato'.",
   "sync": "Sincronizzazione",
   "sync_short": "Sync",

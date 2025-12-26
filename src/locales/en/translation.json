@@ -619,6 +619,8 @@
   "export_json": "Export JSON",
   "export_success": "Data exported successfully",
   "export_error": "Export failed",
+  "export_confirm_title": "Export your data?",
+  "export_confirm_desc": "A JSON file will be downloaded containing all your data: transactions, categories, contexts, recurring expenses, budgets, and groups. Do you want to proceed?",
   "orphaned_warning": "Warning: {{count}} item(s) had missing categories and were moved to 'Uncategorized'.",
   "sync": "Synchronization",
   "sync_short": "Sync",

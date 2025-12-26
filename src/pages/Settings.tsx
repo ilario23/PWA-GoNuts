@@ -431,22 +431,42 @@ export function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Export */}
-              <Button
-                variant="outline"
-                className="w-full h-14 justify-start gap-3 touch-manipulation"
-                onClick={handleExportData}
-                disabled={exportingData}
-              >
-                {exportingData ? (
-                  <RefreshCw className="h-5 w-5 shrink-0 animate-spin" />
-                ) : (
-                  <Download className="h-5 w-5 shrink-0 text-primary" />
-                )}
-                <div className="text-left overflow-hidden min-w-0 flex-1">
-                  <div className="font-medium truncate">{t("export_data")}</div>
-                  <div className="text-xs text-muted-foreground truncate">{t("export_data_desc")}</div>
-                </div>
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full h-14 justify-start gap-3 touch-manipulation"
+                    disabled={exportingData}
+                  >
+                    {exportingData ? (
+                      <RefreshCw className="h-5 w-5 shrink-0 animate-spin" />
+                    ) : (
+                      <Download className="h-5 w-5 shrink-0 text-primary" />
+                    )}
+                    <div className="text-left overflow-hidden min-w-0 flex-1">
+                      <div className="font-medium truncate">{t("export_data")}</div>
+                      <div className="text-xs text-muted-foreground truncate">{t("export_data_desc")}</div>
+                    </div>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <Download className="h-5 w-5 text-primary" />
+                      {t("export_confirm_title")}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-left">
+                      {t("export_confirm_desc")}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleExportData}>
+                      {t("export_data")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
               {/* Import */}
               <Button
