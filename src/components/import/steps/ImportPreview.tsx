@@ -108,6 +108,42 @@ export function ImportPreview({ parsedData, regenerateColors, onRegenerateColors
                 }
                 return null;
             })()}
+
+            {/* Data Integrity Issues Warning */}
+            {parsedData.dataIntegrityIssues && (
+                <div className="text-sm p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 rounded border border-red-100 dark:border-red-900 flex gap-2">
+                    <AlertTriangle className="h-5 w-5 flex-shrink-0 text-red-500" />
+                    <div className="flex-1">
+                        <p className="font-semibold">{t("import.data_integrity_warning_title", "Data Integrity Issues Detected")}</p>
+                        <p className="mb-2">{t("import.data_integrity_warning_desc", "Some items reference categories that don't exist in this file. They will be set to 'Uncategorized'.")}</p>
+
+                        {parsedData.dataIntegrityIssues.orphanedTransactionCategories.length > 0 && (
+                            <div className="mb-2">
+                                <p className="font-medium text-xs uppercase tracking-wider">{t("import.orphaned_transactions", "Transactions with missing categories")}:</p>
+                                <ul className="list-disc list-inside text-xs mt-1 max-h-24 overflow-y-auto">
+                                    {parsedData.dataIntegrityIssues.orphanedTransactionCategories.slice(0, 5).map((item, idx) => (
+                                        <li key={idx}>"{item.description}" → <code className="bg-red-100 dark:bg-red-900/50 px-1 rounded text-[10px]">{item.categoryId.substring(0, 8)}...</code></li>
+                                    ))}
+                                    {parsedData.dataIntegrityIssues.orphanedTransactionCategories.length > 5 && (
+                                        <li className="opacity-70">...{t("common.and_more", "and {{count}} more", { count: parsedData.dataIntegrityIssues.orphanedTransactionCategories.length - 5 })}</li>
+                                    )}
+                                </ul>
+                            </div>
+                        )}
+
+                        {parsedData.dataIntegrityIssues.orphanedRecurringCategories.length > 0 && (
+                            <div>
+                                <p className="font-medium text-xs uppercase tracking-wider">{t("import.orphaned_recurring", "Recurring expenses with missing categories")}:</p>
+                                <ul className="list-disc list-inside text-xs mt-1 max-h-24 overflow-y-auto">
+                                    {parsedData.dataIntegrityIssues.orphanedRecurringCategories.map((item, idx) => (
+                                        <li key={idx}>"{item.description}" → <code className="bg-red-100 dark:bg-red-900/50 px-1 rounded text-[10px]">{item.categoryId.substring(0, 8)}...</code></li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

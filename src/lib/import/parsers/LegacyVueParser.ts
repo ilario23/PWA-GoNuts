@@ -136,6 +136,14 @@ export class LegacyVueParser implements TransactionParser {
         const data = JSON.parse(content);
         const vueData = data.data || {};
 
+        // Build a set of valid category IDs for validation
+        const categories = (vueData.categories || []).map((c: any) => ({
+            ...c,
+            name: c.title, // Normalize for internal use
+            icon: ICON_MAPPING[c.icon] || 'DollarSign' // Map Icon or Default
+        }));
+        const validCategoryIds = new Set(categories.map((c: any) => c.id));
+
         // Transform transactions
         const transactions: ParsedTransaction[] = (vueData.transactions || []).map((t: any) => ({
             // We don't preserve IDs from Vue usually, or we map them. 
@@ -151,21 +159,49 @@ export class LegacyVueParser implements TransactionParser {
             raw_data: t
         }));
 
+        const recurring = vueData.recurringExpenses || [];
+
+        // Validate data integrity: check for orphaned category references
+        const orphanedTransactionCategories: { description: string; categoryId: string }[] = [];
+        const orphanedRecurringCategories: { description: string; categoryId: string }[] = [];
+
+        for (const tx of transactions) {
+            if (tx.category_id && !validCategoryIds.has(tx.category_id)) {
+                orphanedTransactionCategories.push({
+                    description: tx.description,
+                    categoryId: tx.category_id
+                });
+            }
+        }
+
+        for (const rec of recurring) {
+            if (rec.categoryId && !validCategoryIds.has(rec.categoryId)) {
+                orphanedRecurringCategories.push({
+                    description: rec.description || 'Unnamed recurring',
+                    categoryId: rec.categoryId
+                });
+            }
+        }
+
+        const hasIntegrityIssues = orphanedTransactionCategories.length > 0 || orphanedRecurringCategories.length > 0;
+
         return {
             source: 'legacy_vue',
             transactions,
-            categories: (vueData.categories || []).map((c: any) => ({
-                ...c,
-                name: c.title, // Normalize for internal use
-                icon: ICON_MAPPING[c.icon] || 'DollarSign' // Map Icon or Default
-            })),
-            recurring: vueData.recurringExpenses || [],
+            categories,
+            recurring,
             // Vue didn't have contexts or separate budgets table in the same way
             contexts: [],
             budgets: [],
             metadata: {
                 totalItems: transactions.length + (vueData.categories?.length || 0)
-            }
+            },
+            ...(hasIntegrityIssues && {
+                dataIntegrityIssues: {
+                    orphanedTransactionCategories,
+                    orphanedRecurringCategories
+                }
+            })
         };
     }
 }

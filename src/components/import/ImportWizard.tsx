@@ -331,6 +331,9 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
             const processor = new ImportProcessor(user.id);
             setIsProcessing(true);
             try {
+                // Load existing data for conflict analysis
+                await processor.loadExistingRecurring();
+
                 const foundConflicts = await processor.analyzeCategoryConflicts(parsedData);
                 const foundRecurringConflicts = await processor.analyzeRecurringConflicts(parsedData);
 
@@ -341,10 +344,11 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                     setIsProcessing(false);
                     return;
                 }
-            } catch (e) {
-                console.warn("Failed to analyze conflicts", e);
-            } finally {
+            } catch (e: any) {
+                console.error("Failed to analyze conflicts", e);
+                setError(e.message || "An error occurred while analyzing the file.");
                 setIsProcessing(false);
+                return;
             }
         }
         await handleImportAfterMerge(new Map(), new Set());

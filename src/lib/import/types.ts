@@ -48,6 +48,10 @@ export interface ParsedData {
         totalItems: number;
         version?: string;
     };
+    dataIntegrityIssues?: {
+        orphanedTransactionCategories: { description: string; categoryId: string }[];
+        orphanedRecurringCategories: { description: string; categoryId: string }[];
+    };
 }
 
 export type CsvMapping = {
