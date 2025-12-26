@@ -56,10 +56,10 @@ export function StatsRecurringSplit({
                             <BarChart
                                 data={data}
                                 margin={{
-                                    left: 12,
-                                    right: 12,
+                                    left: -2,
+                                    right: 0,
                                     top: 12,
-                                    bottom: 12,
+                                    bottom: 2,
                                 }}
                                 stackOffset="sign"
                             >
