@@ -95,7 +95,7 @@ export function TransactionDialog({
     const form = useForm<TransactionFormValues>({
         resolver: zodResolver(transactionSchema) as any,
         defaultValues: {
-            amount: 0,
+            amount: "" as any,
             description: "",
             type: defaultType,
             category_id: "",
@@ -127,7 +127,7 @@ export function TransactionDialog({
                 }
             } else {
                 form.reset({
-                    amount: 0, // String input via controlled component needs handling or default to 0/empty
+                    amount: "" as any, // Initialize as empty string so input is empty
                     description: "",
                     type: defaultType,
                     category_id: "",
@@ -240,10 +240,10 @@ export function TransactionDialog({
             // Here, we can set amount to 0 or keep it? Original cleared it. RHF works with numbers usually. 
             // If we set it to 0, user sees 0. If we effectively want "empty", we might need to handle that or just select the text.
             // Let's set to 0 for now and maybe select it? Or rely on user typing.
-            form.setValue("amount", 0);
+            form.setValue("amount", "" as any);
         } else {
             setCalcState({ prevValue: currentVal, operation: op });
-            form.setValue("amount", 0);
+            form.setValue("amount", "" as any);
         }
 
         amountInputRef.current?.focus();
@@ -270,6 +270,16 @@ export function TransactionDialog({
             setShowCalculator(false);
         }
     };
+
+    // Check if we have additional options to show
+    const showMoreOptions = (groups && groups.length > 0) || (contexts && contexts.length > 0);
+
+    // If we are in "more" section but options are hidden, switch back to main
+    useEffect(() => {
+        if (!showMoreOptions && activeSection === "more") {
+            setActiveSection("main");
+        }
+    }, [showMoreOptions, activeSection]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -511,168 +521,162 @@ export function TransactionDialog({
                             </AccordionItem>
 
                             {/* MORE OPTIONS */}
-                            <AccordionItem value="more" className="border-b-0 border-t">
-                                <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
-                                    <span className="flex items-center gap-2">
-                                        {activeSection === "more" ? (
-                                            <>
-                                                <ChevronUp className="h-4 w-4" />
-                                                {t("back_to_details")}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <SlidersHorizontal className="h-4 w-4" />
-                                                {(() => {
-                                                    const groupId = form.getValues("group_id");
-                                                    const contextId = form.getValues("context_id");
-
-                                                    const groupName = groupId
-                                                        ? groups?.find(g => g.id === groupId)?.name
-                                                        : null;
-                                                    const contextName = contextId
-                                                        ? contexts?.find(c => c.id === contextId)?.name
-                                                        : null;
-
-                                                    if (groupName && contextName) {
-                                                        return `${groupName} • ${contextName}`;
-                                                    } else if (groupName) {
-                                                        return groupName;
-                                                    } else if (contextName) {
-                                                        return `${t("personal_expense")} • ${contextName}`;
-                                                    } else {
-                                                        return t("personal_expense");
-                                                    }
-                                                })()}
-                                            </>
-                                        )}
-                                    </span>
-                                </AccordionTrigger>
-                                <AccordionContent className="space-y-3 pt-2 px-1">
-                                    {(groups && groups.length > 0) || (contexts && contexts.length > 0) ? (
-                                        <>
-                                            {/* GROUP SELECTION */}
-                                            {groups && groups.length > 0 && (
+                            {showMoreOptions && (
+                                <AccordionItem value="more" className="border-b-0 border-t">
+                                    <AccordionTrigger className="py-2 hover:no-underline text-sm font-medium">
+                                        <span className="flex items-center gap-2">
+                                            {activeSection === "more" ? (
                                                 <>
-                                                    <FormField<TransactionFormValues, "group_id">
-                                                        control={form.control as any}
-                                                        name="group_id"
-                                                        render={({ field }) => (
-                                                            <FormItem className="space-y-2">
-                                                                <FormLabel>{t("group")}</FormLabel>
-                                                                <Select
-                                                                    value={field.value || "none"}
-                                                                    onValueChange={(value) => {
-                                                                        const newVal = value === "none" ? null : value;
-                                                                        field.onChange(newVal);
-                                                                    }}
-                                                                >
-                                                                    <FormControl>
-                                                                        <SelectTrigger>
-                                                                            <SelectValue placeholder={t("select_group")} />
-                                                                        </SelectTrigger>
-                                                                    </FormControl>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="none">
-                                                                            {t("personal_expense")}
-                                                                        </SelectItem>
-                                                                        {groups.map((group) => (
-                                                                            <SelectItem key={group.id} value={group.id}>
-                                                                                {group.name}
-                                                                            </SelectItem>
-                                                                        ))}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
+                                                    <ChevronUp className="h-4 w-4" />
+                                                    {t("back_to_details")}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <SlidersHorizontal className="h-4 w-4" />
+                                                    {(() => {
+                                                        const groupId = form.getValues("group_id");
+                                                        const contextId = form.getValues("context_id");
 
-                                                    {watchedGroupId && (
-                                                        <FormField<TransactionFormValues, "paid_by_member_id">
-                                                            control={form.control as any}
-                                                            name="paid_by_member_id"
-                                                            render={({ field }) => (
-                                                                <FormItem className="space-y-2">
-                                                                    <FormLabel>{t("paid_by")}</FormLabel>
-                                                                    <Select
-                                                                        value={field.value || ""}
-                                                                        onValueChange={field.onChange}
-                                                                    >
-                                                                        <FormControl>
-                                                                            <SelectTrigger>
-                                                                                <SelectValue placeholder={t("select_payer")} />
-                                                                            </SelectTrigger>
-                                                                        </FormControl>
-                                                                        <SelectContent>
-                                                                            {groups
-                                                                                .find((g) => g.id === watchedGroupId)
-                                                                                ?.members.map((member) => (
-                                                                                    <SelectItem
-                                                                                        key={member.id}
-                                                                                        value={member.id}
-                                                                                    >
-                                                                                        {member.is_guest
-                                                                                            ? (member.guest_name || "Guest")
-                                                                                            : (member.user_id === user?.id
-                                                                                                ? t("me")
-                                                                                                : member.displayName || member.user_id?.substring(0, 8))}
-                                                                                    </SelectItem>
-                                                                                ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                    )}
+                                                        const groupName = groupId
+                                                            ? groups?.find(g => g.id === groupId)?.name
+                                                            : null;
+                                                        const contextName = contextId
+                                                            ? contexts?.find(c => c.id === contextId)?.name
+                                                            : null;
+
+                                                        if (groupName && contextName) {
+                                                            return `${groupName} • ${contextName}`;
+                                                        } else if (groupName) {
+                                                            return groupName;
+                                                        } else if (contextName) {
+                                                            return `${t("personal_expense")} • ${contextName}`;
+                                                        } else {
+                                                            return t("personal_expense");
+                                                        }
+                                                    })()}
                                                 </>
                                             )}
-
-                                            {/* CONTEXT SELECTION */}
-                                            {contexts && contexts.length > 0 && (
-                                                <FormField<TransactionFormValues, "context_id">
+                                        </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="space-y-3 pt-2 px-1">
+                                        {/* GROUP SELECTION */}
+                                        {groups && groups.length > 0 && (
+                                            <>
+                                                <FormField<TransactionFormValues, "group_id">
                                                     control={form.control as any}
-                                                    name="context_id"
+                                                    name="group_id"
                                                     render={({ field }) => (
                                                         <FormItem className="space-y-2">
-                                                            <FormLabel>{t("context")}</FormLabel>
+                                                            <FormLabel>{t("group")}</FormLabel>
                                                             <Select
                                                                 value={field.value || "none"}
                                                                 onValueChange={(value) => {
-                                                                    field.onChange(value === "none" ? null : value);
+                                                                    const newVal = value === "none" ? null : value;
+                                                                    field.onChange(newVal);
                                                                 }}
                                                             >
                                                                 <FormControl>
                                                                     <SelectTrigger>
-                                                                        <SelectValue placeholder={t("select_context")} />
+                                                                        <SelectValue placeholder={t("select_group")} />
                                                                     </SelectTrigger>
                                                                 </FormControl>
                                                                 <SelectContent>
                                                                     <SelectItem value="none">
-                                                                        {t("no_contexts")}
+                                                                        {t("personal_expense")}
                                                                     </SelectItem>
-                                                                    {contexts
-                                                                        .filter(c => c.active !== 0 || c.id === field.value)
-                                                                        .map((ctx) => (
-                                                                            <SelectItem key={ctx.id} value={ctx.id}>
-                                                                                {ctx.name}
-                                                                            </SelectItem>
-                                                                        ))}
+                                                                    {groups.map((group) => (
+                                                                        <SelectItem key={group.id} value={group.id}>
+                                                                            {group.name}
+                                                                        </SelectItem>
+                                                                    ))}
                                                                 </SelectContent>
                                                             </Select>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )}
                                                 />
-                                            )}
-                                        </>
-                                    ) : (
-                                        <div className="text-sm text-muted-foreground p-2 text-center">
-                                            {t("no_additional_options")}
-                                        </div>
-                                    )}
-                                </AccordionContent>
-                            </AccordionItem>
+
+                                                {watchedGroupId && (
+                                                    <FormField<TransactionFormValues, "paid_by_member_id">
+                                                        control={form.control as any}
+                                                        name="paid_by_member_id"
+                                                        render={({ field }) => (
+                                                            <FormItem className="space-y-2">
+                                                                <FormLabel>{t("paid_by")}</FormLabel>
+                                                                <Select
+                                                                    value={field.value || ""}
+                                                                    onValueChange={field.onChange}
+                                                                >
+                                                                    <FormControl>
+                                                                        <SelectTrigger>
+                                                                            <SelectValue placeholder={t("select_payer")} />
+                                                                        </SelectTrigger>
+                                                                    </FormControl>
+                                                                    <SelectContent>
+                                                                        {groups
+                                                                            .find((g) => g.id === watchedGroupId)
+                                                                            ?.members.map((member) => (
+                                                                                <SelectItem
+                                                                                    key={member.id}
+                                                                                    value={member.id}
+                                                                                >
+                                                                                    {member.is_guest
+                                                                                        ? (member.guest_name || "Guest")
+                                                                                        : (member.user_id === user?.id
+                                                                                            ? t("me")
+                                                                                            : member.displayName || member.user_id?.substring(0, 8))}
+                                                                                </SelectItem>
+                                                                            ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* CONTEXT SELECTION */}
+                                        {contexts && contexts.length > 0 && (
+                                            <FormField<TransactionFormValues, "context_id">
+                                                control={form.control as any}
+                                                name="context_id"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-2">
+                                                        <FormLabel>{t("context")}</FormLabel>
+                                                        <Select
+                                                            value={field.value || "none"}
+                                                            onValueChange={(value) => {
+                                                                field.onChange(value === "none" ? null : value);
+                                                            }}
+                                                        >
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder={t("select_context")} />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="none">
+                                                                    {t("no_contexts")}
+                                                                </SelectItem>
+                                                                {contexts
+                                                                    .filter(c => c.active !== 0 || c.id === field.value)
+                                                                    .map((ctx) => (
+                                                                        <SelectItem key={ctx.id} value={ctx.id}>
+                                                                            {ctx.name}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        )}
+                                    </AccordionContent>
+                                </AccordionItem>
+                            )}
                         </Accordion>
 
                         <Button type="submit" className="w-full" autoFocus>
