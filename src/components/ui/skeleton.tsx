@@ -12,7 +12,7 @@ function Skeleton({
             aria-busy="true"
             className={cn(
                 // Base styles
-                "relative overflow-hidden rounded-md bg-muted",
+                "relative overflow-hidden rounded-md bg-muted dark:bg-primary/10",
                 // Shimmer effect - optimized for both light and dark mode
                 "before:absolute before:inset-0",
                 "before:-translate-x-full before:animate-shimmer",
