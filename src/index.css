@@ -356,7 +356,7 @@
   }
 
   html {
-    height: 100dvh;
+    height: 100%;
     width: 100vw;
     overflow: hidden;
   }
@@ -365,7 +365,7 @@
     height: 100%;
     width: 100%;
     overflow: hidden;
-    position: fixed;
+    /* position: fixed; removed to fix cut-off */
   }
 }
 
