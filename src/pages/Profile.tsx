@@ -103,7 +103,7 @@ export function ProfilePage() {
                                     type="email"
                                     value={user?.email || ""}
                                     disabled
-                                    className="bg-muted"
+                                    className="bg-muted/20"
                                 />
                                 <p className="text-xs text-muted-foreground">
                                     {t("email_readonly", {
