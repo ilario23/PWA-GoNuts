@@ -75,7 +75,7 @@ export function ImportConflictResolver({
             <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
                 <Tabs defaultValue={conflicts.length > 0 ? "categories" : "recurring"} className="flex-1 flex flex-col">
                     <div className="px-6">
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="grid w-full grid-cols-2 dark:bg-primary/20">
                             <TabsTrigger value="categories" disabled={conflicts.length === 0}>
                                 {t("import.tab_categories", "Categories")} ({conflicts.length})
                             </TabsTrigger>
