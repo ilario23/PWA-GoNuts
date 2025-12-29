@@ -17,6 +17,7 @@ import { useContexts } from "@/hooks/useContexts";
 import { FlipCard, type SwipeDirection } from "@/components/ui/flip-card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthProvider";
+import { Transaction } from "@/lib/db";
 import {
   DashboardChartCard,
   DashboardChartContent,
@@ -27,7 +28,7 @@ import { DashboardStatCard } from "@/components/dashboard/DashboardStatCard";
 import { DashboardSummaryCards } from "@/components/dashboard/DashboardSummaryCards";
 
 export function Dashboard() {
-  const { transactions, addTransaction } = useTransactions();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const { categories } = useCategories();
   const { groups } = useGroups();
   const { contexts } = useContexts();
@@ -182,27 +183,58 @@ export function Dashboard() {
 
   // Transaction dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+
+  const handleEdit = useCallback((transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setIsDialogOpen(true);
+  }, []);
+
+  const handleDelete = useCallback(async (id: string) => {
+    await deleteTransaction(id);
+  }, [deleteTransaction]);
 
   const handleSubmit = useCallback(
     async (data: TransactionFormData) => {
       if (!user) return;
 
-      await addTransaction({
-        user_id: user.id,
-        amount: data.amount,
-        description: data.description || "",
-        type: data.type,
-        category_id: data.category_id,
-        date: data.date,
-        year_month: data.date.substring(0, 7),
-        context_id: data.context_id || undefined,
-        group_id: data.group_id || undefined,
-      });
+      if (editingTransaction) {
+        await updateTransaction(editingTransaction.id, {
+          amount: data.amount,
+          description: data.description || "",
+          type: data.type,
+          category_id: data.category_id,
+          date: data.date,
+          year_month: data.date.substring(0, 7),
+          context_id: data.context_id || undefined,
+          group_id: data.group_id || undefined,
+          paid_by_member_id: data.paid_by_member_id || undefined,
+        });
+      } else {
+        await addTransaction({
+          user_id: user.id,
+          amount: data.amount,
+          description: data.description || "",
+          type: data.type,
+          category_id: data.category_id,
+          date: data.date,
+          year_month: data.date.substring(0, 7),
+          context_id: data.context_id || undefined,
+          group_id: data.group_id || undefined,
+          paid_by_member_id: data.paid_by_member_id || undefined,
+        });
+      }
 
       setIsDialogOpen(false);
+      setEditingTransaction(null);
     },
-    [user, addTransaction]
+    [user, addTransaction, updateTransaction, editingTransaction]
   );
+
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) setEditingTransaction(null);
+  };
 
   // Shared props for chart cards
   const chartCardProps = {
@@ -220,6 +252,8 @@ export function Dashboard() {
     groups,
     contexts,
     transactions,
+    onEdit: handleEdit,
+    onDelete: handleDelete,
   };
 
   // Shared props for stat cards
@@ -265,8 +299,8 @@ export function Dashboard() {
           swipeAxis="horizontal"
           flipDirection="right"
           disableGlobalClick
-          frontContent={<DashboardChartCard index={chartFaceAIndex} {...chartCardProps} dailyCumulativeExpenses={chartCardProps.dailyCumulativeExpenses.map(d => ({ ...d, day: d.day.toString() }))} />}
-          backContent={<DashboardChartCard index={chartFaceBIndex} {...chartCardProps} dailyCumulativeExpenses={chartCardProps.dailyCumulativeExpenses.map(d => ({ ...d, day: d.day.toString() }))} />}
+          frontContent={<DashboardChartCard index={chartFaceAIndex} {...chartCardProps} dailyCumulativeExpenses={chartCardProps.dailyCumulativeExpenses.map(d => ({ ...d, cumulative: d.cumulative ?? 0, day: d.day.toString() }))} />}
+          backContent={<DashboardChartCard index={chartFaceBIndex} {...chartCardProps} dailyCumulativeExpenses={chartCardProps.dailyCumulativeExpenses.map(d => ({ ...d, cumulative: d.cumulative ?? 0, day: d.day.toString() }))} />}
         />
       </div>
 
@@ -285,12 +319,12 @@ export function Dashboard() {
         />
 
         {/* Main Grid: Chart + Transactions */}
-        <div className="grid grid-cols-12 gap-6 h-[700px]">
+        <div className="grid grid-cols-12 gap-6 h-[700px]" data-testid="desktop-dashboard-grid">
           {/* Main Chart + Budget (Left 1/2) */}
           <div className="col-span-6 h-full min-h-0 flex flex-col gap-6">
             <div className="flex-1 min-h-0">
               <DashboardChartContent
-                dailyCumulativeExpenses={dailyCumulativeExpenses}
+                dailyCumulativeExpenses={dailyCumulativeExpenses.map(d => ({ ...d, cumulative: d.cumulative ?? 0 }))}
                 chartConfig={chartConfig}
                 isStatsLoading={isStatsLoading}
               />
@@ -317,6 +351,23 @@ export function Dashboard() {
               groups={groups}
               contexts={contexts}
               transactions={transactions}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              headerRightContent={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden md:flex gap-2"
+                  onClick={() => {
+                    setEditingTransaction(null);
+                    setIsDialogOpen(true);
+                  }}
+                  data-testid="add-transaction-desktop"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t("add_transaction")}
+                </Button>
+              }
             />
           </div>
         </div>
@@ -329,7 +380,11 @@ export function Dashboard() {
           <Button
             size="icon"
             className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg md:hidden z-50 animate-glow"
-            onClick={() => setIsDialogOpen(true)}
+            onClick={() => {
+              setEditingTransaction(null);
+              setIsDialogOpen(true);
+            }}
+            data-testid="add-transaction-fab"
           >
             <Plus className="h-6 w-6 shrink-0" />
           </Button>,
@@ -338,8 +393,9 @@ export function Dashboard() {
 
       <TransactionDialog
         open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        onOpenChange={handleOpenChange}
         onSubmit={handleSubmit}
+        editingTransaction={editingTransaction}
       />
     </div>
   );

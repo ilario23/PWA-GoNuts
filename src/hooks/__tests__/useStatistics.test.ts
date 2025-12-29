@@ -1,7 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useStatistics } from '../useStatistics';
 import { useLiveQuery } from 'dexie-react-hooks';
-// @ts-ignore
 import StatsWorker from '../../workers/statistics.worker?worker';
 
 // Mock dependencies
@@ -40,7 +39,7 @@ jest.mock('react-i18next', () => ({
     }),
 }));
 
-const EMPTY_ARRAY: any[] = [];
+const EMPTY_ARRAY: unknown[] = [];
 
 // Default empty worker payload
 const defaultWorkerPayload = {
@@ -96,6 +95,7 @@ describe('useStatistics', () => {
         (useLiveQuery as jest.Mock).mockImplementation(() => EMPTY_ARRAY);
 
         // Spy on worker postMessage
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         jest.spyOn(StatsWorker.prototype, 'postMessage').mockImplementation(function (this: any, msg: any) {
             // Simulate worker logic based on the test case
             // or just trigger callback with a timeout
@@ -104,21 +104,21 @@ describe('useStatistics', () => {
                     // Logic to construct payload based on input (msg.payload.transactions)
                     // This is "fake" worker logic for tests
                     const txs = msg.payload.transactions || [];
-                    const expense = txs.reduce((acc: number, t: any) => t.type === 'expense' ? acc + t.amount : acc, 0);
-                    const income = txs.reduce((acc: number, t: any) => t.type === 'income' ? acc + t.amount : acc, 0);
+                    const expense = txs.reduce((acc: number, t: { type: string; amount: number }) => t.type === 'expense' ? acc + t.amount : acc, 0);
+                    const income = txs.reduce((acc: number, t: { type: string; amount: number }) => t.type === 'income' ? acc + t.amount : acc, 0);
 
                     // Simple category aggregation
-                    const byCategory: any[] = [];
+                    const byCategory: { name: string; value: number; color: string; percentage: number }[] = [];
                     if (expense > 0) byCategory.push({ name: 'Food', value: 50, color: 'red', percentage: 100 });
 
                     // Replicate context stats logic roughly if needed
-                    const contextStats: any[] = [];
-                    if (txs.some((t: any) => t.context_id)) {
+                    const contextStats: { name: string; total: number; color: string; percentage: number }[] = [];
+                    if (txs.some((t: { context_id?: string }) => t.context_id)) {
                         contextStats.push({ name: 'Vacation', total: 200, color: 'blue', percentage: 100 });
                     }
 
                     // Replicate category percentages logic
-                    const monthlyCategoryPercentages: any[] = [];
+                    const monthlyCategoryPercentages: { name: string; value: number; color: string }[] = [];
                     if (msg.payload.categories.length > 0 && txs.length > 0) {
                         // Hardcode for the percentage test
                         if (txs.length === 2 && txs[0].amount === 60) {
@@ -137,8 +137,8 @@ describe('useStatistics', () => {
 
                     // Hardcode yearly stats for yearly test
                     const yearlyTxs = msg.payload.yearlyTransactions || [];
-                    const yearlyExpense = yearlyTxs.reduce((acc: number, t: any) => t.type === 'expense' ? acc + t.amount : acc, 0);
-                    const yearlyIncome = yearlyTxs.reduce((acc: number, t: any) => t.type === 'income' ? acc + t.amount : acc, 0);
+                    const yearlyExpense = yearlyTxs.reduce((acc: number, t: { type: string; amount: number }) => t.type === 'expense' ? acc + t.amount : acc, 0);
+                    const yearlyIncome = yearlyTxs.reduce((acc: number, t: { type: string; amount: number }) => t.type === 'income' ? acc + t.amount : acc, 0);
 
                     const payload = {
                         ...defaultWorkerPayload,
@@ -304,8 +304,10 @@ describe('useStatistics', () => {
 
         expect(result.current.monthlyCategoryPercentages).toHaveLength(2);
 
-        const food = result.current.monthlyCategoryPercentages.find((c: any) => c.name === 'Food');
-        const transport = result.current.monthlyCategoryPercentages.find((c: any) => c.name === 'Transport');
+        expect(result.current.monthlyCategoryPercentages).toHaveLength(2);
+
+        const food = result.current.monthlyCategoryPercentages.find((c: { name: string; value: number }) => c.name === 'Food');
+        const transport = result.current.monthlyCategoryPercentages.find((c: { name: string; value: number }) => c.name === 'Transport');
 
         // In monthlyCategoryPercentages, 'value' is the percentage
         expect(food?.value).toBe(60);

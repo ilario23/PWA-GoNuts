@@ -61,8 +61,8 @@ export function AuthPage() {
         // Redirect to dashboard after successful sign in and sync
         navigate("/");
       }
-    } catch (error: any) {
-      toast.error(error.message || t("auth_error"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("auth_error"));
     } finally {
       setLoading(false);
     }
@@ -93,6 +93,7 @@ export function AuthPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                data-testid="auth-email-input"
               />
             </div>
             <div className="space-y-2">
@@ -107,6 +108,7 @@ export function AuthPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="pr-10"
+                  data-testid="auth-password-input"
                 />
                 <Button
                   type="button"
@@ -169,7 +171,7 @@ export function AuthPage() {
                 </div>
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading} data-testid="auth-submit-button">
               {loading ? t("loading") : isSignUp ? t("sign_up") : t("sign_in")}
             </Button>
             <div className="text-center text-sm">

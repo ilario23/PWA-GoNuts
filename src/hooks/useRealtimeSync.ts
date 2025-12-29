@@ -19,8 +19,8 @@ type RealtimeTable = (typeof REALTIME_TABLES)[number];
 interface RealtimeEvent {
   table: RealtimeTable;
   eventType: "INSERT" | "UPDATE" | "DELETE";
-  new: Record<string, any>;
-  old: Record<string, any>;
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
 }
 
 // Retry configuration
@@ -53,6 +53,7 @@ export function useRealtimeSync(enabled: boolean = true) {
    * Uses last-write-wins based on updated_at timestamp
    */
   const handleRealtimeEvent = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async (payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
       const { eventType, table } = payload;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,7 +208,7 @@ export function useRealtimeSync(enabled: boolean = true) {
         );
       }
     },
-    [user?.id]
+    [user]
   );
 
   /**

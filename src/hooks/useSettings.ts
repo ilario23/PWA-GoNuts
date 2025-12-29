@@ -92,7 +92,7 @@ export function useSettings() {
     const settingsToSync = await db.user_settings.get(user.id);
     if (settingsToSync) {
       // Map local field names to Supabase column names
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const { last_sync_token: _last_sync_token, cached_month: _cached_month, accentColor, ...rest } =
         settingsToSync;
       const supabaseSettings = {

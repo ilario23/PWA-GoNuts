@@ -98,7 +98,7 @@ export function SettingsPage() {
       await syncManager.fullSync();
       setLastSyncTime(new Date());
       toast.success(t("full_sync_completed") || "Full sync completed!");
-    } catch (error) {
+    } catch (_error) {
       toast.error(t("sync_error") || "Sync failed");
     } finally {
       setFullSyncing(false);
@@ -164,16 +164,16 @@ export function SettingsPage() {
         exportDate: new Date().toISOString(),
         userId: user.id,
         transactions: transactions.map(
-          ({ pendingSync, deleted_at, ...rest }) => rest
+          ({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest
         ),
         categories: categories.map(
-          ({ pendingSync, deleted_at, ...rest }) => rest
+          ({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest
         ),
-        contexts: contexts.map(({ pendingSync, deleted_at, ...rest }) => rest),
-        recurring_transactions: recurring.map(({ pendingSync, deleted_at, ...rest }) => rest),
-        category_budgets: budgets.map(({ pendingSync, deleted_at, ...rest }) => rest),
-        groups: groups.map(({ pendingSync, deleted_at, ...rest }) => rest),
-        group_members: groupMembers.map(({ pendingSync, removed_at, ...rest }) => rest),
+        contexts: contexts.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
+        recurring_transactions: recurring.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
+        category_budgets: budgets.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
+        groups: groups.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
+        group_members: groupMembers.map(({ pendingSync: _pendingSync, removed_at: _removed_at, ...rest }) => rest),
       };
 
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -192,8 +192,9 @@ export function SettingsPage() {
         t("export_success") ||
         `Exported ${transactions.length} tx, ${categories.length} cat, ${recurring.length} recurring`
       );
-    } catch (error: any) {
-      toast.error(t("export_error") || `Export failed: ${error.message}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      toast.error(t("export_error") || `Export failed: ${message}`);
     } finally {
       setExportingData(false);
     }
@@ -258,8 +259,8 @@ export function SettingsPage() {
                   <SelectValue placeholder={t("select_language")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="en">🇬🇧 English</SelectItem>
-                  <SelectItem value="it">🇮🇹 Italiano</SelectItem>
+                  <SelectItem value="en">{t("language_en")}</SelectItem>
+                  <SelectItem value="it">{t("language_it")}</SelectItem>
                 </SelectContent>
               </Select>
             </CardContent>

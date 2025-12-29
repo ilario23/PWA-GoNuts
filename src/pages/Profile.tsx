@@ -42,7 +42,7 @@ export function ProfilePage() {
             await updateProfile({
                 full_name: fullName.trim() || undefined,
             });
-        } catch (error) {
+        } catch (_) {
             // Error already handled by toast in hook
         } finally {
             setSaving(false);

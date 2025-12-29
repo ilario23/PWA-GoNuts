@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useContexts } from "@/hooks/useContexts";
 import { useGroups } from "@/hooks/useGroups";
+import { Transaction } from "@/lib/db";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,8 +37,226 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { AlertCircle } from "lucide-react";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
+import { Category, Group, Context } from "@/lib/db";
 
 import { format } from "date-fns";
+
+interface FilterState {
+  text: string;
+  dateFrom: string;
+  dateTo: string;
+  minAmount: string;
+  maxAmount: string;
+  categoryId: string;
+  type: string;
+  groupFilter: string; // 'all', 'personal', 'group', or specific group id
+  contextFilter: string; // 'all', 'none' (no context), or specific context id
+  needsReview: boolean;
+}
+
+interface FilterContentProps {
+  filters: FilterState;
+  setFilters: (filters: FilterState) => void;
+  availableCategories: Category[];
+  groups: Group[];
+  contexts: Context[];
+  onReset: () => void;
+}
+
+const FilterContent = ({
+  filters,
+  setFilters,
+  availableCategories,
+  groups,
+  contexts,
+  onReset,
+}: FilterContentProps) => {
+  const { t } = useTranslation();
+
+  return (
+    <div className="space-y-4 py-4 px-4">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">{t("description")}</label>
+        <Input
+          placeholder={t("search_transactions") || "Search transactions..."}
+          value={filters.text}
+          onChange={(e) => setFilters({ ...filters, text: e.target.value })}
+          autoFocus={false}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">{t("type")}</label>
+        <Select
+          value={filters.type}
+          onValueChange={(value) =>
+            setFilters({ ...filters, type: value, categoryId: "all" })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={t("all_types")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("all_types") || "All Types"}</SelectItem>
+            <SelectItem value="expense">{t("expense")}</SelectItem>
+            <SelectItem value="income">{t("income")}</SelectItem>
+            <SelectItem value="investment">{t("investment")}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {groups.length > 0 && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">{t("group")}</label>
+          <Select
+            value={filters.groupFilter}
+            onValueChange={(value) =>
+              setFilters({ ...filters, groupFilter: value, categoryId: "all" })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={t("all")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("all")}</SelectItem>
+              <SelectItem value="personal">{t("personal")}</SelectItem>
+              <SelectItem value="group">{t("all_groups")}</SelectItem>
+              {groups.map((group) => (
+                <SelectItem key={group.id} value={group.id}>
+                  {group.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {contexts.length > 0 && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">{t("context")}</label>
+          <Select
+            value={filters.contextFilter}
+            onValueChange={(value) =>
+              setFilters({ ...filters, contextFilter: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={t("all")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("all")}</SelectItem>
+              <SelectItem value="none">{t("no_context")}</SelectItem>
+              {contexts.map((ctx) => (
+                <SelectItem key={ctx.id} value={ctx.id}>
+                  {ctx.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">{t("category")}</label>
+        <Select
+          value={filters.categoryId}
+          onValueChange={(value) =>
+            setFilters({ ...filters, categoryId: value })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={t("all_categories")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              {t("all_categories") || "All Categories"}
+            </SelectItem>
+            {availableCategories?.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: category.color }}
+                  />
+                  {category.name}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">{t("date_from")}</label>
+        <Input
+          type="date"
+          value={filters.dateFrom}
+          onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">{t("date_to")}</label>
+        <Input
+          type="date"
+          value={filters.dateTo}
+          onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">{t("min_amount")}</label>
+          <Input
+            type="number"
+            placeholder="0.00"
+            value={filters.minAmount}
+            onChange={(e) =>
+              setFilters({ ...filters, minAmount: e.target.value })
+            }
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">{t("max_amount")}</label>
+          <Input
+            type="number"
+            placeholder="∞"
+            value={filters.maxAmount}
+            onChange={(e) =>
+              setFilters({ ...filters, maxAmount: e.target.value })
+            }
+          />
+        </div>
+      </div>
+
+      {/* Needs Review Toggle - simple style like other filters */}
+      <div className="flex items-center justify-between">
+        <label
+          htmlFor="needs-review"
+          className="text-sm font-medium cursor-pointer"
+        >
+          {t("needs_review") || "Needs Review"}
+        </label>
+        <Switch
+          id="needs-review"
+          checked={filters.needsReview}
+          onCheckedChange={(checked) =>
+            setFilters({ ...filters, needsReview: checked })
+          }
+        />
+      </div>
+
+      <Button
+        variant="outline"
+        onClick={onReset}
+        className="w-full gap-2"
+      >
+        <X className="h-4 w-4" />
+        {t("reset_filters") || "Reset Filters"}
+      </Button>
+    </div>
+  );
+};
 
 export function TransactionsPage() {
   const now = new Date();
@@ -102,7 +321,7 @@ export function TransactionsPage() {
 
   const [searchParams] = useSearchParams();
 
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<FilterState>({
     text: "",
     dateFrom: "",
     dateTo: "",
@@ -110,8 +329,8 @@ export function TransactionsPage() {
     maxAmount: "",
     categoryId: "all",
     type: "all",
-    groupFilter: "all" as "all" | "personal" | "group" | string, // 'all', 'personal', 'group', or specific group id
-    contextFilter: (searchParams.get("contextId") || "all") as "all" | "none" | string, // 'all', 'none' (no context), or specific context id
+    groupFilter: "all", // 'all', 'personal', 'group', or specific group id
+    contextFilter: (searchParams.get("contextId") || "all"), // 'all', 'none' (no context), or specific context id
     needsReview: false,
   });
 
@@ -169,7 +388,7 @@ export function TransactionsPage() {
     setEditingId(null);
   };
 
-  const handleEdit = (transaction: any) => {
+  const handleEdit = (transaction: Transaction) => {
     setEditingId(transaction.id);
     setIsOpen(true);
   };
@@ -307,196 +526,9 @@ export function TransactionsPage() {
     });
   }, [categories, filters.type, filters.groupFilter]);
 
-  // Reset category filter when type or group filter changes and current category is not in available list
-  useEffect(() => {
-    if (filters.categoryId !== "all") {
-      const isCategoryAvailable = availableCategories.some(
-        (cat) => cat.id === filters.categoryId
-      );
-      if (!isCategoryAvailable) {
-        setFilters((prev) => ({ ...prev, categoryId: "all" }));
-      }
-    }
-  }, [filters.categoryId, availableCategories]);
 
-  const FilterContent = () => (
-    <div className="space-y-4 py-4 px-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{t("description")}</label>
-        <Input
-          placeholder={t("search_transactions") || "Search transactions..."}
-          value={filters.text}
-          onChange={(e) => setFilters({ ...filters, text: e.target.value })}
-          autoFocus={false}
-        />
-      </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{t("type")}</label>
-        <Select
-          value={filters.type}
-          onValueChange={(value) => setFilters({ ...filters, type: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={t("all_types")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("all_types") || "All Types"}</SelectItem>
-            <SelectItem value="expense">{t("expense")}</SelectItem>
-            <SelectItem value="income">{t("income")}</SelectItem>
-            <SelectItem value="investment">{t("investment")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
-      {groups.length > 0 && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium">{t("group")}</label>
-          <Select
-            value={filters.groupFilter}
-            onValueChange={(value) =>
-              setFilters({ ...filters, groupFilter: value })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={t("all")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("all")}</SelectItem>
-              <SelectItem value="personal">{t("personal")}</SelectItem>
-              <SelectItem value="group">{t("all_groups")}</SelectItem>
-              {groups.map((group) => (
-                <SelectItem key={group.id} value={group.id}>
-                  {group.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {contexts.length > 0 && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium">{t("context")}</label>
-          <Select
-            value={filters.contextFilter}
-            onValueChange={(value) =>
-              setFilters({ ...filters, contextFilter: value })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={t("all")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("all")}</SelectItem>
-              <SelectItem value="none">{t("no_context")}</SelectItem>
-              {contexts.map((ctx) => (
-                <SelectItem key={ctx.id} value={ctx.id}>
-                  {ctx.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{t("category")}</label>
-        <Select
-          value={filters.categoryId}
-          onValueChange={(value) =>
-            setFilters({ ...filters, categoryId: value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={t("all_categories")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">
-              {t("all_categories") || "All Categories"}
-            </SelectItem>
-            {availableCategories?.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: category.color }}
-                  />
-                  {category.name}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{t("date_from")}</label>
-        <Input
-          type="date"
-          value={filters.dateFrom}
-          onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{t("date_to")}</label>
-        <Input
-          type="date"
-          value={filters.dateTo}
-          onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">{t("min_amount")}</label>
-          <Input
-            type="number"
-            placeholder="0.00"
-            value={filters.minAmount}
-            onChange={(e) =>
-              setFilters({ ...filters, minAmount: e.target.value })
-            }
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">{t("max_amount")}</label>
-          <Input
-            type="number"
-            placeholder="∞"
-            value={filters.maxAmount}
-            onChange={(e) =>
-              setFilters({ ...filters, maxAmount: e.target.value })
-            }
-          />
-        </div>
-      </div>
-
-      {/* Needs Review Toggle - simple style like other filters */}
-      <div className="flex items-center justify-between">
-        <label htmlFor="needs-review" className="text-sm font-medium cursor-pointer">
-          {t("needs_review") || "Needs Review"}
-        </label>
-        <Switch
-          id="needs-review"
-          checked={filters.needsReview}
-          onCheckedChange={(checked) =>
-            setFilters({ ...filters, needsReview: checked })
-          }
-        />
-      </div>
-
-      <Button
-        variant="outline"
-        onClick={handleResetFilters}
-        className="w-full gap-2"
-      >
-        <X className="h-4 w-4" />
-        {t("reset_filters") || "Reset Filters"}
-      </Button>
-    </div>
-  );
 
   return (
     <div className="space-y-4">
@@ -524,7 +556,14 @@ export function TransactionsPage() {
                 <SheetHeader>
                   <SheetTitle>{t("filters")}</SheetTitle>
                 </SheetHeader>
-                <FilterContent />
+                <FilterContent
+                  filters={filters}
+                  setFilters={setFilters}
+                  availableCategories={availableCategories}
+                  groups={groups}
+                  contexts={contexts}
+                  onReset={handleResetFilters}
+                />
               </SheetContent>
             </Sheet>
           </div>
@@ -570,7 +609,14 @@ export function TransactionsPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80" align="end">
-                <FilterContent />
+                <FilterContent
+                  filters={filters}
+                  setFilters={setFilters}
+                  availableCategories={availableCategories}
+                  groups={groups}
+                  contexts={contexts}
+                  onReset={handleResetFilters}
+                />
               </PopoverContent>
             </Popover>
           </div>

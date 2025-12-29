@@ -54,7 +54,7 @@ jest.mock("../../lib/db", () => ({
 }));
 
 jest.mock("dexie-react-hooks", () => ({
-  useLiveQuery: (fn: () => any) => {
+  useLiveQuery: (fn: () => unknown) => {
     // Execute the query function and return the result
     try {
       return fn();
@@ -329,6 +329,7 @@ describe("useGroups", () => {
 
     const { result } = renderHook(() => useGroups());
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let balanceResult: any;
     await act(async () => {
       balanceResult = await result.current.getGroupBalance("group-1");

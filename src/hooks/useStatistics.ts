@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { format, subMonths } from "date-fns";
 import { useMemo, useCallback, useEffect, useState, useRef } from "react";
 import StatsWorker from "../workers/statistics.worker?worker";
-import { StatisticsWorkerRequest, StatisticsWorkerResponse } from "../types/worker";
+import { StatisticsWorkerRequest, StatisticsWorkerResponse, DailyCumulativeData, CategoryComparisonData, MonthlyCumulativeData } from "../types/worker";
 
 /**
  * Parameters for configuring the statistics hook.
@@ -420,12 +420,12 @@ export function useStatistics(params?: UseStatisticsParams) {
 
     // Placeholders
     previousMonthComparison: null,
-    categoryComparison: [] as any[],
+    categoryComparison: [] as CategoryComparisonData[],
     previousMonth,
     previousYear,
-    previousMonthCumulativeExpenses: [] as any[],
-    yearlyCumulativeExpenses: [] as any[],
-    previousYearCumulativeExpenses: [] as any[],
+    previousMonthCumulativeExpenses: [] as DailyCumulativeData[],
+    yearlyCumulativeExpenses: [] as MonthlyCumulativeData[],
+    previousYearCumulativeExpenses: [] as MonthlyCumulativeData[],
     isLoading,
   };
 }

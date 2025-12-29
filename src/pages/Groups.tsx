@@ -144,6 +144,14 @@ export function GroupsPage() {
     navigate(`/statistics?group=${group.id}`);
   };
 
+  const filteredGroups = useMemo(() => {
+    if (!groups) return [];
+    if (!searchQuery) return groups;
+    return groups.filter((g) =>
+      g.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [groups, searchQuery]);
+
   if (!groups) {
     return (
       <div className="space-y-6 pb-10">
@@ -154,14 +162,6 @@ export function GroupsPage() {
       </div>
     );
   }
-
-  const filteredGroups = useMemo(() => {
-    if (!groups) return [];
-    if (!searchQuery) return groups;
-    return groups.filter((g) =>
-      g.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [groups, searchQuery]);
 
   return (
     <div className="space-y-6 pb-10">
@@ -190,6 +190,7 @@ export function GroupsPage() {
             }}
             size="icon"
             className="md:w-auto md:px-4 md:h-10"
+            data-testid="create-group-button"
           >
             <Plus className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">{t("add_group")}</span>
@@ -217,48 +218,50 @@ export function GroupsPage() {
       </div>
 
       {/* Groups Content */}
-      {filteredGroups.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold">{t("no_groups")}</h3>
-            <p className="text-muted-foreground text-sm">
-              {t("no_groups_desc")}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* Mobile Grid View */}
-          <div className="md:hidden grid gap-4 grid-cols-1">
-            {filteredGroups.map((group) => (
-              <GroupCard
-                key={group.id}
-                group={group}
-                onEdit={openEditGroup}
-                onDelete={(g) => setDeletingGroup(g)}
-                onView={(g) => navigate(`/groups/${g.id}`)}
-                onBalance={handleViewBalance}
-                onMembers={openManageMembers}
-                onStatistics={handleViewStatistics}
-              />
-            ))}
-          </div>
+      {
+        filteredGroups.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Users className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold">{t("no_groups")}</h3>
+              <p className="text-muted-foreground text-sm">
+                {t("no_groups_desc")}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Mobile Grid View */}
+            <div className="md:hidden grid gap-4 grid-cols-1">
+              {filteredGroups.map((group) => (
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                  onEdit={openEditGroup}
+                  onDelete={(g) => setDeletingGroup(g)}
+                  onView={(g) => navigate(`/groups/${g.id}`)}
+                  onBalance={handleViewBalance}
+                  onMembers={openManageMembers}
+                  onStatistics={handleViewStatistics}
+                />
+              ))}
+            </div>
 
-          {/* Desktop Table View */}
-          <GroupDesktopTable
-            groups={filteredGroups}
-            onEdit={openEditGroup}
-            onDelete={(g) => setDeletingGroup(g)}
-            onView={(g) => navigate(`/groups/${g.id}`)}
-            onBalance={handleViewBalance}
-            onMembers={openManageMembers}
-            onStatistics={handleViewStatistics}
-            isLoading={!groups}
-            t={t}
-          />
-        </>
-      )}
+            {/* Desktop Table View */}
+            <GroupDesktopTable
+              groups={filteredGroups}
+              onEdit={openEditGroup}
+              onDelete={(g) => setDeletingGroup(g)}
+              onView={(g) => navigate(`/groups/${g.id}`)}
+              onBalance={handleViewBalance}
+              onMembers={openManageMembers}
+              onStatistics={handleViewStatistics}
+              isLoading={!groups}
+              t={t}
+            />
+          </>
+        )
+      }
 
       {/* Edit/Create Group Dialog */}
       <GroupFormDialog
@@ -339,6 +342,6 @@ export function GroupsPage() {
         }}
         currentUserId={user?.id || ""}
       />
-    </div>
+    </div >
   );
 }

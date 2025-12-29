@@ -80,7 +80,7 @@ export function useContexts() {
 
     // Convert active boolean to number safely (if validation passed through boolean? no schema enforces number)
     const { active, description, ...rest } = validatedUpdates;
-    const finalUpdates: any = { ...rest };
+    const finalUpdates: Partial<Context> = { ...rest };
     if (active !== undefined) {
       finalUpdates.active = active; // validatedData active is already number from schema
     }

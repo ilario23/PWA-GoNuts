@@ -101,7 +101,8 @@ describe("useAuth", () => {
   });
 
   it("should listen to auth state changes", async () => {
-    let authCallback: ((event: string, session: any) => void) | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let authCallback: any = null;
 
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
       data: { session: null },
@@ -123,7 +124,7 @@ describe("useAuth", () => {
 
     // Simulate sign in
     if (authCallback) {
-      (authCallback as any)("SIGNED_IN", { user: mockUser });
+      authCallback("SIGNED_IN", { user: mockUser });
     }
 
     await waitFor(() => {

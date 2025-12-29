@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useGroups, GroupWithMembers } from "@/hooks/useGroups";
+import { useGroups } from "@/hooks/useGroups";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -39,7 +39,7 @@ import {
   TransactionDialog,
   TransactionFormData,
 } from "@/components/TransactionDialog";
-import { Transaction } from "@/lib/db";
+import { Transaction, GroupMember } from "@/lib/db";
 
 export function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -56,7 +56,13 @@ export function GroupDetailPage() {
   } = useTransactions(undefined, undefined, groupId);
   const { categories } = useCategories(groupId);
 
-  const [group, setGroup] = useState<GroupWithMembers | null>(null);
+  const group = useMemo(() => {
+    if (groups && groupId) {
+      return groups.find((g) => g.id === groupId) || null;
+    }
+    return null;
+  }, [groups, groupId]);
+
   const [balance, setBalance] = useState<{
     totalExpenses: number;
     balances: Record<
@@ -69,7 +75,7 @@ export function GroupDetailPage() {
         balance: number;
       }
     >;
-    members: any[];
+    members: GroupMember[];
   } | null>(null);
 
   const [isTxDialogOpen, setIsTxDialogOpen] = useState(false);
@@ -78,14 +84,6 @@ export function GroupDetailPage() {
   const [deletingTransactionId, setDeletingTransactionId] = useState<
     string | null
   >(null);
-
-  // Find the group
-  useEffect(() => {
-    if (groups && groupId) {
-      const foundGroup = groups.find((g) => g.id === groupId);
-      setGroup(foundGroup || null);
-    }
-  }, [groups, groupId]);
 
   // Load balance
   useEffect(() => {
@@ -250,7 +248,7 @@ export function GroupDetailPage() {
           <CardContent>
             <div className="text-2xl font-bold">{group.myShare}%</div>
             <p className="text-xs text-muted-foreground">
-              {t("should_pay")}: €{(myBalance?.shouldPay || 0).toFixed(2)}
+              {t("should_pay_amount", { amount: (myBalance?.shouldPay || 0).toFixed(2) })}
             </p>
           </CardContent>
         </Card>
@@ -273,11 +271,13 @@ export function GroupDetailPage() {
                 : "text-red-600"
                 }`}
             >
-              {(myBalance?.balance || 0) >= 0 ? "+" : ""}€
-              {(myBalance?.balance || 0).toFixed(2)}
+              {(myBalance?.balance || 0) >= 0
+                ? t("balance_amount_positive", { amount: (myBalance?.balance || 0).toFixed(2) })
+                : t("balance_amount_negative", { amount: (myBalance?.balance || 0).toFixed(2) })
+              }
             </div>
             <p className="text-xs text-muted-foreground">
-              {t("has_paid")}: €{(myBalance?.hasPaid || 0).toFixed(2)}
+              {t("has_paid_amount", { amount: (myBalance?.hasPaid || 0).toFixed(2) })}
             </p>
           </CardContent>
         </Card>

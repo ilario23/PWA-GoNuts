@@ -1,5 +1,5 @@
 import { useState, useMemo, startTransition, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useStatistics } from "@/hooks/useStatistics";
 import { useGroups } from "@/hooks/useGroups";
 import { useSettings } from "@/hooks/useSettings";
@@ -71,16 +71,36 @@ export function StatisticsPage() {
   const { settings } = useSettings();
   const dateLocale = i18n.language === "it" ? it : enUS;
   const now = new Date();
-  const location = useLocation();
   const navigate = useNavigate();
   const { groups, isLoading: isGroupsLoading } = useGroups();
+  const [searchParams, setSearchParams] = useSearchParams();
   const contexts = useLiveQuery(() => db.contexts.toArray());
 
   // State for filters
   const [selectedMonth, setSelectedMonth] = useState(format(now, "yyyy-MM"));
   const [selectedYear, setSelectedYear] = useState(format(now, "yyyy"));
   const [activeTab, setActiveTab] = useState<"monthly" | "yearly">("monthly");
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+
+  // Group filtering derived from URL
+  const groupIdParam = searchParams.get('group');
+  const isValidGroup = useMemo(() => {
+    if (!groupIdParam) return true;
+    if (isGroupsLoading || !groups) return true; // Assume valid while loading
+    return groups.some(g => g.id === groupIdParam);
+  }, [groupIdParam, groups, isGroupsLoading]);
+
+  const selectedGroupId = (isValidGroup && groupIdParam) ? groupIdParam : null;
+
+  // Cleanup invalid group ID
+  useEffect(() => {
+    if (groupIdParam && !isGroupsLoading && !isValidGroup) {
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('group');
+        return newParams;
+      }, { replace: true });
+    }
+  }, [groupIdParam, isGroupsLoading, isValidGroup, setSearchParams]);
 
   // State for comparison period selection
   const [comparisonMonth, setComparisonMonth] = useState<string | undefined>(
@@ -92,20 +112,6 @@ export function StatisticsPage() {
 
   // State for flip cards (yearly view) - which cards show monthly average
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
-
-  // Handle URL parameter for group filtering
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const groupIdFromUrl = searchParams.get('group');
-
-    if (groupIdFromUrl && groups?.some(g => g.id === groupIdFromUrl)) {
-      setSelectedGroupId(groupIdFromUrl);
-    } else if (groupIdFromUrl && !isGroupsLoading) {
-      // Invalid group ID, clear it only if groups are loaded
-      setSelectedGroupId(null);
-      navigate(location.pathname, { replace: true });
-    }
-  }, [location.search, groups, navigate, location.pathname, isGroupsLoading]);
 
   const toggleCard = (cardId: string) => {
     setFlippedCards((prev) => ({ ...prev, [cardId]: !prev[cardId] }));
@@ -760,7 +766,7 @@ export function StatisticsPage() {
                         </div>
                         <div className="flex items-center gap-4">
                           <span className="text-sm text-muted-foreground">
-                            €{cat.previous.toFixed(0)} → €{cat.current.toFixed(0)}
+                            {t("trend_value", { previous: cat.previous.toFixed(0), current: cat.current.toFixed(0) })}
                           </span>
                           <div
                             className={`flex items-center gap-1 text-sm ${cat.trend === "improved"

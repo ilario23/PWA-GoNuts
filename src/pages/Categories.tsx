@@ -174,20 +174,15 @@ export function CategoriesPage() {
         await removeCategoryBudget(editingId);
       }
     } else {
-      const newCategoryId = crypto.randomUUID();
-
-      await addCategory({
-        ...({
-          id: newCategoryId,
-          user_id: user.id,
-          name: data.name,
-          color: data.color || "#000000",
-          type: data.type,
-          icon: data.icon || "",
-          parent_id: data.parent_id || undefined,
-          active: data.active ? 1 : 0,
-          group_id: data.group_id || undefined,
-        } as any),
+      const newCategoryId = await addCategory({
+        user_id: user.id,
+        name: data.name,
+        color: data.color || "#000000",
+        type: data.type,
+        icon: data.icon || "",
+        parent_id: data.parent_id || undefined,
+        active: data.active ? 1 : 0,
+        group_id: data.group_id || undefined,
       });
 
       if (data.type === "expense" && data.budget) {
@@ -199,7 +194,7 @@ export function CategoriesPage() {
     setInitialData(null);
   };
 
-  const handleEdit = (category: any) => {
+  const handleEdit = (category: Category) => {
     setEditingId(category.id);
     const categoryBudget =
       category.type === "expense" ? getBudgetForCategory(category.id) : null;
@@ -642,6 +637,7 @@ export function CategoriesPage() {
               onClick={openNew}
               size="icon"
               className="md:w-auto md:px-4 md:h-10"
+              data-testid="add-category-button"
             >
               <Plus className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">{t("add_category")}</span>

@@ -344,7 +344,7 @@ export function useGroups() {
 
     const memberId = uuidv4();
 
-    const newMember: any = {
+    const newMember = {
       id: memberId,
       group_id: groupId,
       share,
@@ -353,7 +353,7 @@ export function useGroups() {
       pendingSync: 1,
       updated_at: new Date().toISOString(),
       is_guest: isGuest,
-    };
+    } as GroupMember;
 
     if (isGuest) {
       newMember.user_id = null;

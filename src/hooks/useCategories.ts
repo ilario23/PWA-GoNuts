@@ -83,6 +83,7 @@ export function useCategories(groupId?: string | null) {
       deleted_at: null,
     });
     syncManager.schedulePush();
+    return id;
   };
 
   const updateCategory = async (
