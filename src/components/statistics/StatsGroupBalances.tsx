@@ -16,9 +16,10 @@ import { useTranslation } from "react-i18next";
 import { LazyChart } from "@/components/LazyChart";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
+import { GroupBalance } from "@/types/worker";
 
 interface StatsGroupBalancesProps {
-    data: any[];
+    data: GroupBalance[];
     isLoading?: boolean;
 }
 

@@ -113,8 +113,10 @@ const ChartTooltipContent = React.forwardRef<
     indicator?: "line" | "dot" | "dashed";
     nameKey?: string;
     labelKey?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payload?: any[];
-    label?: any;
+    label?: React.ReactNode;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     valueFormatter?: (value: any) => React.ReactNode;
   }
 >(
@@ -192,7 +194,9 @@ const ChartTooltipContent = React.forwardRef<
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
           {payload
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .filter((item: any) => item.type !== "none")
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .map((item: any, index: number) => {
               const key = `${nameKey || item.name || item.dataKey || "value"}`;
               const itemConfig = getPayloadConfigFromPayload(config, item, key);
@@ -274,6 +278,7 @@ const ChartLegendContent = React.forwardRef<
   Pick<RechartsPrimitive.LegendProps, "verticalAlign"> & {
     hideIcon?: boolean;
     nameKey?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payload?: any[];
   }
 >(
@@ -297,7 +302,9 @@ const ChartLegendContent = React.forwardRef<
         )}
       >
         {payload
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .filter((item: any) => item.type !== "none")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((item: any) => {
             const key = `${nameKey || item.dataKey || "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);

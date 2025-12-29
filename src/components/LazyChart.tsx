@@ -38,19 +38,15 @@ export function LazyChart({
   isLoading = false,
 }: LazyChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const [hasBeenVisible, setHasBeenVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(() => !("IntersectionObserver" in window));
+  const [hasBeenVisible, setHasBeenVisible] = useState(() => !("IntersectionObserver" in window));
 
   useEffect(() => {
     const element = containerRef.current;
     if (!element) return;
 
-    // If IntersectionObserver is not supported, render immediately
-    if (!("IntersectionObserver" in window)) {
-      setIsVisible(true);
-      setHasBeenVisible(true);
-      return;
-    }
+    // If already visible (e.g. IO not supported), no need to observe
+    if (isVisible) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -74,7 +70,7 @@ export function LazyChart({
     return () => {
       observer.disconnect();
     };
-  }, [rootMargin]);
+  }, [rootMargin, isVisible]);
 
   const heightStyle = typeof height === "number" ? `${height}px` : height;
 

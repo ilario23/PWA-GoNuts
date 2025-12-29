@@ -66,7 +66,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const [csvContent, setCsvContent] = useState<string>("");
     const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-    const [csvPreviewRows, setCsvPreviewRows] = useState<any[]>([]);
+    const [csvPreviewRows, setCsvPreviewRows] = useState<Record<string, unknown>[]>([]);
     const [csvMapping, setCsvMapping] = useState<CsvMapping>({
         dateColumn: '',
         amountColumn: '',
@@ -183,7 +183,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                 const preview = Papa.parse(text, { preview: 5, header: true, skipEmptyLines: true });
                 if (preview.meta.fields && preview.meta.fields.length > 0) {
                     setCsvHeaders(preview.meta.fields);
-                    setCsvPreviewRows(preview.data);
+                    setCsvPreviewRows(preview.data as Record<string, unknown>[]);
                     setStep('mapping');
                 } else {
                     throw new Error("Could not detect CSV headers. Please ensure the file has a header row.");
@@ -200,8 +200,8 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                 setStep('preview');
             }
 
-        } catch (err: any) {
-            setError(err.message || "Failed to parse file");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to parse file");
         } finally {
             setIsProcessing(false);
             e.target.value = "";
@@ -215,8 +215,8 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
             const data = await detectedParser.parse(csvFile, csvContent, { includeSavings: revolutIncludeSavings });
             setParsedData(data);
             setStep('preview');
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred");
         } finally {
             setIsProcessing(false);
         }
@@ -256,8 +256,8 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
             const data = await parser.parse(csvFile, csvContent, { csvMapping });
             setParsedData(data);
             setStep('preview');
-        } catch (err: any) {
-            setError(err.message || "Failed to parse CSV with provided mapping");
+        } catch (err: unknown) {
+            setError((err instanceof Error ? err.message : "") || "Failed to parse CSV with provided mapping");
         } finally {
             setIsProcessing(false);
         }
@@ -307,7 +307,7 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                     setForceUpdate(p => p + 1);
                 }
             }
-        } catch (e) {
+        } catch {
             toast.error("Failed to create rule");
         }
     };
@@ -344,9 +344,9 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                     setIsProcessing(false);
                     return;
                 }
-            } catch (e: any) {
+            } catch (e: unknown) {
                 console.error("Failed to analyze conflicts", e);
-                setError(e.message || "An error occurred while analyzing the file.");
+                setError((e instanceof Error ? e.message : "") || "An error occurred while analyzing the file.");
                 setIsProcessing(false);
                 return;
             }
@@ -383,8 +383,8 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
                 transactions: result.transactions,
                 categories: result.categories
             });
-        } catch (err: any) {
-            setError(err.message || "Import failed during processing");
+        } catch (err: unknown) {
+            setError((err instanceof Error ? err.message : "") || "Import failed during processing");
             setStep('preview');
         } finally {
             setIsProcessing(false);

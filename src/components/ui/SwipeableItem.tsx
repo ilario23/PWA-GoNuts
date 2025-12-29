@@ -23,7 +23,7 @@ export function SwipeableItem({
     onDelete,
     onClick,
     className,
-    threshold = 220,
+    threshold = 80, // Reduced from 220 for easier triggering
     editLabel,
     deleteLabel,
     style,
@@ -47,14 +47,8 @@ export function SwipeableItem({
     const editScale = useTransform(x, [50, threshold], [0.8, 1.2]);
     const deleteScale = useTransform(x, [-50, -threshold], [0.8, 1.2]);
 
-    const handleDragEnd = (_: any, info: PanInfo) => {
+    const handleDragEnd = (_: unknown, info: PanInfo) => {
         if (!enabled) return;
-        // If we only have one action, we prevent swiping in the other direction by checking velocity/direction
-        // but framer-motion dragConstraints handles the physics, we just handle the trigger here.
-
-        // However, if onEdit is missing, we shouldn't trigger edit, and ideally shouldn't allow swipe right.
-        // The drag prop 'x' allows bidirectional. We can restrict it?
-        // Let's rely on the check inside handleDragEnd for now and maybe restrict drag prop if needed.
 
         if (info.offset.x < -threshold && onDelete) {
             // Swiped left - Delete
@@ -64,7 +58,6 @@ export function SwipeableItem({
             // Swiped right - Edit
             onEdit();
             setSwipedState("right");
-            // Reset position after a delay if it was just an edit trigger (edit usually opens a dialog)
             setTimeout(() => x.set(0), 300);
         } else {
             // Reset
@@ -73,12 +66,6 @@ export function SwipeableItem({
     };
 
     const hasActions = enabled && (!!onEdit || !!onDelete);
-
-    // We can also allow drag but just not trigger action. 
-    // But a better UX is to not allow dragging in the direction if no action exists.
-    // framer-motion `dragConstraints` with `dragElastic` still allows pulling.
-    // To completely disable one direction is harder with just `drag="x"`.
-    // We will trust the user to swipe correctly and just not trigger if no handler.
 
     return (
         <div
@@ -96,6 +83,7 @@ export function SwipeableItem({
                             <motion.div
                                 style={{ scale: editScale }}
                                 className="flex items-center"
+                                data-testid="swipe-action-edit"
                             >
                                 <Edit className="h-5 w-5 mr-2" />
                                 {editLabel || t("edit")}
@@ -119,11 +107,10 @@ export function SwipeableItem({
             {/* Foreground Content Layer */}
             <motion.div
                 drag={hasActions ? "x" : false}
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.7}
+                dragConstraints={{ left: onDelete ? -1000 : 0, right: onEdit ? 1000 : 0 }}
+                dragElastic={0.1}
                 onDragEnd={handleDragEnd}
                 onClick={() => {
-                    // Only trigger click if not swiping
                     if (x.get() === 0 && onClick) {
                         onClick();
                     }
@@ -131,6 +118,7 @@ export function SwipeableItem({
                 whileTap={{ scale: 0.98 }}
                 style={{ x, touchAction: "pan-y" }}
                 className="relative h-full"
+                data-testid="swipeable-row-content"
             >
                 {children}
             </motion.div>

@@ -18,9 +18,10 @@ import {
 import { useTranslation } from "react-i18next";
 import { Context } from "@/lib/db";
 import { LazyChart } from "@/components/LazyChart";
+import { ContextTrendData } from "@/types/worker";
 
 interface StatsContextTrendsProps {
-    data: any[];
+    data: ContextTrendData[];
     contexts: Context[] | undefined;
     isLoading?: boolean;
 }

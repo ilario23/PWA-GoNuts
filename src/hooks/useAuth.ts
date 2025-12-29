@@ -142,8 +142,9 @@ export function useAuth() {
       }
     };
 
-    initAuth();
 
+    initAuth();
+     
     // Listen for changes on auth state (sign in, sign out, etc.)
     const {
       data: { subscription },
@@ -190,7 +191,7 @@ export function useAuth() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [updateUser]);
+  }, [updateUser, loading]);
 
   const signOut = async () => {
     // Clear cached user

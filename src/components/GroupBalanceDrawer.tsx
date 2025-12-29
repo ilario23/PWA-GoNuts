@@ -57,7 +57,7 @@ interface GroupBalanceDrawerProps {
     balanceData: {
         totalExpenses: number;
         balances: Record<string, BalanceData>;
-        members: any[];
+        members: unknown[];
     } | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
