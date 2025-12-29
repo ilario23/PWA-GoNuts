@@ -2,7 +2,6 @@ import * as React from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
@@ -37,9 +36,9 @@ const sheetVariants = cva(
         top: "inset-x-0 top-0 border-b pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]",
         bottom:
           "inset-x-0 bottom-0 border-t pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] data-[state=open]:animate-sheet-slide-in-bottom data-[state=closed]:animate-sheet-slide-out-bottom",
-        left: "top-0 left-0 h-[100dvh] w-3/4 border-r pl-[env(safe-area-inset-left)] data-[state=closed]:animate-slide-out-left data-[state=open]:animate-slide-in-left sm:max-w-sm",
+        left: "inset-y-0 left-0 h-full w-3/4 border-r pl-[env(safe-area-inset-left)] data-[state=closed]:animate-slide-out-left data-[state=open]:animate-slide-in-left sm:max-w-sm",
         right:
-          "top-0 right-0 h-[100dvh] w-3/4 border-l pr-[env(safe-area-inset-right)] sm:max-w-sm",
+          "inset-y-0 right-0 h-full w-3/4 border-l pr-[env(safe-area-inset-right)] sm:max-w-sm",
       },
     },
     defaultVariants: {
@@ -61,28 +60,25 @@ const SheetContent = React.forwardRef<
   (
     { side = "right", className, children, hideClose = false, ...props },
     ref
-  ) => {
-    const { t } = useTranslation();
-    return (
-      <SheetPortal>
-        <SheetOverlay />
-        <SheetPrimitive.Content
-          ref={ref}
-          aria-describedby={undefined}
-          className={cn(sheetVariants({ side }), className)}
-          {...props}
-        >
-          {children}
-          {!hideClose && (
-            <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-              <X className="h-4 w-4" />
-              <span className="sr-only">{t("sr_close")}</span>
-            </SheetPrimitive.Close>
-          )}
-        </SheetPrimitive.Content>
-      </SheetPortal>
-    );
-  }
+  ) => (
+    <SheetPortal>
+      <SheetOverlay />
+      <SheetPrimitive.Content
+        ref={ref}
+        aria-describedby={undefined}
+        className={cn(sheetVariants({ side }), className)}
+        {...props}
+      >
+        {children}
+        {!hideClose && (
+          <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </SheetPrimitive.Close>
+        )}
+      </SheetPrimitive.Content>
+    </SheetPortal>
+  )
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 

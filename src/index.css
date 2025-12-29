@@ -348,30 +348,10 @@
   }
 
   /* Root container - safe areas handled by individual components for fixed positioning compatibility */
-  /* Root container - safe areas handled by individual components for fixed positioning compatibility */
   #root {
-    position: relative;
-    width: 100%;
-    /* 100dvh is the correct unit for mobile webviews to fill visible area */
-    height: 100vh;
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-
-    /* Debug border removed for production */
-    box-sizing: border-box;
-  }
-
-  html,
-  body {
-    padding: 0;
-    margin: 0;
-    width: 100%;
-    /* Allow body to be height: 100% of viewport */
-    height: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* Dynamic viewport height for mobile browsers */
   }
 }
 

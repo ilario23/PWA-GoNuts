@@ -1,9 +1,7 @@
-/* eslint-disable react-refresh/only-export-components */
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
-import { useTranslation } from "react-i18next"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -135,7 +133,7 @@ const SidebarProvider = React.forwardRef<
                             } as React.CSSProperties
                         }
                         className={cn(
-                            "group/sidebar-wrapper flex h-[100dvh] max-h-[100dvh] overflow-hidden w-full has-[[data-variant=inset]]:bg-sidebar",
+                            "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
                             className
                         )}
                         ref={ref}
@@ -170,7 +168,6 @@ const Sidebar = React.forwardRef<
         ref
     ) => {
         const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
-        const { t } = useTranslation()
 
         if (collapsible === "none") {
             return (
@@ -193,16 +190,15 @@ const Sidebar = React.forwardRef<
                     <SheetContent
                         data-sidebar="sidebar"
                         data-mobile="true"
-                        className="w-[--sidebar-width] bg-sidebar p-0 pb-[env(safe-area-inset-bottom)] text-sidebar-foreground [&>button]:hidden"
+                        className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
                         style={
                             {
                                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
                             } as React.CSSProperties
                         }
                         side={side}
-                        onOpenAutoFocus={(e) => e.preventDefault()}
                     >
-                        <SheetTitle className="sr-only">{t("sr_navigation")}</SheetTitle>
+                        <SheetTitle className="sr-only">Navigation</SheetTitle>
                         <div className="flex h-full w-full flex-col">{children}</div>
                     </SheetContent>
                 </Sheet>
@@ -243,7 +239,6 @@ const SidebarTrigger = React.forwardRef<
     React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
     const { toggleSidebar } = useSidebar()
-    const { t } = useTranslation()
 
     return (
         <Button
@@ -259,7 +254,7 @@ const SidebarTrigger = React.forwardRef<
             {...props}
         >
             <PanelLeft />
-            <span className="sr-only">{t("sr_toggle_sidebar")}</span>
+            <span className="sr-only">Toggle Sidebar</span>
         </Button>
     )
 })
@@ -302,8 +297,8 @@ const SidebarInset = React.forwardRef<
         <main
             ref={ref}
             className={cn(
-                "relative flex h-[100dvh] max-h-[100dvh] min-h-0 flex-1 flex-col bg-background pt-[env(safe-area-inset-top)] min-w-0 overflow-y-auto",
-                "peer-data-[variant=inset]:h-[calc(100%-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
+                "relative flex min-h-svh flex-1 flex-col bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] min-w-0",
+                "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
                 className
             )}
             {...props}
@@ -634,10 +629,8 @@ const SidebarMenuSkeleton = React.forwardRef<
     React.ComponentProps<"div"> & { showIcon?: boolean }
 >(({ className, showIcon = false, ...props }, ref) => {
     // Random width between 50 to 90%.
-    const [width, setWidth] = React.useState("100%")
-
-    React.useEffect(() => {
-        setWidth(`${Math.floor(Math.random() * 40) + 50}%`)
+    const width = React.useMemo(() => {
+        return `${Math.floor(Math.random() * 40) + 50}%`
     }, [])
 
     return (
@@ -725,7 +718,6 @@ const SidebarMenuSubButton = React.forwardRef<
     }
 )
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
-
 
 export {
     Sidebar,
