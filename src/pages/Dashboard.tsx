@@ -269,7 +269,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col md:block h-[calc(100dvh-12rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
+    <div className="flex flex-col md:block h-[calc(100dvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
       <h1 className="text-2xl font-bold shrink-0">{t("dashboard")}</h1>
 
       {/* Mobile Summary Stats - Smart FlipCard Carousel */}
@@ -379,7 +379,7 @@ export function Dashboard() {
         createPortal(
           <Button
             size="icon"
-            className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg md:hidden z-50 animate-glow"
+            className="fixed bottom-8 right-4 h-14 w-14 rounded-full shadow-lg md:hidden z-50 animate-glow"
             onClick={() => {
               setEditingTransaction(null);
               setIsDialogOpen(true);
