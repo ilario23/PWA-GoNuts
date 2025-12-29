@@ -40,6 +40,7 @@ export function GroupFormDialog({
     const { t } = useTranslation();
 
     const form = useForm<GroupFormValues>({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         resolver: zodResolver(groupSchema) as any,
         defaultValues: {
             name: "",
@@ -84,7 +85,7 @@ export function GroupFormDialog({
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                         <FormField<GroupFormValues, "name">
-                            control={form.control as any}
+                            control={form.control}
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
@@ -94,6 +95,7 @@ export function GroupFormDialog({
                                             placeholder={t("group_name_placeholder")}
                                             {...field}
                                             value={field.value ?? ""}
+                                            data-testid="group-name-input"
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -102,7 +104,7 @@ export function GroupFormDialog({
                         />
 
                         <FormField<GroupFormValues, "description">
-                            control={form.control as any}
+                            control={form.control}
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
@@ -112,6 +114,7 @@ export function GroupFormDialog({
                                             placeholder={t("group_description_placeholder")}
                                             {...field}
                                             value={field.value ?? ""}
+                                            data-testid="group-description-input"
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -128,7 +131,7 @@ export function GroupFormDialog({
                             >
                                 {t("cancel")}
                             </Button>
-                            <Button type="submit" disabled={isSubmitting}>
+                            <Button type="submit" disabled={isSubmitting} data-testid="save-group-button">
                                 {isSubmitting ? t("saving") : t("save")}
                             </Button>
                         </DialogFooter>

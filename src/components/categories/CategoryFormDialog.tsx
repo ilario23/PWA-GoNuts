@@ -63,6 +63,7 @@ export function CategoryFormDialog({
     const [activeSection, setActiveSection] = useState("main");
 
     const form = useForm<CategoryFormValues>({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         resolver: zodResolver(categorySchema) as any,
         defaultValues: {
             name: "",
@@ -176,13 +177,13 @@ export function CategoryFormDialog({
                                 <AccordionContent className="space-y-4 pt-2 px-1">
                                     {/* NAME */}
                                     <FormField<CategoryFormValues, "name">
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="name"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>{t("name")}</FormLabel>
                                                 <FormControl>
-                                                    <Input {...field} required value={field.value || ""} />
+                                                    <Input {...field} required value={field.value || ""} data-testid="category-name-input" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -191,7 +192,7 @@ export function CategoryFormDialog({
 
                                     {/* COLOR */}
                                     <FormField<CategoryFormValues, "color">
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="color"
                                         render={({ field }) => (
                                             <FormItem>
@@ -204,6 +205,7 @@ export function CategoryFormDialog({
                                                             // Ensure value is hex color
                                                             value={field.value || "#000000"}
                                                             className="h-10 w-20 p-1"
+                                                            data-testid="category-color-picker"
                                                         />
                                                         <Input
                                                             {...field}
@@ -219,7 +221,7 @@ export function CategoryFormDialog({
 
                                     {/* TYPE */}
                                     <FormField<CategoryFormValues, "type">
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="type"
                                         render={({ field }) => (
                                             <FormItem>
@@ -235,6 +237,7 @@ export function CategoryFormDialog({
                                                                 : ""
                                                                 }`}
                                                             onClick={() => field.onChange("expense")}
+                                                            data-testid="category-type-expense"
                                                         >
                                                             {t("expense")}
                                                         </Button>
@@ -247,6 +250,7 @@ export function CategoryFormDialog({
                                                                 : ""
                                                                 }`}
                                                             onClick={() => field.onChange("income")}
+                                                            data-testid="category-type-income"
                                                         >
                                                             {t("income")}
                                                         </Button>
@@ -259,6 +263,7 @@ export function CategoryFormDialog({
                                                                 : ""
                                                                 }`}
                                                             onClick={() => field.onChange("investment")}
+                                                            data-testid="category-type-investment"
                                                         >
                                                             {t("investment")}
                                                         </Button>
@@ -272,7 +277,7 @@ export function CategoryFormDialog({
 
                                     {/* ICON */}
                                     <FormField<CategoryFormValues, "icon">
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="icon"
                                         render={({ field }) => (
                                             <FormItem>
@@ -290,7 +295,7 @@ export function CategoryFormDialog({
 
                                     {/* PARENT CATEGORY */}
                                     <FormField<CategoryFormValues, "parent_id">
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="parent_id"
                                         render={({ field }) => (
                                             <FormItem>
@@ -338,7 +343,7 @@ export function CategoryFormDialog({
                                     {/* GROUP SELECTION */}
                                     {groups.length > 0 && (
                                         <FormField<CategoryFormValues, "group_id">
-                                            control={form.control as any}
+                                            control={form.control}
                                             name="group_id"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -374,7 +379,7 @@ export function CategoryFormDialog({
                                     {/* BUDGET */}
                                     {watchedType === "expense" && (
                                         <FormField<CategoryFormValues, "budget">
-                                            control={form.control as any}
+                                            control={form.control}
                                             name="budget"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -398,7 +403,7 @@ export function CategoryFormDialog({
 
                                     {/* ACTIVE */}
                                     <FormField<CategoryFormValues, "active">
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="active"
                                         render={({ field }) => (
                                             <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
@@ -423,7 +428,7 @@ export function CategoryFormDialog({
                             </AccordionItem>
                         </Accordion>
 
-                        <Button type="submit" className="w-full" autoFocus>
+                        <Button type="submit" className="w-full" autoFocus data-testid="save-category-button">
                             {t("save")}
                         </Button>
                     </form>

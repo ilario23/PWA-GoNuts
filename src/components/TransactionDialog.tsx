@@ -93,9 +93,10 @@ export function TransactionDialog({
     const { getBudgetForCategory } = useCategoryBudgets();
 
     const form = useForm<TransactionFormValues>({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         resolver: zodResolver(transactionSchema) as any,
         defaultValues: {
-            amount: "" as any,
+            amount: "" as unknown as number,
             description: "",
             type: defaultType,
             category_id: "",
@@ -127,6 +128,7 @@ export function TransactionDialog({
                 }
             } else {
                 form.reset({
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     amount: "" as any, // Initialize as empty string so input is empty
                     description: "",
                     type: defaultType,
@@ -240,9 +242,11 @@ export function TransactionDialog({
             // Here, we can set amount to 0 or keep it? Original cleared it. RHF works with numbers usually. 
             // If we set it to 0, user sees 0. If we effectively want "empty", we might need to handle that or just select the text.
             // Let's set to 0 for now and maybe select it? Or rely on user typing.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             form.setValue("amount", "" as any);
         } else {
             setCalcState({ prevValue: currentVal, operation: op });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             form.setValue("amount", "" as any);
         }
 
@@ -311,7 +315,7 @@ export function TransactionDialog({
                                 <AccordionContent className="space-y-4 pt-2 px-1">
                                     {/* TYPE */}
                                     <FormField<TransactionFormValues, "type">
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="type"
                                         render={({ field }) => (
                                             <FormItem className="space-y-2">
@@ -323,6 +327,7 @@ export function TransactionDialog({
                                                             variant="outline"
                                                             className={`w-full ${field.value === "expense" ? getTypeColor("expense") : ""}`}
                                                             onClick={() => field.onChange("expense")}
+                                                            data-testid="type-expense"
                                                         >
                                                             {t("expense")}
                                                         </Button>
@@ -331,6 +336,7 @@ export function TransactionDialog({
                                                             variant="outline"
                                                             className={`w-full ${field.value === "income" ? getTypeColor("income") : ""}`}
                                                             onClick={() => field.onChange("income")}
+                                                            data-testid="type-income"
                                                         >
                                                             {t("income")}
                                                         </Button>
@@ -339,6 +345,7 @@ export function TransactionDialog({
                                                             variant="outline"
                                                             className={`w-full ${field.value === "investment" ? getTypeColor("investment") : ""}`}
                                                             onClick={() => field.onChange("investment")}
+                                                            data-testid="type-investment"
                                                         >
                                                             {t("investment")}
                                                         </Button>
@@ -365,7 +372,7 @@ export function TransactionDialog({
                                         </div>
                                         <div className="flex gap-2">
                                             <FormField<TransactionFormValues, "amount">
-                                                control={form.control as any}
+                                                control={form.control}
                                                 name="amount"
                                                 render={({ field }) => (
                                                     <FormItem className="flex-1">
@@ -374,7 +381,6 @@ export function TransactionDialog({
                                                                 {...field}
                                                                 ref={(e) => {
                                                                     field.ref(e);
-                                                                    // @ts-ignore
                                                                     amountInputRef.current = e;
                                                                 }}
                                                                 type="number"
@@ -387,6 +393,7 @@ export function TransactionDialog({
                                                                     // Handle raw input if needed, but RHF number coercion works usually
                                                                     field.onChange(e);
                                                                 }}
+                                                                data-testid="amount-input"
                                                             />
                                                         </FormControl>
                                                         <FormMessage />
@@ -429,7 +436,7 @@ export function TransactionDialog({
 
                                     {/* CATEGORY */}
                                     <FormField<TransactionFormValues, "category_id">
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="category_id"
                                         render={({ field }) => (
                                             <FormItem>
@@ -449,6 +456,7 @@ export function TransactionDialog({
 
                                     {/* DATE */}
                                     <FormField<TransactionFormValues, "date">
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         control={form.control as any}
                                         name="date"
                                         render={({ field }) => (
@@ -464,6 +472,7 @@ export function TransactionDialog({
 
                                     {/* DESCRIPTION */}
                                     <FormField<TransactionFormValues, "description">
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         control={form.control as any}
                                         name="description"
                                         render={({ field }) => (
@@ -471,7 +480,7 @@ export function TransactionDialog({
                                                 <FormLabel>{t("description")}</FormLabel>
                                                 <FormControl>
                                                     {/* Ensure value is never null/undefined if we controlled it */}
-                                                    <Input {...field} value={field.value || ""} />
+                                                    <Input {...field} value={field.value || ""} data-testid="description-input" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -563,6 +572,7 @@ export function TransactionDialog({
                                         {groups && groups.length > 0 && (
                                             <>
                                                 <FormField<TransactionFormValues, "group_id">
+                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                     control={form.control as any}
                                                     name="group_id"
                                                     render={({ field }) => (
@@ -598,6 +608,7 @@ export function TransactionDialog({
 
                                                 {watchedGroupId && (
                                                     <FormField<TransactionFormValues, "paid_by_member_id">
+                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                         control={form.control as any}
                                                         name="paid_by_member_id"
                                                         render={({ field }) => (
@@ -640,6 +651,7 @@ export function TransactionDialog({
                                         {/* CONTEXT SELECTION */}
                                         {contexts && contexts.length > 0 && (
                                             <FormField<TransactionFormValues, "context_id">
+                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                 control={form.control as any}
                                                 name="context_id"
                                                 render={({ field }) => (
@@ -679,7 +691,7 @@ export function TransactionDialog({
                             )}
                         </Accordion>
 
-                        <Button type="submit" className="w-full" autoFocus>
+                        <Button type="submit" className="w-full" autoFocus data-testid="save-transaction-button">
                             {t("save")}
                         </Button>
                     </form>

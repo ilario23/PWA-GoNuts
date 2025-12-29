@@ -41,6 +41,7 @@ export function ContextFormDialog({
     const { t } = useTranslation();
 
     const form = useForm<ContextFormValues>({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         resolver: zodResolver(contextSchema) as any,
         defaultValues: {
             name: "",
@@ -88,7 +89,7 @@ export function ContextFormDialog({
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                         <FormField<ContextFormValues, "name">
-                            control={form.control as any}
+                            control={form.control}
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
@@ -106,7 +107,7 @@ export function ContextFormDialog({
                         />
 
                         <FormField<ContextFormValues, "description">
-                            control={form.control as any}
+                            control={form.control}
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
@@ -124,7 +125,7 @@ export function ContextFormDialog({
                         />
 
                         <FormField<ContextFormValues, "active">
-                            control={form.control as any}
+                            control={form.control}
                             name="active"
                             render={({ field }) => (
                                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
