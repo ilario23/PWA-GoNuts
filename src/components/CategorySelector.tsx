@@ -35,6 +35,16 @@ interface CategorySelectorProps {
   showSkipOption?: boolean;
 }
 
+// Helper to get descendant IDs (defined outside to avoid recursion issues)
+function getDescendantIds(categoryId: string, cats: Category[]): string[] {
+  const children = cats.filter((c) => c.parent_id === categoryId);
+  const descendantIds = children.map((c) => c.id);
+  children.forEach((child) => {
+    descendantIds.push(...getDescendantIds(child.id, cats));
+  });
+  return descendantIds;
+}
+
 export function CategorySelector({
   value,
   onChange,
@@ -62,19 +72,6 @@ export function CategorySelector({
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-
-  // Get all descendant IDs of a category (to prevent circular references)
-  const getDescendantIds = React.useCallback(
-    (categoryId: string, cats: Category[]): string[] => {
-      const children = cats.filter((c) => c.parent_id === categoryId);
-      const descendantIds = children.map((c) => c.id);
-      children.forEach((child) => {
-        descendantIds.push(...getDescendantIds(child.id, cats));
-      });
-      return descendantIds;
-    },
-    []
-  );
 
   const filteredCategories = React.useMemo(() => {
     // 1. Strict Group Filter
@@ -110,7 +107,8 @@ export function CategorySelector({
     }
 
     return cats.sort((a, b) => a.name.localeCompare(b.name));
-  }, [categories, type, excludeId, getDescendantIds, searchTerm, groupId]);
+  }, [categories, type, excludeId, searchTerm, groupId]);
+
 
   // If searching, we show a flat list. If not, we show tree.
   const isSearching = !!searchTerm;
@@ -234,7 +232,7 @@ export function CategorySelector({
             )}
             {/* Show parent path in search */}
             {isSearching && category.parent_id && (
-              <span className="text-xs text-muted-foreground">in {categories?.find(c => c.id === category.parent_id)?.name}</span>
+              <span className="text-xs text-muted-foreground">{t("in_category_name", { name: categories?.find(c => c.id === category.parent_id)?.name })}</span>
             )}
           </div>
 
@@ -282,6 +280,7 @@ export function CategorySelector({
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="border-0 shadow-none focus-visible:ring-0 px-0 h-9"
+          data-testid="category-search"
         />
       </div>
 
@@ -331,6 +330,7 @@ export function CategorySelector({
             role="combobox"
             aria-expanded={open}
             className={cn("w-full justify-between", triggerClassName)}
+            data-testid="category-trigger"
           >
             {value === 'SKIP' ? (
               <div className="flex items-center min-w-0 text-red-600 dark:text-red-400">
@@ -381,6 +381,7 @@ export function CategorySelector({
           role="combobox"
           aria-expanded={open}
           className={cn("w-full justify-between", triggerClassName)}
+          data-testid="category-trigger"
         >
           {value === 'SKIP' ? (
             <div className="flex items-center min-w-0 text-red-600 dark:text-red-400">

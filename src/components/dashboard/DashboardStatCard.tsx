@@ -205,7 +205,7 @@ export function DashboardStatCard({
                             <CountUp value={budgetUsedPercentage} decimals={0} suffix="%" />
                         </p>
                         <span className="text-sm text-muted-foreground">
-                            / €{monthlyBudget.toFixed(0)}
+                            {t("budget_of_total", { total: monthlyBudget.toFixed(0) })}
                         </span>
                     </div>
                     <div className="mt-2 h-2 w-full bg-muted/50 rounded-full overflow-hidden">
