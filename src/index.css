@@ -352,27 +352,29 @@
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
     width: 100%;
+    /* Default to 100% but strictly prefer the JS calculated height if available */
     height: 100%;
-    height: -webkit-fill-available;
+    height: var(--app-height, 100%);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+
+    /* DEBUG: Temporary border to visualize the bottom edge */
+    border-bottom: 5px solid red;
+    box-sizing: border-box;
   }
 
   html,
   body {
-    height: 100%;
-    height: -webkit-fill-available;
-    width: 100%;
-    margin: 0;
     padding: 0;
-    overflow: hidden;
-    overscroll-behavior: none;
+    margin: 0;
+    width: 100%;
+    height: 100%;
     position: fixed;
     inset: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 }
 

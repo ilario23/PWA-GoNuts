@@ -25,6 +25,7 @@ import { WifiOff, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { WelcomeWizard } from "@/components/welcome/WelcomeWizard";
 import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
+import { IOSViewportFix } from "@/components/IOSViewportFix";
 
 // Lazy-loaded pages for better initial bundle size
 const Dashboard = lazy(() =>
@@ -383,6 +384,7 @@ function App() {
             <PWAUpdateNotification />
             <PWAInstallPrompt />
             <OfflineIndicator />
+            <IOSViewportFix />
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
               <Route
