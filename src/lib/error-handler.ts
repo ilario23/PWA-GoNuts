@@ -149,9 +149,8 @@ function logError(error: AppError): void {
     stack: error.stack,
   };
 
-  const prefix = `[${error.context.source}${
-    error.context.operation ? `:${error.context.operation}` : ""
-  }]`;
+  const prefix = `[${error.context.source}${error.context.operation ? `:${error.context.operation}` : ""
+    }]`;
 
   switch (error.severity) {
     case "info":
@@ -216,6 +215,7 @@ export function createErrorHandler(source: string) {
  * );
  * await safeDelete(id); // Errors are automatically handled
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   context: ErrorContext,

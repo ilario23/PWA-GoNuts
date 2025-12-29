@@ -377,9 +377,10 @@ describe('ImportProcessor', () => {
             const insertedCategories = bulkPutCalls[0][0];
 
             // Find our test categories
-            const carburante = insertedCategories.find((c: any) => c.name === 'Carburante');
-            const trasporto = insertedCategories.find((c: any) => c.name === 'Trasporto');
-            const carburanteMito = insertedCategories.find((c: any) => c.name === 'Carburante Mito');
+            // Find our test categories
+            const carburante = insertedCategories.find((c: { name: string }) => c.name === 'Carburante');
+            const trasporto = insertedCategories.find((c: { name: string }) => c.name === 'Trasporto');
+            const carburanteMito = insertedCategories.find((c: { name: string }) => c.name === 'Carburante Mito');
 
             expect(carburante).toBeDefined();
             expect(trasporto).toBeDefined();
@@ -443,9 +444,9 @@ describe('ImportProcessor', () => {
             const bulkPutCalls = (db.categories.bulkPut as jest.Mock).mock.calls;
             const insertedCategories = bulkPutCalls[0][0];
 
-            const carburante = insertedCategories.find((c: any) => c.name === 'Carburante');
-            const trasporto = insertedCategories.find((c: any) => c.name === 'Trasporto');
-            const carburanteMito = insertedCategories.find((c: any) => c.name === 'Carburante Mito');
+            const carburante = insertedCategories.find((c: { name: string }) => c.name === 'Carburante');
+            const trasporto = insertedCategories.find((c: { name: string }) => c.name === 'Trasporto');
+            const carburanteMito = insertedCategories.find((c: { name: string }) => c.name === 'Carburante Mito');
 
             // Build hierarchy chains and verify
             console.log('[TEST] Hierarchy chain verification:');

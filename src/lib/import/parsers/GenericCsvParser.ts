@@ -6,7 +6,7 @@ export class GenericCsvParser implements TransactionParser {
     name = "Generic CSV Import";
     fileExtensions = ["csv"];
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     async canParse(file: File, _content: string): Promise<boolean> {
         return file.name.toLowerCase().endsWith('.csv');
     }

@@ -13,6 +13,7 @@ import {
 } from "../validation";
 
 // Mock translation function
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const t = ((key: string) => key) as any;
 
 describe("Validation Schemas", () => {

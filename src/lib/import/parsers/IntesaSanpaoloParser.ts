@@ -5,12 +5,12 @@ export class IntesaSanpaoloParser implements TransactionParser {
     name = "Intesa Sanpaolo Import";
     fileExtensions = ["xlsx"];
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     async canParse(file: File, _content: string): Promise<boolean> {
         return file.name.toLowerCase().endsWith('.xlsx');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     async parse(file: File, _content: string, _options?: ImportOptions): Promise<ParsedData> {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();

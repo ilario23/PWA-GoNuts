@@ -36,18 +36,19 @@ export async function cleanupSoftDeletedRecords() {
             // However, Dexie doesn't support "where deleted_at < date" easily if deleted_at includes nulls?
             // Actually it does.
 
-            // Let's iterate over all soft-deleted items (usually few)
             const softDeleted = await table
-                .filter((item: any) => item.deleted_at != null && !item.pendingSync)
+                .filter((item: { deleted_at?: string | null; removed_at?: string | null; pendingSync?: number }) => (item.deleted_at != null || item.removed_at != null) && !item.pendingSync)
                 .toArray();
 
-            const toDelete = softDeleted.filter((item: any) => {
-                const deletedAt = parseISO(item.deleted_at);
+            const toDelete = softDeleted.filter((item: { deleted_at?: string | null; removed_at?: string | null }) => {
+                const dateStr = item.deleted_at || item.removed_at;
+                if (!dateStr) return false;
+                const deletedAt = parseISO(dateStr);
                 return isBefore(deletedAt, thresholdDate);
             });
 
             if (toDelete.length > 0) {
-                await table.bulkDelete(toDelete.map((item: any) => item.id));
+                await table.bulkDelete(toDelete.map((item: { id: string }) => item.id));
                 totalDeleted += toDelete.length;
                 console.log(`[Cleanup] Deleted ${toDelete.length} records from ${table.name}`);
             }

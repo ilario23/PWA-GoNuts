@@ -137,15 +137,17 @@ export class LegacyVueParser implements TransactionParser {
         const vueData = data.data || {};
 
         // Build a set of valid category IDs for validation
-        const categories = (vueData.categories || []).map((c: any) => ({
+        const categories = (vueData.categories as { title: string; icon: string; id: string }[] || []).map((c) => ({
             ...c,
             name: c.title, // Normalize for internal use
-            icon: ICON_MAPPING[c.icon] || 'DollarSign' // Map Icon or Default
+            icon: ICON_MAPPING[c.icon] || 'DollarSign', // Map Icon or Default
+            type: "expense" as const, // Default to expense
+            color: "#000000" // Default color
         }));
-        const validCategoryIds = new Set(categories.map((c: any) => c.id));
+        const validCategoryIds = new Set(categories.map((c) => c.id));
 
         // Transform transactions
-        const transactions: ParsedTransaction[] = (vueData.transactions || []).map((t: any) => ({
+        const transactions: ParsedTransaction[] = (vueData.transactions as { timestamp: string; amount: string; description: string; categoryId: string;[key: string]: unknown }[] || []).map((t) => ({
             // We don't preserve IDs from Vue usually, or we map them. 
             // But here we just normalize data. The Processor will handle ID mapping.
             // Actually, we pass the Old Category ID here so the processor can map it.

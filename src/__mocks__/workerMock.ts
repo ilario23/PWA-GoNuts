@@ -1,6 +1,6 @@
 export default class WebWorker {
-    postMessage(_msg: any) { }
-    onmessage: ((this: Worker, ev: MessageEvent) => any) | null = null;
+    postMessage(_msg: unknown) { }
+    onmessage: ((this: Worker, ev: MessageEvent) => unknown) | null = null;
     addEventListener() { }
     removeEventListener() { }
     terminate() { }

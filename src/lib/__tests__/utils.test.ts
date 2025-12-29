@@ -8,6 +8,7 @@ describe('utils', () => {
         });
 
         it('should handle conditional classes', () => {
+            // eslint-disable-next-line no-constant-binary-expression
             const result = cn('foo', false && 'bar', 'baz');
             expect(result).toBe('foo baz');
         });

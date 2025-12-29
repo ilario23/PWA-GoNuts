@@ -1,8 +1,8 @@
 import { Category, Transaction, GroupMember, Context, CategoryBudget } from "../lib/db";
-import { StatisticsWorkerRequest } from "../types/worker";
+import { StatisticsWorkerRequest, CategoryStat, CategoryPercentage, HierarchyNode, TrendData, CashFlowData, ContextStat, DailyCumulativeData, RadarData, ContextTrendData, GroupBalance, BudgetHealth } from "../types/worker";
 
 // Helper type for the worker context
-const ctx: Worker = self as any;
+const ctx: Worker = self as unknown as Worker;
 
 // Helper to calculate effective amount (shared logic)
 const getEffectiveAmount = (
@@ -58,7 +58,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
         income: 0,
         expense: 0,
         investment: 0,
-        byCategory: [] as { name: string; value: number; color: string }[],
+        byCategory: [] as CategoryStat[],
     };
 
     if (mode === "monthly" && transactions) {
@@ -95,7 +95,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
         income: 0,
         expense: 0,
         investment: 0,
-        byCategory: [] as { name: string; value: number; color: string }[],
+        byCategory: [] as CategoryStat[],
     };
 
     if (mode === "yearly" && yearlyTransactions) {
@@ -130,7 +130,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
     const yearlyNetBalance = yearlyStats.income - yearlyStats.expense;
 
     // --- 4. Monthly Category Percentages ---
-    let monthlyCategoryPercentages: any[] = [];
+    let monthlyCategoryPercentages: CategoryPercentage[] = [];
     if (mode === "monthly" && transactions) {
         const totalMonthlyExpense = monthlyStats.expense;
         const expensesByCategory = new Map<string, number>();
@@ -148,7 +148,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
         // Aggregate child expenses into root categories
         const rootCategoryTotals = new Map<
             string,
-            { name: string; value: number }
+            { name: string; value: number; color: string }
         >();
 
         expensesByCategory.forEach((value, categoryId) => {
@@ -171,6 +171,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
                 rootCategoryTotals.set(rootCategory.id, {
                     name: rootCategory.name,
                     value: value,
+                    color: rootCategory.color,
                 });
             }
         });
@@ -183,12 +184,13 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
                     ? Math.round((cat.value / totalMonthlyExpense) * 100)
                     : 0,
             amount: Math.round(cat.value * 100) / 100,
+            color: cat.color,
             fill: `hsl(var(--chart-${(index % 5) + 1}))`,
         }));
     }
 
     // --- 5. Yearly Category Percentages ---
-    let yearlyCategoryPercentages: any[] = [];
+    let yearlyCategoryPercentages: CategoryPercentage[] = [];
     if (mode === "yearly" && yearlyTransactions) {
         const totalYearlyExpense = yearlyStats.expense;
         const expensesByCategory = new Map<string, number>();
@@ -206,7 +208,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
         // Aggregate child expenses into root categories
         const rootCategoryTotals = new Map<
             string,
-            { name: string; value: number }
+            { name: string; value: number; color: string }
         >();
 
         expensesByCategory.forEach((value, categoryId) => {
@@ -229,6 +231,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
                 rootCategoryTotals.set(rootCategory.id, {
                     name: rootCategory.name,
                     value: value,
+                    color: rootCategory.color,
                 });
             }
         });
@@ -240,12 +243,13 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
                     ? Math.round((cat.value / totalYearlyExpense) * 100)
                     : 0,
             amount: Math.round(cat.value * 100) / 100,
+            color: cat.color,
             fill: `hsl(var(--chart-${(index % 5) + 1}))`,
         }));
     }
 
     // --- 6. Monthly Expenses Hierarchy ---
-    let monthlyExpensesByHierarchy: any[] = [];
+    let monthlyExpensesByHierarchy: HierarchyNode[] = [];
     if (mode === "monthly" && transactions) {
         const hierarchyMap = new Map<
             string,
@@ -311,7 +315,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
     }
 
     // --- 7. Yearly Expenses Hierarchy ---
-    let yearlyExpensesByHierarchy: any[] = [];
+    let yearlyExpensesByHierarchy: HierarchyNode[] = [];
     if (mode === "yearly" && yearlyTransactions) {
         const hierarchyMap = new Map<
             string,
@@ -377,16 +381,16 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
     }
 
     // --- 8. Monthly Trend Data & Cash Flow (Yearly View) ---
-    const monthlyTrendData: any[] = [];
-    const monthlyCashFlow: any[] = [];
+    const monthlyTrendData: TrendData[] = [];
+    const monthlyCashFlow: CashFlowData[] = [];
 
     // Data for Radar Charts
-    const monthlyExpenses: any[] = [];
-    const monthlyIncome: any[] = [];
-    const monthlyInvestments: any[] = [];
+    const monthlyExpenses: RadarData[] = [];
+    const monthlyIncome: RadarData[] = [];
+    const monthlyInvestments: RadarData[] = [];
 
     // Data for Context Trends (Stacked Bar/Line)
-    const monthlyContextTrends: any[] = [];
+    const monthlyContextTrends: ContextTrendData[] = [];
 
     // Data for Recurring vs One-off
 
@@ -470,7 +474,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
 
             // Format Context Trend Data
             // We return an object with keys as context IDs
-            const contextEntry: any = { monthIndex: i };
+            const contextEntry: ContextTrendData = { monthIndex: i };
             const monthContexts = contextTrendMap.get(i)!;
             monthContexts.forEach((amount, contextId) => {
                 contextEntry[contextId] = Math.round(amount * 100) / 100;
@@ -487,7 +491,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
     }
 
     // --- 11. Group Balances (Period) ---
-    const groupBalances: any[] = [];
+    const groupBalances: GroupBalance[] = [];
     if (activeGroupMembers && activeGroupMembers.length > 0) {
         // Calculate total group spending for the period
         let totalGroupSpending = 0;
@@ -532,7 +536,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
     }
 
     // --- 9. Context Stats ---
-    const contextStats: any[] = [];
+    const contextStats: ContextStat[] = [];
     if (transactions && contexts) {
         const contextData = new Map<
             string,
@@ -618,7 +622,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
     }
 
     // --- 10. Daily Cumulative (Monthly) ---
-    const dailyCumulativeExpenses: any[] = [];
+    const dailyCumulativeExpenses: DailyCumulativeData[] = [];
     if (mode === "monthly" && transactions) {
         const [year, month] = currentMonth.split("-");
         const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
@@ -711,8 +715,8 @@ const calculateBudgetHealth = (
     categories: Category[],
     categoryBudgets: CategoryBudget[] | undefined,
     groupShareMap: Map<string, number>
-) => {
-    const monthlyBudgetHealth: any[] = [];
+): BudgetHealth[] => {
+    const monthlyBudgetHealth: BudgetHealth[] = [];
 
     if (!transactions || !categoryBudgets || categoryBudgets.length === 0) return monthlyBudgetHealth;
 

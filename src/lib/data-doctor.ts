@@ -7,7 +7,7 @@ export interface DataIssue {
     type: IssueType;
     description: string;
     table: "transactions" | "recurring_transactions";
-    item: any;
+    item: unknown;
 }
 
 export interface HealthReport {

@@ -70,8 +70,8 @@ describe('RulesEngine', () => {
             await engine.loadRules();
 
             const transactions: ParsedTransaction[] = [
-                { description: 'Netflix', amount: 10, date: '2023-01-01', type: 'expense' } as any,
-                { description: 'Netflix Subscription', amount: 10, date: '2023-01-01', type: 'expense' } as any
+                { description: 'Netflix', amount: 10, date: '2023-01-01', type: 'expense' } as unknown as ParsedTransaction,
+                { description: 'Netflix Subscription', amount: 10, date: '2023-01-01', type: 'expense' } as unknown as ParsedTransaction
             ];
 
             const matchCount = engine.applyRules(transactions);
@@ -89,8 +89,8 @@ describe('RulesEngine', () => {
             await engine.loadRules();
 
             const transactions: ParsedTransaction[] = [
-                { description: 'Uber Trip', amount: 15, date: '2023-01-01', type: 'expense' } as any,
-                { description: 'Puber', amount: 5, date: '2023-01-01', type: 'expense' } as any
+                { description: 'Uber Trip', amount: 15, date: '2023-01-01', type: 'expense' } as unknown as ParsedTransaction,
+                { description: 'Puber', amount: 5, date: '2023-01-01', type: 'expense' } as unknown as ParsedTransaction
             ];
 
             const matchCount = engine.applyRules(transactions);
@@ -108,8 +108,8 @@ describe('RulesEngine', () => {
             await engine.loadRules();
 
             const transactions: ParsedTransaction[] = [
-                { description: 'AMZN Mktp', amount: 20, date: '2023-01-01', type: 'expense' } as any,
-                { description: 'AMZN Prime', amount: 20, date: '2023-01-01', type: 'expense' } as any
+                { description: 'AMZN Mktp', amount: 20, date: '2023-01-01', type: 'expense' } as unknown as ParsedTransaction,
+                { description: 'AMZN Prime', amount: 20, date: '2023-01-01', type: 'expense' } as unknown as ParsedTransaction
             ];
 
             const matchCount = engine.applyRules(transactions);
@@ -127,7 +127,7 @@ describe('RulesEngine', () => {
             await engine.loadRules();
 
             const transactions: ParsedTransaction[] = [
-                { description: 'Netflix', amount: 10, date: '2023-01-01', category_id: 'existing-id', type: 'expense' } as any
+                { description: 'Netflix', amount: 10, date: '2023-01-01', category_id: 'existing-id', type: 'expense' } as unknown as ParsedTransaction
             ];
 
             const matchCount = engine.applyRules(transactions);
@@ -155,7 +155,7 @@ describe('RulesEngine', () => {
 
             // Verify it updates local state by applying it immediately
             const transactions: ParsedTransaction[] = [
-                { description: 'Spotify Premium', amount: 10, date: '2023-01-01' } as any
+                { description: 'Spotify Premium', amount: 10, date: '2023-01-01' } as unknown as ParsedTransaction
             ];
             engine.applyRules(transactions);
             expect(transactions[0].category_id).toBe('music-id');
