@@ -7,7 +7,7 @@ import '@testing-library/jest-dom';
 // Mock translation
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({
-        t: (key: string, options?: any) => {
+        t: (key: string, options?: unknown) => {
             if (options && typeof options === 'string') return options; // Default value case
             return key; // Return key for simplicity in tests
         },
@@ -20,7 +20,9 @@ describe('ImportConflictResolver', () => {
 
     const mockConflicts: PotentialMerge[] = [
         {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             imported: { id: 'imp-1', name: 'Alimentari', color: '#000000', icon: 'test' } as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             existing: { id: 'ex-1', name: 'Alimenti', color: '#ffffff' } as any,
             score: 1
         }
@@ -28,7 +30,9 @@ describe('ImportConflictResolver', () => {
 
     const mockRecurringConflicts: RecurringConflict[] = [
         {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             imported: { id: 'rec-1', description: 'Netflix', amount: '10' } as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             existing: { id: 'ex-rec-1', description: 'Netflix', color: '#000000', amount: 10 } as any,
             score: 0
         }

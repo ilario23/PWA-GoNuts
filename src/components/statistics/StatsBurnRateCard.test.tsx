@@ -4,8 +4,10 @@ import { StatsBurnRateCard } from "./StatsBurnRateCard";
 // Mock translation
 jest.mock("react-i18next", () => ({
     useTranslation: () => ({
-        t: (key: string, options?: any) => {
-            if (key === "spending_projection_desc") return `Proiezioni per ${options?.period}`;
+        t: (key: string, options?: unknown) => {
+            if (key === "spending_projection_desc" && typeof options === 'object' && options !== null && 'period' in options) {
+                return `Proiezioni per ${(options as { period: string }).period}`;
+            }
             return key;
         },
     }),

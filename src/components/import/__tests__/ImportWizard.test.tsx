@@ -16,7 +16,7 @@ jest.mock('../../../contexts/AuthProvider', () => ({
 }));
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({
-        t: (key: string, options?: any) => {
+        t: (key: string, options?: unknown) => {
             if (options && typeof options === 'string') return options;
             return key;
         },

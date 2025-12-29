@@ -100,13 +100,13 @@ BEGIN
   -- 1. ENSURE USERS EXIST (Mock Insert for FK satisfaction if checking local)
   -- ==========================================================================
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = user_a_id) THEN
-    INSERT INTO auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data)
-    VALUES (user_a_id, 'authenticated', 'authenticated', 'user_a@example.com', 'hash', now(), '{"full_name": "User A", "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=A"}');
+    INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data)
+    VALUES (user_a_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'user_a@example.com', 'hash', now(), '{"full_name": "User A", "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=A"}');
   END IF;
   
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = user_b_id) THEN
-    INSERT INTO auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data)
-    VALUES (user_b_id, 'authenticated', 'authenticated', 'user_b@example.com', 'hash', now(), '{"full_name": "User B", "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=B"}');
+    INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data)
+    VALUES (user_b_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'user_b@example.com', 'hash', now(), '{"full_name": "User B", "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=B"}');
   END IF;
 
   -- Settings
