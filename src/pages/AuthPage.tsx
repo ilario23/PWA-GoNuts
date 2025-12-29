@@ -69,7 +69,7 @@ export function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-muted/40 p-4 safe-y relative">
+    <div className="flex h-dvh overflow-auto items-center justify-center bg-muted/40 p-4 safe-y relative">
       <div className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-[calc(1rem+env(safe-area-inset-right))]">
         <LanguageSwitcher />
       </div>
