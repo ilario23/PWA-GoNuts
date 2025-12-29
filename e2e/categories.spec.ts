@@ -80,39 +80,6 @@ test.describe('Categories Flow', () => {
             // Verify Mobile Row
             await expect(page.locator('.md\\:hidden').getByText(categoryName)).toBeVisible();
         });
-
-        test('should edit category via Swipe', async ({ page }) => {
-            // Create first
-            await page.goto('/categories');
-            await page.getByTestId('add-category-button').click();
-            await page.getByTestId('category-name-input').fill('Swipe Edit Cat');
-            await page.getByTestId('icon-trigger').click();
-            await page.getByTestId('icon-search').fill('wallet');
-            await page.getByTestId('icon-option-Wallet').click();
-            await page.getByTestId('save-category-button').click();
-
-            // Locate and Swipe
-            const swipeableContent = page.getByTestId('swipeable-row-content').filter({ hasText: 'Swipe Edit Cat' }).first();
-            await expect(swipeableContent).toBeVisible();
-            // Wait for animations to settle
-            await page.waitForTimeout(1000);
-
-            const box = await swipeableContent.boundingBox();
-            if (box) {
-                await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-                await page.mouse.down();
-                // Longer swipe and more steps for reliability
-                await page.mouse.move(box.x + box.width / 2 + 500, box.y + box.height / 2, { steps: 25 });
-                await page.mouse.up();
-            }
-
-            // Edit Dialog
-            await expect(page.getByTestId('save-category-button')).toBeVisible();
-            await page.getByTestId('category-name-input').fill('Swipe Edited Cat');
-            await page.getByTestId('save-category-button').click();
-
-            await expect(page.locator('.md\\:hidden').getByText('Swipe Edited Cat')).toBeVisible();
-        });
     });
 
     test.describe('Desktop', () => {

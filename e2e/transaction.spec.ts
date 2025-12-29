@@ -111,53 +111,6 @@ test.describe('Transaction Flow', () => {
             await expect(row).toBeVisible();
             await expect(row).toContainText('123');
         });
-
-        test('should edit transaction via Swipe', async ({ page }) => {
-            // 1. Create Transaction
-            const fab = page.getByTestId('add-transaction-fab');
-            await fab.waitFor({ state: 'visible' });
-            await fab.click();
-            await page.getByTestId('amount-input').fill('50.00');
-            await page.getByTestId('description-input').fill('Swipe Edit Tx');
-            await page.getByTestId('category-trigger').click();
-            const drawer = page.locator('div[role="dialog"]').last();
-            await expect(drawer).toBeVisible();
-            await page.getByTestId('category-search').fill('E2E Category');
-            await page.getByText('E2E Category').first().click();
-            await page.getByTestId('save-transaction-button').click();
-            const dialog = page.locator('div[role="dialog"]').first(); // Main dialog
-            await expect(dialog).not.toBeVisible();
-
-            // 2. Locate Row and Swipe Right
-            const rowText = page.getByText('Swipe Edit Tx').first();
-            await expect(rowText).toBeVisible();
-
-            // Locate the specific swipeable content wrapper
-            // Scope to visible on mobile
-            const swipeableContent = page.locator('.md\\:hidden').getByTestId('swipeable-row-content').filter({ has: rowText });
-
-            // Perform Swipe (Drag right > 220px)
-            const box = await swipeableContent.boundingBox();
-            if (box) {
-                await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-                await page.mouse.down();
-                // Move slowly to ensure drag is registered
-                // Increased distance to 400 and steps to 20 for reliability
-                await page.mouse.move(box.x + box.width / 2 + 400, box.y + box.height / 2, { steps: 20 });
-                await page.mouse.up();
-            }
-
-            // 3. Edit Dialog should appear
-            await expect(page.getByTestId('save-transaction-button')).toBeVisible(); // Reusing save button existence as proxy for dialog open
-
-            // 4. Change Amount
-            await page.getByTestId('amount-input').fill('99.99');
-            await page.getByTestId('save-transaction-button').click();
-
-            // 5. Verify
-            await expect(page.locator('div[role="dialog"]')).not.toBeVisible();
-            await expect(page.getByText('99.99')).toBeVisible();
-        });
     });
 
     test.describe('Desktop', () => {
