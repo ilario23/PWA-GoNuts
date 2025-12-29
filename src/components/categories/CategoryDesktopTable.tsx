@@ -192,6 +192,7 @@ function DesktopCategoryRows({
                                                         e.stopPropagation();
                                                         onEdit(c);
                                                     }}
+                                                    data-testid="edit-category-button"
                                                 >
                                                     <Edit className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
                                                 </Button>

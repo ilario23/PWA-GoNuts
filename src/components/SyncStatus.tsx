@@ -1,4 +1,5 @@
 import { Cloud, CloudOff, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 
 interface SyncStatusBadgeProps {
@@ -10,6 +11,7 @@ export function SyncStatusBadge({
   isPending,
   className,
 }: SyncStatusBadgeProps) {
+  const { t } = useTranslation();
   if (!isPending) {
     return null;
   }
@@ -17,7 +19,7 @@ export function SyncStatusBadge({
   return (
     <Badge variant="secondary" className={className}>
       <CloudOff className="mr-1 h-3 w-3" />
-      Pending
+      {t("pending")}
     </Badge>
   );
 }
@@ -33,6 +35,7 @@ export function SyncIndicator({
   isOnline,
   lastSyncTime,
 }: SyncIndicatorProps) {
+  const { t } = useTranslation();
   if (isSyncing) {
     return (
       <div className="flex items-center gap-2 text-sm text-primary">
@@ -46,7 +49,7 @@ export function SyncIndicator({
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <CloudOff className="h-4 w-4 text-amber-500" />
-        <span>Offline</span>
+        <span>{t("offline")}</span>
       </div>
     );
   }

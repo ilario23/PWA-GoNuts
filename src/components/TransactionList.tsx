@@ -18,7 +18,7 @@ import { Edit, Trash2, Tag, Users, AlertCircle } from "lucide-react";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { Transaction, Category, Context, Group } from "@/lib/db";
 import { useMobile } from "@/hooks/useMobile";
-import { useMemo, useRef, useCallback } from "react";
+import { useMemo, useRef, useCallback, useState } from "react";
 import { ContentLoader } from "@/components/ui/content-loader";
 import { SmoothLoader } from "@/components/ui/smooth-loader";
 import { motion, Variants } from "framer-motion";
@@ -30,7 +30,6 @@ import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { it, enUS } from "date-fns/locale";
 import { MobileTransactionRow } from "./MobileTransactionRow";
 import { TransactionDetailDrawer } from "./TransactionDetailDrawer";
-import { useState } from "react";
 import { GroupWithMembers } from "@/hooks/useGroups";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -358,6 +357,7 @@ export function TransactionList({
                           size="icon"
                           onClick={() => onEdit(t_item)}
                           aria-label={t("edit")}
+                          data-testid="edit-transaction-button"
                         >
                           <Edit className="h-4 w-4" aria-hidden="true" />
                         </Button>

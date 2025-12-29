@@ -76,7 +76,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             </div>
                             <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                                 <span className="truncate font-semibold">{t("app_title")}</span>
-                                <span className="truncate text-xs text-muted-foreground">v{packageJson.version}</span>
+                                <span className="truncate text-xs text-muted-foreground">{t("version_v", { version: packageJson.version })}</span>
                             </div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

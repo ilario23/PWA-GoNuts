@@ -45,6 +45,8 @@ interface DashboardChartCardProps {
     groups: Group[] | undefined;
     contexts: Context[] | undefined;
     transactions: Transaction[] | undefined;
+    onEdit?: (transaction: Transaction) => void;
+    onDelete?: (id: string) => void;
 }
 
 // ------------------------------------------------------------------
@@ -57,7 +59,11 @@ export function DashboardChartContent({
     isStatsLoading,
     headerRightContent,
 }: {
-    dailyCumulativeExpenses: any[];
+    dailyCumulativeExpenses: Array<{
+        day: string;
+        cumulative: number;
+        projection?: number;
+    }>;
     chartConfig: ChartConfig;
     isStatsLoading: boolean;
     headerRightContent?: React.ReactNode;
@@ -224,6 +230,8 @@ export function DashboardTransactionsContent({
     contexts,
     transactions,
     headerRightContent,
+    onEdit,
+    onDelete,
 }: {
     recentTransactions: Transaction[] | undefined;
     categories: Category[] | undefined;
@@ -231,6 +239,8 @@ export function DashboardTransactionsContent({
     contexts: Context[] | undefined;
     transactions: Transaction[] | undefined;
     headerRightContent?: React.ReactNode;
+    onEdit?: (transaction: Transaction) => void;
+    onDelete?: (id: string) => void;
 }) {
     const { t } = useTranslation();
     const isMobile = useMobile();
@@ -293,6 +303,8 @@ export function DashboardTransactionsContent({
                         contexts={contexts}
                         showActions={false}
                         isLoading={transactions === undefined}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
                     />
                 </div>
             </CardContent>
@@ -434,6 +446,8 @@ export function DashboardChartCard({
     groups,
     contexts,
     transactions,
+    onEdit,
+    onDelete,
 }: DashboardChartCardProps) {
     const dotIndicators = (
         <div className="flex md:flex-col gap-1.5 ml-auto">
@@ -466,6 +480,8 @@ export function DashboardChartCard({
                     contexts={contexts}
                     transactions={transactions}
                     headerRightContent={dotIndicators}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
                 />
             );
         case 2: // Budget
