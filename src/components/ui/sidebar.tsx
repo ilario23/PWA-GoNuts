@@ -1,7 +1,9 @@
+/* eslint-disable react-refresh/only-export-components */
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -168,6 +170,7 @@ const Sidebar = React.forwardRef<
         ref
     ) => {
         const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+        const { t } = useTranslation()
 
         if (collapsible === "none") {
             return (
@@ -199,7 +202,7 @@ const Sidebar = React.forwardRef<
                         side={side}
                         onOpenAutoFocus={(e) => e.preventDefault()}
                     >
-                        <SheetTitle className="sr-only">Navigation</SheetTitle>
+                        <SheetTitle className="sr-only">{t("sr_navigation")}</SheetTitle>
                         <div className="flex h-full w-full flex-col">{children}</div>
                     </SheetContent>
                 </Sheet>
@@ -240,6 +243,7 @@ const SidebarTrigger = React.forwardRef<
     React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
     const { toggleSidebar } = useSidebar()
+    const { t } = useTranslation()
 
     return (
         <Button
@@ -255,7 +259,7 @@ const SidebarTrigger = React.forwardRef<
             {...props}
         >
             <PanelLeft />
-            <span className="sr-only">Toggle Sidebar</span>
+            <span className="sr-only">{t("sr_toggle_sidebar")}</span>
         </Button>
     )
 })
@@ -630,8 +634,10 @@ const SidebarMenuSkeleton = React.forwardRef<
     React.ComponentProps<"div"> & { showIcon?: boolean }
 >(({ className, showIcon = false, ...props }, ref) => {
     // Random width between 50 to 90%.
-    const width = React.useMemo(() => {
-        return `${Math.floor(Math.random() * 40) + 50}%`
+    const [width, setWidth] = React.useState("100%")
+
+    React.useEffect(() => {
+        setWidth(`${Math.floor(Math.random() * 40) + 50}%`)
     }, [])
 
     return (
@@ -719,6 +725,7 @@ const SidebarMenuSubButton = React.forwardRef<
     }
 )
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
+
 
 export {
     Sidebar,
