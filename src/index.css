@@ -349,31 +349,34 @@
 
   /* Root container - safe areas handled by individual components for fixed positioning compatibility */
   #root {
-    height: 100%;
-    max-height: 100dvh;
+    min-height: 100%;
+    min-height: -webkit-fill-available;
     width: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
   }
 
-  html {
-    height: 100dvh;
-    max-height: 100dvh;
-    width: 100%;
-    overflow: hidden;
-  }
-
+  html,
   body {
-    height: 100dvh;
-    max-height: 100dvh;
+    height: 100%;
+    height: -webkit-fill-available;
     width: 100%;
+    margin: 0;
+    padding: 0;
     overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    /* Use overscroll-behavior to prevent the "bounce" effect on the body */
+    overscroll-behavior: none;
+  }
+
+  /* Handle dynamic viewport height via a utility or specific containers instead of global body fixed */
+  .h-dvh-container {
+    height: 100dvh;
+  }
+
+  @supports (height: 100dvh) {
+    #root {
+      min-height: 100dvh;
+    }
   }
 }
 
