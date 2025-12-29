@@ -80,8 +80,8 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
                 >
                     <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
                         <Building2 className="h-8 w-8 mb-3 text-orange-600" />
-                        <h3 className="font-semibold text-md mb-1">Intesa Sanpaolo</h3>
-                        <p className="text-xs text-muted-foreground">Excel (.xlsx)</p>
+                        <h3 className="font-semibold text-md mb-1">{t("bank_intesa")}</h3>
+                        <p className="text-xs text-muted-foreground">{t("format_excel")}</p>
                     </CardContent>
                 </Card>
 
@@ -91,8 +91,8 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
                 >
                     <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
                         <Building2 className="h-8 w-8 mb-3 text-blue-500" />
-                        <h3 className="font-semibold text-md mb-1">Revolut</h3>
-                        <p className="text-xs text-muted-foreground">CSV Export</p>
+                        <h3 className="font-semibold text-md mb-1">{t("bank_revolut")}</h3>
+                        <p className="text-xs text-muted-foreground">{t("format_csv_export")}</p>
                     </CardContent>
                 </Card>
 
@@ -102,8 +102,8 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
                 >
                     <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
                         <Command className="h-8 w-8 mb-3 text-slate-500" />
-                        <h3 className="font-semibold text-md mb-1">Generic CSV</h3>
-                        <p className="text-xs text-muted-foreground">Custom Mapping</p>
+                        <h3 className="font-semibold text-md mb-1">{t("bank_generic_csv")}</h3>
+                        <p className="text-xs text-muted-foreground">{t("format_custom_mapping")}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -115,7 +115,7 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
                     className="text-xs gap-2"
                 >
                     <Download className="h-3.5 w-3.5" />
-                    Download Category List
+                    {t("download_category_list")}
                 </Button>
             </div>
         </div>

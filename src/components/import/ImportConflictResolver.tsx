@@ -108,7 +108,7 @@ export function ImportConflictResolver({
                                                         {conflict.existing.name}
                                                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: conflict.existing.color }} />
                                                     </span>
-                                                    <Badge variant="outline" className="mt-1 text-xs text-muted-foreground w-fit">Existing</Badge>
+                                                    <Badge variant="outline" className="mt-1 text-xs text-muted-foreground w-fit">{t("badge_existing")}</Badge>
                                                 </div>
                                             </div>
                                             <div className="ml-6 pl-6 border-l flex flex-col gap-2 items-center min-w-[120px]">

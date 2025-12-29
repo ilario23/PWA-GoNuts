@@ -6,7 +6,7 @@ import { CsvMapping } from "../../../lib/import/types";
 
 interface ImportCsvMappingProps {
     csvHeaders: string[];
-    csvPreviewRows: any[];
+    csvPreviewRows: Record<string, unknown>[];
     csvMapping: CsvMapping;
     setCsvMapping: React.Dispatch<React.SetStateAction<CsvMapping>>;
 }
@@ -100,7 +100,7 @@ export function ImportCsvMapping({ csvHeaders, csvPreviewRows, csvMapping, setCs
                         {csvPreviewRows.map((row, i) => (
                             <TableRow key={i}>
                                 {csvHeaders.map(h => (
-                                    <TableCell key={h} className="whitespace-nowrap">{row[h]}</TableCell>
+                                    <TableCell key={h} className="whitespace-nowrap">{row[h] as React.ReactNode}</TableCell>
                                 ))}
                             </TableRow>
                         ))}
@@ -115,11 +115,11 @@ export function ImportCsvMapping({ csvHeaders, csvPreviewRows, csvMapping, setCs
                 </h4>
                 {csvPreviewRows.slice(0, 3).map((row, i) => (
                     <div key={i} className="border rounded-lg p-3 bg-card space-y-2 text-xs">
-                        <div className="font-mono text-muted-foreground mb-2 border-b pb-1">Row {i + 1}</div>
+                        <div className="font-mono text-muted-foreground mb-2 border-b pb-1">{t("row_number", { num: i + 1 })}</div>
                         {csvHeaders.map(h => (
                             <div key={h} className="grid grid-cols-3 gap-2">
                                 <span className="font-medium text-muted-foreground truncate">{h}:</span>
-                                <span className="col-span-2 truncate">{row[h]}</span>
+                                <span className="col-span-2 truncate">{row[h] as React.ReactNode}</span>
                             </div>
                         ))}
                     </div>
