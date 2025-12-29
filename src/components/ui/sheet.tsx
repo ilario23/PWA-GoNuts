@@ -37,9 +37,9 @@ const sheetVariants = cva(
         top: "inset-x-0 top-0 border-b pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]",
         bottom:
           "inset-x-0 bottom-0 border-t pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] data-[state=open]:animate-sheet-slide-in-bottom data-[state=closed]:animate-sheet-slide-out-bottom",
-        left: "inset-y-0 left-0 h-[100dvh] w-3/4 border-r pl-[env(safe-area-inset-left)] data-[state=closed]:animate-slide-out-left data-[state=open]:animate-slide-in-left sm:max-w-sm",
+        left: "top-0 left-0 h-[100dvh] w-3/4 border-r pl-[env(safe-area-inset-left)] data-[state=closed]:animate-slide-out-left data-[state=open]:animate-slide-in-left sm:max-w-sm",
         right:
-          "inset-y-0 right-0 h-[100dvh] w-3/4 border-l pr-[env(safe-area-inset-right)] sm:max-w-sm",
+          "top-0 right-0 h-[100dvh] w-3/4 border-l pr-[env(safe-area-inset-right)] sm:max-w-sm",
       },
     },
     defaultVariants: {
