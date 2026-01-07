@@ -1,9 +1,15 @@
 import { z } from "zod";
 
+const amountSchema = z.union([
+    z.number(),
+    z.string().transform((val) => {
+        if (val === "") return 0;
+        return Number(val.replace(/,/g, "."));
+    }),
+]).pipe(z.number().min(0.01, "Amount must be greater than 0"));
+
 export const recurringTransactionSchema = z.object({
-    amount: z.coerce
-        .number()
-        .min(0.01, "Amount must be greater than 0"),
+    amount: amountSchema,
     description: z.string().min(1, "Description is required"),
     type: z.enum(["income", "expense", "investment"]),
     frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
@@ -21,9 +27,7 @@ export type RecurringTransactionFormValues = z.infer<
 >;
 
 export const transactionSchema = z.object({
-    amount: z.coerce
-        .number()
-        .min(0.01, "Amount must be greater than 0"),
+    amount: amountSchema,
     description: z.string().optional(),
     type: z.enum(["income", "expense", "investment"]),
     category_id: z.string().min(1, "Category is required"),
@@ -44,7 +48,13 @@ export const categorySchema = z.object({
     icon: z.string().optional(),
     parent_id: z.string().optional().nullable(),
     active: z.boolean(),
-    budget: z.coerce.number().optional(),
+    budget: z.union([
+        z.number(),
+        z.string().transform((val) => {
+            if (val === "") return 0;
+            return Number(val.replace(/,/g, "."));
+        }),
+    ]).pipe(z.number()).optional(),
     group_id: z.string().optional().nullable(),
 });
 

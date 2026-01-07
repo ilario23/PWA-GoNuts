@@ -386,13 +386,17 @@ export function CategoryFormDialog({
                                                     <FormLabel>{t("budget")}</FormLabel>
                                                     <FormControl>
                                                         <Input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0"
+                                                            type="text"
+                                                            inputMode="decimal"
                                                             {...field}
                                                             placeholder="0.00"
                                                             value={field.value ?? ""}
-                                                            onChange={e => field.onChange(e.target.value)} // ensure string usually or coerce in schema
+                                                            onChange={e => {
+                                                                const value = e.target.value;
+                                                                if (value === "" || /^[0-9]*([.,][0-9]{0,2})?$/.test(value)) {
+                                                                    field.onChange(value);
+                                                                }
+                                                            }}
                                                         />
                                                     </FormControl>
                                                     <FormMessage />

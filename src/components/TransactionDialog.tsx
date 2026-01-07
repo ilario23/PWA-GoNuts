@@ -14,6 +14,16 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -88,6 +98,9 @@ export function TransactionDialog({
     const [showCalculator, setShowCalculator] = useState(false);
     const amountInputRef = useRef<HTMLInputElement>(null);
     const calculatorContainerRef = useRef<HTMLDivElement>(null);
+
+    const [showLargeValueConfirm, setShowLargeValueConfirm] = useState(false);
+    const [pendingData, setPendingData] = useState<TransactionFormValues | null>(null);
 
     // Budget Hook
     const { getBudgetForCategory } = useCategoryBudgets();
@@ -189,10 +202,10 @@ export function TransactionDialog({
         }
     }, [watchedGroupId, editingTransaction, form]);
 
-    const handleFormSubmit = async (data: TransactionFormValues) => {
+    const finalSubmit = async (data: TransactionFormValues) => {
+        const finalData = { ...data };
         // Ensure paid_by_member_id is set if group_id is set
         // If not set via select (e.g. quick add), default to current user's member ID
-        const finalData = { ...data };
         if (finalData.group_id && !finalData.paid_by_member_id && groups && user?.id) {
             const group = groups.find(g => g.id === finalData.group_id);
             const member = group?.members.find(m => m.user_id === user.id);
@@ -203,6 +216,25 @@ export function TransactionDialog({
 
         await onSubmit(finalData);
         onOpenChange(false);
+    };
+
+    const handleFormSubmit = (data: TransactionFormValues) => {
+        // Check for large value warning
+        if (data.amount > 5000) {
+            setPendingData(data);
+            setShowLargeValueConfirm(true);
+            return;
+        }
+
+        finalSubmit(data);
+    };
+
+    const confirmLargeValue = () => {
+        if (pendingData) {
+            finalSubmit(pendingData);
+            setPendingData(null);
+            setShowLargeValueConfirm(false);
+        }
     };
 
 
@@ -229,19 +261,23 @@ export function TransactionDialog({
         }
     };
 
+    const parseAmount = (val: unknown): number => {
+        if (typeof val === "number") return val;
+        if (typeof val === "string") {
+            const parsed = Number(val.replace(/,/g, "."));
+            return isNaN(parsed) ? 0 : parsed;
+        }
+        return 0;
+    };
+
     const handleOperation = (op: string) => {
         // Get current value from form
-        const currentVal = Number(form.getValues("amount"));
+        const currentVal = parseAmount(form.getValues("amount"));
         if (isNaN(currentVal)) return;
 
         if (calcState.prevValue !== null && calcState.operation) {
             const result = performCalculation(currentVal, calcState.prevValue, calcState.operation);
             setCalcState({ prevValue: result, operation: op });
-            // Clear visible input to be ready for next number? 
-            // In original logic: setFormData(prev => ({ ...prev, amount: "" }));
-            // Here, we can set amount to 0 or keep it? Original cleared it. RHF works with numbers usually. 
-            // If we set it to 0, user sees 0. If we effectively want "empty", we might need to handle that or just select the text.
-            // Let's set to 0 for now and maybe select it? Or rely on user typing.
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             form.setValue("amount", "" as any);
         } else {
@@ -254,7 +290,7 @@ export function TransactionDialog({
     };
 
     const handleEqual = () => {
-        const currentVal = Number(form.getValues("amount"));
+        const currentVal = parseAmount(form.getValues("amount"));
         if (isNaN(currentVal) || calcState.prevValue === null || !calcState.operation) return;
 
         const result = performCalculation(currentVal, calcState.prevValue, calcState.operation);
@@ -262,17 +298,9 @@ export function TransactionDialog({
 
         form.setValue("amount", formatted);
         setCalcState({ prevValue: null, operation: null });
+        setShowCalculator(false);
 
         amountInputRef.current?.focus();
-    };
-
-    const handleBlur = (e: React.FocusEvent) => {
-        if (
-            calculatorContainerRef.current &&
-            !calculatorContainerRef.current.contains(e.relatedTarget as Node)
-        ) {
-            setShowCalculator(false);
-        }
     };
 
     // Check if we have additional options to show
@@ -360,15 +388,34 @@ export function TransactionDialog({
                                     <div
                                         className="space-y-2"
                                         ref={calculatorContainerRef}
-                                        onBlur={handleBlur}
                                     >
                                         <div className="flex justify-between items-center">
                                             <Label className="text-sm font-medium">{t("amount")}</Label>
-                                            {calcState.prevValue !== null && calcState.operation && (
-                                                <span className="text-xs text-muted-foreground animate-pulse">
-                                                    {calcState.prevValue} {calcState.operation} ...
-                                                </span>
-                                            )}
+                                            {calcState.prevValue !== null && calcState.operation && (() => {
+                                                const currentVal = parseAmount(watchedAmount);
+                                                const opSymbol = calcState.operation === "/" ? "÷" :
+                                                    calcState.operation === "*" ? "×" :
+                                                        calcState.operation;
+
+                                                // If there's a current value being typed (checking against empty string effectively)
+                                                // We want to show the preview if the user has typed something. 
+                                                // watchedAmount can be "" if cleared.
+                                                const hasInput = String(watchedAmount) !== "" && watchedAmount !== null && watchedAmount !== undefined;
+
+                                                let displayInfo = `${calcState.prevValue} ${opSymbol}`;
+
+                                                if (hasInput) {
+                                                    const result = performCalculation(currentVal, calcState.prevValue, calcState.operation);
+                                                    const formattedResult = Math.round(result * 100) / 100;
+                                                    displayInfo += ` ${Number(currentVal)} = ${formattedResult}`;
+                                                }
+
+                                                return (
+                                                    <span className="text-xs text-muted-foreground animate-pulse-subtle font-mono">
+                                                        {displayInfo}
+                                                    </span>
+                                                );
+                                            })()}
                                         </div>
                                         <div className="flex gap-2">
                                             <FormField<TransactionFormValues, "amount">
@@ -383,15 +430,40 @@ export function TransactionDialog({
                                                                     field.ref(e);
                                                                     amountInputRef.current = e;
                                                                 }}
-                                                                type="number"
+                                                                type="text"
                                                                 inputMode="decimal"
-                                                                step="0.01"
-                                                                placeholder={calcState.operation ? "..." : "0.00"}
+                                                                placeholder={
+                                                                    calcState.operation && calcState.prevValue !== null ? (
+                                                                        `${calcState.prevValue} ${calcState.operation === "/" ? "÷" :
+                                                                            calcState.operation === "*" ? "×" :
+                                                                                calcState.operation
+                                                                        }`
+                                                                    ) : "0.00"
+                                                                }
                                                                 required
                                                                 value={field.value ?? ""}
                                                                 onChange={(e) => {
-                                                                    // Handle raw input if needed, but RHF number coercion works usually
-                                                                    field.onChange(e);
+                                                                    const value = e.target.value;
+                                                                    if (value === "" || /^[0-9]*([.,][0-9]{0,2})?$/.test(value)) {
+                                                                        field.onChange(value);
+                                                                    }
+                                                                }}
+                                                                onBlur={() => {
+                                                                    field.onBlur(); // keep original RHF onBlur
+
+                                                                    // Auto-calculate on blur
+                                                                    const currentVal = parseAmount(field.value);
+                                                                    if (!isNaN(currentVal) && calcState.prevValue !== null && calcState.operation) {
+                                                                        const result = performCalculation(currentVal, calcState.prevValue, calcState.operation);
+                                                                        if (isFinite(result)) {
+                                                                            const formatted = Math.round(result * 100) / 100;
+                                                                            form.setValue("amount", formatted);
+                                                                            setCalcState({ prevValue: null, operation: null });
+                                                                        } else {
+                                                                            // Reset on error (e.g. division by zero)
+                                                                            setCalcState({ prevValue: null, operation: null });
+                                                                        }
+                                                                    }
                                                                 }}
                                                                 data-testid="amount-input"
                                                             />
@@ -696,6 +768,21 @@ export function TransactionDialog({
                         </Button>
                     </form>
                 </Form>
+
+                <AlertDialog open={showLargeValueConfirm} onOpenChange={setShowLargeValueConfirm}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Confirm Large Transaction</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                You are about to save a transaction with a large amount ({pendingData?.amount?.toLocaleString()}). Are you sure this is correct?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setPendingData(null)}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmLargeValue}>Confirm</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </DialogContent>
         </Dialog>
     );
