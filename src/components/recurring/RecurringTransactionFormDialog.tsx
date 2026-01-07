@@ -217,14 +217,16 @@ export function RecurringTransactionFormDialog({
                                                 <FormLabel>{t("amount")}</FormLabel>
                                                 <FormControl>
                                                     <Input
-                                                        type="number"
+                                                        type="text"
                                                         inputMode="decimal"
-                                                        step="0.01"
                                                         {...field}
                                                         value={field.value ?? ""}
                                                         onChange={(e) => {
-                                                            // Let zod coerce handle it, but keep string for simple input
-                                                            field.onChange(e);
+                                                            const value = e.target.value;
+                                                            // Allow digits and max one dot or comma, and max 2 decimal places
+                                                            if (value === "" || /^[0-9]*([.,][0-9]{0,2})?$/.test(value)) {
+                                                                field.onChange(value);
+                                                            }
                                                         }}
                                                     />
                                                 </FormControl>
