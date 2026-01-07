@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { format, subMonths } from "date-fns";
 import { useMemo, useCallback, useEffect, useState, useRef } from "react";
 import StatsWorker from "../workers/statistics.worker?worker";
-import { StatisticsWorkerRequest, StatisticsWorkerResponse, DailyCumulativeData, CategoryComparisonData, MonthlyCumulativeData } from "../types/worker";
+import { StatisticsWorkerRequest, StatisticsWorkerResponse, CategoryComparisonData } from "../types/worker";
 
 /**
  * Parameters for configuring the statistics hook.
