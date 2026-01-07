@@ -1,5 +1,5 @@
 import { Category, Transaction, GroupMember, Context, CategoryBudget } from "../lib/db";
-import { StatisticsWorkerRequest, CategoryStat, CategoryPercentage, HierarchyNode, TrendData, CashFlowData, ContextStat, DailyCumulativeData, RadarData, ContextTrendData, GroupBalance, BudgetHealth } from "../types/worker";
+import { StatisticsWorkerRequest, CategoryStat, CategoryPercentage, HierarchyNode, TrendData, CashFlowData, ContextStat, DailyCumulativeData, RadarData, ContextTrendData, GroupBalance, BudgetHealth, MonthlyCumulativeData } from "../types/worker";
 
 // Helper type for the worker context
 const ctx: Worker = self as unknown as Worker;
@@ -622,22 +622,23 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
     }
 
     // --- 10. Daily Cumulative (Monthly) ---
-    const dailyCumulativeExpenses: DailyCumulativeData[] = [];
-    if (mode === "monthly" && transactions) {
-        const [year, month] = currentMonth.split("-");
+    const calculateDailyCumulative = (
+        txs: Transaction[],
+        targetMonth: string
+    ): DailyCumulativeData[] => {
+        const [year, month] = targetMonth.split("-");
         const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
 
-        // Get current day (only if we're viewing the current month)
         const today = new Date();
-        const isCurrentMonth = currentMonth === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-        const currentDay = isCurrentMonth ? today.getDate() : daysInMonth;
+        const isActuallyCurrentMonth = targetMonth === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+        const currentDay = isActuallyCurrentMonth ? today.getDate() : daysInMonth;
 
         const dailyTotals = new Map<number, number>();
         for (let day = 1; day <= daysInMonth; day++) {
             dailyTotals.set(day, 0);
         }
 
-        transactions.forEach((t: Transaction) => {
+        txs.forEach((t: Transaction) => {
             if (t.deleted_at || t.type !== "expense") return;
             const day = new Date(t.date).getDate();
             dailyTotals.set(day, (dailyTotals.get(day) || 0) + getEffectiveAmount(t, groupShareMap));
@@ -646,7 +647,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
         let cumulative = 0;
         let cumulativeAtCurrentDay = 0;
 
-        // First pass: calculate cumulative up to current day
+        // First pass: calculate cumulative up to current day (or end of month if not current)
         for (let day = 1; day <= currentDay; day++) {
             cumulative += dailyTotals.get(day) || 0;
         }
@@ -655,32 +656,100 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
         const dailyAverage = currentDay > 0 ? cumulativeAtCurrentDay / currentDay : 0;
 
         cumulative = 0;
+        const result: DailyCumulativeData[] = [];
+
         for (let day = 1; day <= daysInMonth; day++) {
             cumulative += dailyTotals.get(day) || 0;
 
-            // Only include days up to currentDay for actual cumulative data
-            // For future days, only include projection (cumulative stays undefined/not rendered)
-            if (day <= currentDay) {
-                // Current or past days: show actual cumulative, plus projection starting at currentDay
-                const projection = day === currentDay
-                    ? cumulativeAtCurrentDay
-                    : undefined;
-
-                dailyCumulativeExpenses.push({
+            if (isActuallyCurrentMonth) {
+                if (day <= currentDay) {
+                    const projection = day === currentDay ? cumulativeAtCurrentDay : undefined;
+                    result.push({
+                        day: day.toString(),
+                        cumulative: Math.round(cumulative * 100) / 100,
+                        projection: projection !== undefined ? Math.round(projection * 100) / 100 : undefined,
+                    });
+                } else {
+                    const projection = cumulativeAtCurrentDay + dailyAverage * (day - currentDay);
+                    result.push({
+                        day: day.toString(),
+                        cumulative: undefined,
+                        projection: Math.round(projection * 100) / 100,
+                    });
+                }
+            } else {
+                // Past month: just show cumulative
+                result.push({
                     day: day.toString(),
                     cumulative: Math.round(cumulative * 100) / 100,
-                    projection: projection !== undefined ? Math.round(projection * 100) / 100 : undefined,
-                });
-            } else {
-                // Future days: only show projection, no cumulative
-                const projection = cumulativeAtCurrentDay + dailyAverage * (day - currentDay);
-
-                dailyCumulativeExpenses.push({
-                    day: day.toString(),
-                    cumulative: undefined,
-                    projection: Math.round(projection * 100) / 100,
+                    projection: undefined,
                 });
             }
+        }
+        return result;
+    };
+
+    let dailyCumulativeExpenses: DailyCumulativeData[] = [];
+    let previousMonthCumulativeExpenses: DailyCumulativeData[] = [];
+
+    if (mode === "monthly") {
+        if (transactions) {
+            dailyCumulativeExpenses = calculateDailyCumulative(transactions, currentMonth);
+        }
+        if (event.data.payload.previousMonthTransactions) {
+            const prevMonth = event.data.payload.previousMonthTransactions[0]?.year_month ||
+                (() => {
+                    const [y, m] = currentMonth.split('-').map(Number);
+                    const d = new Date(y, m - 1 - 1, 1);
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                })();
+
+            previousMonthCumulativeExpenses = calculateDailyCumulative(event.data.payload.previousMonthTransactions, prevMonth);
+        }
+    }
+
+    // --- 11. Yearly Cumulative ---
+    const calculateYearlyCumulative = (txs: Transaction[]): MonthlyCumulativeData[] => {
+        const monthlyTotals = new Map<string, number>();
+        const months = [
+            '01', '02', '03', '04', '05', '06',
+            '07', '08', '09', '10', '11', '12'
+        ];
+
+        const monthLabels = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+
+        months.forEach(m => monthlyTotals.set(m, 0));
+
+        txs.forEach(t => {
+            if (t.deleted_at || t.type !== 'expense') return;
+            // Ensure we check date format is YYYY-MM-DD
+            const parts = t.date.split('-');
+            if (parts.length < 2) return;
+            const m = parts[1];
+            monthlyTotals.set(m, (monthlyTotals.get(m) || 0) + getEffectiveAmount(t, groupShareMap));
+        });
+
+        let cumulative = 0;
+        return months.map((m, i) => {
+            cumulative += monthlyTotals.get(m) || 0;
+            return {
+                month: monthLabels[i],
+                cumulative: Math.round(cumulative * 100) / 100
+            };
+        });
+    }
+
+    let yearlyCumulativeExpenses: MonthlyCumulativeData[] = [];
+    let previousYearCumulativeExpenses: MonthlyCumulativeData[] = [];
+
+    if (mode === "yearly") {
+        if (yearlyTransactions) {
+            yearlyCumulativeExpenses = calculateYearlyCumulative(yearlyTransactions);
+        }
+        if (event.data.payload.previousYearTransactions) {
+            previousYearCumulativeExpenses = calculateYearlyCumulative(event.data.payload.previousYearTransactions);
         }
     }
 
@@ -708,10 +777,13 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
             monthlyCashFlow,
             contextStats,
             dailyCumulativeExpenses,
+            previousMonthCumulativeExpenses,
             monthlyExpenses,
             monthlyIncome,
             monthlyInvestments,
             monthlyContextTrends,
+            yearlyCumulativeExpenses,
+            previousYearCumulativeExpenses,
 
             groupBalances,
             monthlyBudgetHealth

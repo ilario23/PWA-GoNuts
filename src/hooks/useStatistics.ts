@@ -141,10 +141,13 @@ export function useStatistics(params?: UseStatisticsParams) {
     monthlyCashFlow: [],
     contextStats: [],
     dailyCumulativeExpenses: [],
+    previousMonthCumulativeExpenses: [],
     monthlyExpenses: [],
     monthlyIncome: [],
     monthlyInvestments: [],
     monthlyContextTrends: [],
+    yearlyCumulativeExpenses: [],
+    previousYearCumulativeExpenses: [],
 
     groupBalances: [],
     monthlyBudgetHealth: [],
@@ -166,51 +169,6 @@ export function useStatistics(params?: UseStatisticsParams) {
       workerRef.current?.terminate();
     };
   }, []);
-
-  // Send data to worker when it changes
-  useEffect(() => {
-    if (
-      workerRef.current &&
-      (transactions || yearlyTransactions) &&
-      categories &&
-      contexts
-    ) {
-      if (!isLoading) setIsLoading(true); // Set loading if not already matching
-
-      const message: StatisticsWorkerRequest = {
-        type: "CALCULATE_STATS",
-        payload: {
-          transactions: transactions || [],
-          yearlyTransactions: yearlyTransactions || [],
-          categories,
-          contexts,
-          groupId: params?.groupId,
-          mode,
-          currentMonth,
-          currentYear,
-          userId,
-          groupMemberships,
-          activeGroupMembers,
-          categoryBudgets,
-        },
-      };
-      workerRef.current.postMessage(message);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    transactions,
-    yearlyTransactions,
-    categories,
-    contexts,
-    params?.groupId,
-    mode,
-    currentMonth,
-    currentYear,
-    userId,
-    groupMemberships,
-  ]);
-
-
   // --- Comparisons & Helpers ---
   const getEffectiveAmount = useCallback((t: Transaction) => {
     if (!params?.groupId && !t.group_id) return t.amount;
@@ -271,6 +229,7 @@ export function useStatistics(params?: UseStatisticsParams) {
     }
   }, [workerResult.monthlyStats, previousMonthTransactions, mode, getEffectiveAmount, transactions]);
 
+
   const previousYearTransactions = useLiveQuery(
     () =>
       mode === "yearly"
@@ -284,6 +243,55 @@ export function useStatistics(params?: UseStatisticsParams) {
         : Promise.resolve([] as Transaction[]),
     [previousYear, mode, params?.groupId]
   );
+
+
+
+  // Send data to worker when it changes
+  useEffect(() => {
+    if (
+      workerRef.current &&
+      (transactions || yearlyTransactions) &&
+      categories &&
+      contexts
+    ) {
+      if (!isLoading) setIsLoading(true); // Set loading if not already matching
+
+      const message: StatisticsWorkerRequest = {
+        type: "CALCULATE_STATS",
+        payload: {
+          transactions: transactions || [],
+          yearlyTransactions: yearlyTransactions || [],
+          previousMonthTransactions: previousMonthTransactions || [],
+          previousYearTransactions: previousYearTransactions || [],
+          categories,
+          contexts,
+          groupId: params?.groupId,
+          mode,
+          currentMonth,
+          currentYear,
+          userId,
+          groupMemberships,
+          activeGroupMembers,
+          categoryBudgets,
+        },
+      };
+      workerRef.current.postMessage(message);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    transactions,
+    yearlyTransactions,
+    previousMonthTransactions,
+    previousYearTransactions,
+    categories,
+    contexts,
+    params?.groupId,
+    mode,
+    currentMonth,
+    currentYear,
+    userId,
+    groupMemberships,
+  ]);
 
   const yearlyComparison = useMemo(() => {
     if (mode !== "yearly" || !yearlyTransactions || !previousYearTransactions)
@@ -423,9 +431,9 @@ export function useStatistics(params?: UseStatisticsParams) {
     categoryComparison: [] as CategoryComparisonData[],
     previousMonth,
     previousYear,
-    previousMonthCumulativeExpenses: [] as DailyCumulativeData[],
-    yearlyCumulativeExpenses: [] as MonthlyCumulativeData[],
-    previousYearCumulativeExpenses: [] as MonthlyCumulativeData[],
+    previousMonthCumulativeExpenses: workerResult.previousMonthCumulativeExpenses || [],
+    yearlyCumulativeExpenses: workerResult.yearlyCumulativeExpenses || [],
+    previousYearCumulativeExpenses: workerResult.previousYearCumulativeExpenses || [],
     isLoading,
   };
 }

@@ -6,6 +6,8 @@ export type StatisticsWorkerRequest = {
         transactions: Transaction[];
         categories: Category[];
         contexts: Context[];
+        previousMonthTransactions: Transaction[];
+        previousYearTransactions: Transaction[];
         yearlyTransactions: Transaction[];
         groupId?: string;
         mode: "monthly" | "yearly";
@@ -129,10 +131,13 @@ export type StatisticsWorkerResponse = {
         monthlyCashFlow: CashFlowData[];
         contextStats: ContextStat[];
         dailyCumulativeExpenses: DailyCumulativeData[];
+        previousMonthCumulativeExpenses: DailyCumulativeData[];
         monthlyExpenses: RadarData[];
         monthlyIncome: RadarData[];
         monthlyInvestments: RadarData[];
         monthlyContextTrends: ContextTrendData[];
+        yearlyCumulativeExpenses: MonthlyCumulativeData[];
+        previousYearCumulativeExpenses: MonthlyCumulativeData[];
 
         groupBalances: GroupBalance[];
         monthlyBudgetHealth: BudgetHealth[];
