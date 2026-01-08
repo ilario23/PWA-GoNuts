@@ -34,7 +34,7 @@ export function UserAvatar({
     return (
         <div className={cn("flex items-center gap-2", className)}>
             <Avatar className={cn("h-8 w-8", avatarClassName)}>
-                <AvatarImage src={profile?.avatar_url} alt={displayName} />
+                <AvatarImage src={profile?.avatar_url || undefined} alt={displayName} />
                 <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             {showName && (
