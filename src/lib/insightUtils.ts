@@ -57,7 +57,7 @@ export const generateInsights = (
                 icon: "TrendingUp",
                 priority: 90,
             });
-        } else if (change < -10) {
+        } else if (change < -10 && stats.monthlyStats.expense > 50) {
             insights.push({
                 id: "low-spending",
                 title: "insights.spending_drop.title",
@@ -105,6 +105,31 @@ export const generateInsights = (
     // 5. No Spend Days (if we had daily data readily available in memory here easily... 
     // currently we have dailyCumulativeExpenses, can infer flat lines)
     // Let's keep it simple for v1.
+
+    // 5. Advice (Fallback if no insights)
+    if (insights.length === 0 && stats.previousMonthStats) {
+        const prevStats = stats.previousMonthStats;
+        const totalPrevExpense = prevStats.expense;
+
+        // Check for "Whale" in previous month
+        if (prevStats.byCategory.length > 0 && totalPrevExpense > 0) {
+            const sortedPrevCats = [...prevStats.byCategory].sort((a, b) => b.value - a.value);
+            const topPrevCat = sortedPrevCats[0];
+            const percentage = Math.round((topPrevCat.value / totalPrevExpense) * 100);
+
+            if (percentage > 20) {
+                insights.push({
+                    id: "advice-previous-whale",
+                    title: "insights.advice.title",
+                    message: "insights.advice.previous_whale",
+                    messageParams: { category: topPrevCat.name, percentage },
+                    type: "tip",
+                    icon: "Lightbulb",
+                    priority: 50, // Low priority, but it's the only one so it will show
+                });
+            }
+        }
+    }
 
     // Sort by priority
     return insights.sort((a, b) => b.priority - a.priority);

@@ -9,10 +9,16 @@ import { SmoothLoader } from "@/components/ui/smooth-loader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 import { CountUp } from "@/components/ui/count-up";
+import { Insight } from "@/lib/insightUtils";
+import { cn } from "@/lib/utils";
+import * as Icons from "lucide-react";
+
+export type StatCardType = "expense" | "income" | "balance" | "budget" | "insight";
 
 interface DashboardStatCardProps {
     index: number;
     statsCount: number;
+    type: StatCardType;
     totalExpense: number;
     totalIncome: number;
     balance: number;
@@ -20,11 +26,13 @@ interface DashboardStatCardProps {
     isOverBudget: boolean;
     budgetUsedPercentage: number;
     isStatsLoading: boolean;
+    insight?: Insight;
 }
 
 export function DashboardStatCard({
     index,
     statsCount,
+    type,
     totalExpense,
     totalIncome,
     balance,
@@ -32,6 +40,7 @@ export function DashboardStatCard({
     isOverBudget,
     budgetUsedPercentage,
     isStatsLoading,
+    insight,
 }: DashboardStatCardProps) {
     const { t } = useTranslation();
 
@@ -56,29 +65,22 @@ export function DashboardStatCard({
             {Array.from({ length: statsCount }).map((_, i) => (
                 <div
                     key={i}
-                    className={`h-1.5 w-1.5 rounded-full transition-colors ${i === index
-                        ? index === 0
-                            ? "bg-red-500"
-                            : index === 1
-                                ? "bg-green-500"
-                                : index === 2
-                                    ? balance >= 0
-                                        ? "bg-emerald-500"
-                                        : "bg-red-500"
-                                    : isOverBudget
-                                        ? "bg-red-500"
-                                        : budgetUsedPercentage > 80
-                                            ? "bg-amber-500"
-                                            : "bg-blue-500"
-                        : "bg-muted-foreground/30"
-                        }`}
+                    className={cn(
+                        "h-1.5 w-1.5 rounded-full transition-colors",
+                        i === index ? "bg-primary" : "bg-muted-foreground/30",
+                        i === index && type === "expense" && "bg-red-500",
+                        i === index && type === "income" && "bg-green-500",
+                        i === index && type === "balance" && (balance >= 0 ? "bg-emerald-500" : "bg-red-500"),
+                        i === index && type === "budget" && (isOverBudget ? "bg-red-500" : budgetUsedPercentage > 80 ? "bg-amber-500" : "bg-blue-500"),
+                        i === index && type === "insight" && "bg-purple-500"
+                    )}
                 />
             ))}
         </div>
     );
 
-    switch (index) {
-        case 0: // Expenses
+    switch (type) {
+        case "expense": // Expenses
             return (
                 <div className="relative overflow-hidden rounded-xl p-4 h-full border">
                     <div className="flex items-center justify-between mb-2">
@@ -106,7 +108,7 @@ export function DashboardStatCard({
                     </div>
                 </div>
             );
-        case 1: // Income
+        case "income": // Income
             return (
                 <div className="relative overflow-hidden rounded-xl p-4 h-full border">
                     <div className="flex items-center justify-between mb-2">
@@ -134,7 +136,7 @@ export function DashboardStatCard({
                     </div>
                 </div>
             );
-        case 2: // Balance
+        case "balance": // Balance
             return (
                 <div className="relative overflow-hidden rounded-xl p-4 h-full border">
                     <div className="flex items-center justify-between mb-2">
@@ -173,7 +175,7 @@ export function DashboardStatCard({
                     </div>
                 </div>
             );
-        case 3: // Budget (only if monthlyBudget exists)
+        case "budget": // Budget (only if monthlyBudget exists)
             if (!monthlyBudget) return null;
             return (
                 <div className="relative overflow-hidden rounded-xl p-4 h-full border">
@@ -230,6 +232,48 @@ export function DashboardStatCard({
                                 : "text-blue-500"
                             }`}
                     ></div>
+                </div>
+            );
+        case "insight":
+            if (!insight) return null;
+            const IconComponent = (Icons as any)[insight.icon] || Icons.Info;
+            // Determine color based on type
+            const colorClass = insight.type === "positive" ? "text-green-600 dark:text-green-400" :
+                insight.type === "warning" ? "text-amber-600 dark:text-amber-400" :
+                    insight.type === "tip" ? "text-purple-600 dark:text-purple-400" :
+                        "text-blue-600 dark:text-blue-400";
+
+            const bgClass = insight.type === "positive" ? "bg-green-500/15" :
+                insight.type === "warning" ? "bg-amber-500/15" :
+                    insight.type === "tip" ? "bg-purple-500/15" :
+                        "bg-blue-500/15";
+
+            return (
+                <div className="relative overflow-hidden rounded-xl p-3 h-full border">
+                    {/* Header Row: Icon + Title + Dots */}
+                    <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 w-full pr-12">
+                            <div className={cn("p-1 rounded-md shrink-0", bgClass, colorClass)}>
+                                <IconComponent className="h-4 w-4" />
+                            </div>
+                            <span className={cn("text-xs font-semibold uppercase tracking-wider truncate", colorClass)}>
+                                {t(insight.title)}
+                            </span>
+                        </div>
+                        <div className="absolute top-3 right-3">
+                            {dotIndicators}
+                        </div>
+                    </div>
+
+                    {/* Content Row */}
+                    <div className="text-sm font-medium text-foreground leading-snug line-clamp-2 md:line-clamp-3">
+                        {t(insight.message || "", insight.messageParams)}
+                    </div>
+
+                    {/* Background Icon */}
+                    <div className={cn("absolute -right-4 -bottom-4 opacity-[0.05]", colorClass)}>
+                        <IconComponent className="h-20 w-20" />
+                    </div>
                 </div>
             );
         default:
