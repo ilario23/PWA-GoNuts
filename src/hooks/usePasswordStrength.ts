@@ -47,7 +47,7 @@ export function usePasswordStrength(password: string) {
                     setResult({
                         score: strength.score,
                         feedback: {
-                            warning: strength.feedback.warning,
+                            warning: strength.feedback.warning || undefined,
                             suggestions: strength.feedback.suggestions,
                         },
                     });
