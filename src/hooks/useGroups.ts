@@ -482,7 +482,7 @@ export function useGroups() {
         hasPaid,
         balance: hasPaid - shouldPay, // Fixed: Positive = owed money (Creditor), Negative = owes money (Debtor)
         displayName,
-        avatarUrl: profile?.avatar_url,
+        avatarUrl: profile?.avatar_url || undefined,
         isGuest: !!member.is_guest,
       };
     }

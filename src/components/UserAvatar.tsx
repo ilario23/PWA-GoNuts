@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
     userId: string;
-    className?: string;
+    className?: string; // Container class
+    avatarClassName?: string; // Avatar element class
     showName?: boolean;
     fallbackName?: string; // Name to show if profile not found (e.g. "You")
 }
@@ -12,6 +13,7 @@ interface UserAvatarProps {
 export function UserAvatar({
     userId,
     className,
+    avatarClassName,
     showName = false,
     fallbackName
 }: UserAvatarProps) {
@@ -31,8 +33,8 @@ export function UserAvatar({
 
     return (
         <div className={cn("flex items-center gap-2", className)}>
-            <Avatar className="h-8 w-8">
-                <AvatarImage src={profile?.avatar_url} alt={displayName} />
+            <Avatar className={cn("h-8 w-8", avatarClassName)}>
+                <AvatarImage src={profile?.avatar_url || undefined} alt={displayName} />
                 <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             {showName && (

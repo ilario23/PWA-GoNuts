@@ -255,11 +255,11 @@ export interface Profile {
   /** UUID primary key (matches auth.users.id) */
   id: string;
   /** User's email (publicly visible) */
-  email?: string;
+  email?: string | null;
   /** User's full name */
-  full_name?: string;
+  full_name?: string | null;
   /** URL to user's avatar image */
-  avatar_url?: string;
+  avatar_url?: string | null;
   /** Last modification timestamp (ISO 8601) */
   updated_at?: string;
   /** 1 if changes pending sync, 0 otherwise */

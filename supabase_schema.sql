@@ -518,4 +518,43 @@ create trigger on_auth_user_created
 
 -- 6. Realtime Publication
 -- Add profiles to the realtime publication so clients can subscribe to changes
-alter publication supabase_realtime add table public.profiles;
+-- ============================================================================
+-- STORAGE
+-- ============================================================================
+
+-- Create a new storage bucket for avatars
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+-- Policy to allow public access to avatars
+create policy "Avatar images are publicly accessible."
+  on storage.objects for select
+  using ( bucket_id = 'avatars' );
+
+-- Policy to allow authenticated users to upload their own avatar
+create policy "Users can upload their own avatar."
+  on storage.objects for insert
+  with check (
+    bucket_id = 'avatars' 
+    and auth.role() = 'authenticated'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Policy to allow users to update their own avatar
+create policy "Users can update their own avatar."
+  on storage.objects for update
+  using (
+    bucket_id = 'avatars' 
+    and auth.role() = 'authenticated'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Policy to allow users to delete their own avatar
+create policy "Users can delete their own avatar."
+  on storage.objects for delete
+  using (
+    bucket_id = 'avatars' 
+    and auth.role() = 'authenticated'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
