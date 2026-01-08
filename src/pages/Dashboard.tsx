@@ -98,40 +98,47 @@ export function Dashboard() {
     [transactions]
   );
 
+  // Mobile stats carousel state - MUST be declared before use
+  const [statsRotation, setStatsRotation] = useState(0);
+  const [chartRotation, setChartRotation] = useState(0);
+
+  // Build a SINGLE deck structure: Expense -> Income -> Insight (placeholder) -> Balance -> (Budget)
+  // The insight shown will rotate each time we complete a full cycle through the deck.
+  const baseDeckLength = 3 + (monthlyBudget ? 1 : 0) + (insights && insights.length > 0 ? 1 : 0);
+
+  // Calculate which "round" we are in based on rotation (each card flip is 180deg, full deck cycle = baseDeckLength flips)
+  // We use Math.abs to handle negative rotations and Math.floor to get the round.
+  const flipCount = Math.abs(statsRotation) / 180;
+  const currentRound = Math.floor(flipCount / baseDeckLength);
+
+  // Pick insight index based on round (cycles through available insights)
+  const currentInsightIndex = insights && insights.length > 0 ? currentRound % insights.length : 0;
+  const currentInsight = insights ? insights[currentInsightIndex] : undefined;
 
   // Construct card deck based on user preference and data availability
   const cards: Array<{
     type: "expense" | "income" | "balance" | "budget" | "insight";
-    insight?: any; // Using explicit type locally but passing through generic
+    insight?: any;
   }> = useMemo(() => {
-    // If no insights, return standard deck
-    if (!insights || insights.length === 0) {
-      const deck = [
-        { type: "expense" as const },
-        { type: "income" as const },
-        { type: "balance" as const },
-      ] as any[];
-      if (monthlyBudget) deck.push({ type: "budget" as const });
-      return deck;
+    const deck: any[] = [
+      { type: "expense" as const },
+      { type: "income" as const },
+    ];
+
+    // Add single insight slot if available (actual insight is picked dynamically)
+    if (insights && insights.length > 0) {
+      deck.push({ type: "insight" as const, insight: currentInsight });
     }
 
-    // Interleave insights: Exp -> Inc -> Insight[i] -> Bal -> (Budg)
-    const deck: any[] = [];
-    insights.forEach((insight) => {
-      deck.push({ type: "expense" as const });
-      deck.push({ type: "income" as const });
-      deck.push({ type: "insight" as const, insight });
-      deck.push({ type: "balance" as const });
-      if (monthlyBudget) deck.push({ type: "budget" as const });
-    });
+    deck.push({ type: "balance" as const });
+
+    if (monthlyBudget) {
+      deck.push({ type: "budget" as const });
+    }
 
     return deck;
+  }, [monthlyBudget, insights, currentInsight]);
 
-  }, [monthlyBudget, insights]);
-
-  // Mobile stats carousel state
-  const [statsRotation, setStatsRotation] = useState(0);
-  const [chartRotation, setChartRotation] = useState(0);
   const statsCount = cards.length;
 
   // Chart Card Flip State
