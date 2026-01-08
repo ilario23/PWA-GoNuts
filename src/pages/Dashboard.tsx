@@ -55,7 +55,7 @@ export function Dashboard() {
   );
 
   // Get current month statistics
-  const { monthlyStats, dailyCumulativeExpenses, isLoading: isStatsLoading } = useStatistics({
+  const { monthlyStats, dailyCumulativeExpenses, isLoading: isStatsLoading, insights } = useStatistics({
     selectedMonth: currentMonth,
     userId: user?.id,
   });
@@ -99,16 +99,46 @@ export function Dashboard() {
   );
 
 
+  // Construct card deck based on user preference and data availability
+  const cards: Array<{
+    type: "expense" | "income" | "balance" | "budget" | "insight";
+    insight?: any; // Using explicit type locally but passing through generic
+  }> = useMemo(() => {
+    // If no insights, return standard deck
+    if (!insights || insights.length === 0) {
+      const deck = [
+        { type: "expense" as const },
+        { type: "income" as const },
+        { type: "balance" as const },
+      ] as any[];
+      if (monthlyBudget) deck.push({ type: "budget" as const });
+      return deck;
+    }
+
+    // Interleave insights: Exp -> Inc -> Insight[i] -> Bal -> (Budg)
+    const deck: any[] = [];
+    insights.forEach((insight) => {
+      deck.push({ type: "expense" as const });
+      deck.push({ type: "income" as const });
+      deck.push({ type: "insight" as const, insight });
+      deck.push({ type: "balance" as const });
+      if (monthlyBudget) deck.push({ type: "budget" as const });
+    });
+
+    return deck;
+
+  }, [monthlyBudget, insights]);
 
   // Mobile stats carousel state
   const [statsRotation, setStatsRotation] = useState(0);
   const [chartRotation, setChartRotation] = useState(0);
-  const statsCount = monthlyBudget ? 4 : 3;
+  const statsCount = cards.length;
 
   // Chart Card Flip State
   const [chartFaceAIndex, setChartFaceAIndex] = useState(0);
   const [chartFaceBIndex, setChartFaceBIndex] = useState(1);
-  const chartViewsCount = monthlyBudget ? 3 : 2;
+  const chartViewsCount = 3; // Chart, Transactions, Budget (if exists) -> actually logic below handles this separately?
+  // Only handling stats deck logic here first.
 
   // Derive flip state from rotation (odd multiples of 180 are flipped)
   const isChartFlipped = (Math.abs(chartRotation / 180) % 2) === 1;
@@ -119,21 +149,22 @@ export function Dashboard() {
     : chartFaceAIndex;
 
   // Handle chart flip with direction (circular navigation)
-  // Supports both horizontal (left/right) and vertical (up/down) swipes
-  // Up and Left move forward, Down and Right move backward
   const handleChartSwipe = useCallback((direction: SwipeDirection) => {
-    // Map vertical directions to rotation: up = left-like (forward), down = right-like (backward)
     const isForward = direction === "left" || direction === "up";
     const newRotation = isForward ? chartRotation - 180 : chartRotation + 180;
     setChartRotation(newRotation);
 
+    // Chart has its own index logic (views count), separate from stats deck
+    // Re-calculating views count locally for chart
+    const viewsCount = monthlyBudget ? 3 : 2;
+
     const nextIndex = !isForward
-      ? (currentChartVisibleIndex - 1 + chartViewsCount) % chartViewsCount
-      : (currentChartVisibleIndex + 1) % chartViewsCount;
+      ? (currentChartVisibleIndex - 1 + viewsCount) % viewsCount
+      : (currentChartVisibleIndex + 1) % viewsCount;
 
     const afterNextIndex = !isForward
-      ? (nextIndex - 1 + chartViewsCount) % chartViewsCount
-      : (nextIndex + 1) % chartViewsCount;
+      ? (nextIndex - 1 + viewsCount) % viewsCount
+      : (nextIndex + 1) % viewsCount;
 
     if (isChartFlipped) {
       setChartFaceAIndex(nextIndex);
@@ -146,7 +177,7 @@ export function Dashboard() {
         setChartFaceAIndex(afterNextIndex);
       }, 350);
     }
-  }, [currentChartVisibleIndex, isChartFlipped, chartRotation, chartViewsCount]);
+  }, [currentChartVisibleIndex, isChartFlipped, chartRotation, monthlyBudget]);
 
   // Track which card index is on which face
   const [faceAIndex, setFaceAIndex] = useState(0);
@@ -180,6 +211,33 @@ export function Dashboard() {
       }, 350);
     }
   }, [currentVisibleIndex, isStatsFlipped, statsRotation, statsCount]);
+
+  // shared props without statsCount which is now dynamic
+  const baseStatCardProps = {
+    totalExpense,
+    totalIncome,
+    balance,
+    monthlyBudget,
+    isOverBudget,
+    budgetUsedPercentage,
+    isStatsLoading,
+  };
+
+  // Helper to render card with correct data
+  const renderCard = (index: number) => {
+    const card = cards[index];
+    if (!card) return null;
+
+    return (
+      <DashboardStatCard
+        index={index}
+        statsCount={statsCount}
+        type={card.type}
+        insight={card.insight}
+        {...baseStatCardProps}
+      />
+    );
+  };
 
   // Transaction dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -256,17 +314,6 @@ export function Dashboard() {
     onDelete: handleDelete,
   };
 
-  // Shared props for stat cards
-  const statCardProps = {
-    statsCount,
-    totalExpense,
-    totalIncome,
-    balance,
-    monthlyBudget,
-    isOverBudget,
-    budgetUsedPercentage,
-    isStatsLoading,
-  };
 
   return (
     <div className="flex flex-col md:block h-[calc(100dvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
@@ -280,8 +327,8 @@ export function Dashboard() {
           onSwipe={handleStatSwipe}
           rotation={statsRotation}
           disableGlobalClick
-          frontContent={<DashboardStatCard index={faceAIndex} {...statCardProps} />}
-          backContent={<DashboardStatCard index={faceBIndex} {...statCardProps} />}
+          frontContent={renderCard(faceAIndex)}
+          backContent={renderCard(faceBIndex)}
         />
       </div>
 
@@ -316,6 +363,7 @@ export function Dashboard() {
           budgetUsedPercentage={budgetUsedPercentage}
           isOverBudget={isOverBudget}
           budgetRemaining={budgetRemaining}
+          insight={cards.find(c => c.type === "insight")?.insight}
         />
 
         {/* Main Grid: Chart + Transactions */}

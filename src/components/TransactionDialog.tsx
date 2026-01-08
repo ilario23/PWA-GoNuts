@@ -52,6 +52,7 @@ import { useCategoryBudgets } from "@/hooks/useCategoryBudgets";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { transactionSchema, TransactionFormValues } from "@/lib/schemas";
+import { useRecentCategoryUsage } from "@/hooks/useRecentCategoryUsage";
 
 // Re-export this for backward compatibility if needed, though RHF generic handles it
 export type TransactionFormData = TransactionFormValues;
@@ -101,6 +102,9 @@ export function TransactionDialog({
 
     const [showLargeValueConfirm, setShowLargeValueConfirm] = useState(false);
     const [pendingData, setPendingData] = useState<TransactionFormValues | null>(null);
+
+    // Category Frequency Hook
+    const categoryUsage = useRecentCategoryUsage();
 
     // Budget Hook
     const { getBudgetForCategory } = useCategoryBudgets();
@@ -519,6 +523,7 @@ export function TransactionDialog({
                                                         onChange={field.onChange}
                                                         type={watchedType}
                                                         groupId={watchedGroupId}
+                                                        usageFrequency={categoryUsage}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />

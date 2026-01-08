@@ -33,6 +33,7 @@ interface CategorySelectorProps {
   groupId?: string | null; // Kept for API compatibility but ignored for filtering to show all
   triggerClassName?: string;
   showSkipOption?: boolean;
+  usageFrequency?: Record<string, number>;
 }
 
 // Helper to get descendant IDs (defined outside to avoid recursion issues)
@@ -54,6 +55,7 @@ export function CategorySelector({
   groupId, // Strict filter: null/undefined = Personal, string = Group
   triggerClassName,
   showSkipOption = false,
+  usageFrequency,
 }: CategorySelectorProps) {
   // Fetch ALL categories first, then filter strictly in memory for responsiveness
   // Or should we trust the hook? Let's filter in memory to be sure.
@@ -106,8 +108,21 @@ export function CategorySelector({
       cats = cats.filter(c => c.name.toLowerCase().includes(lowerTerm));
     }
 
-    return cats.sort((a, b) => a.name.localeCompare(b.name));
-  }, [categories, type, excludeId, searchTerm, groupId]);
+    return cats.sort((a, b) => {
+      // Sort by frequency (descending) if available
+      if (usageFrequency) {
+        const countA = usageFrequency[a.id] || 0;
+        const countB = usageFrequency[b.id] || 0;
+
+        // Only prioritize if there is a difference and usage > 0
+        if (countA !== countB) {
+          return countB - countA;
+        }
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+  }, [categories, type, excludeId, searchTerm, groupId, usageFrequency]);
 
 
   // If searching, we show a flat list. If not, we show tree.
@@ -284,7 +299,11 @@ export function CategorySelector({
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 w-full">
+      <div
+        className="flex-1 overflow-y-auto p-2 w-full"
+        data-vaul-no-drag
+        onTouchStart={(e) => e.stopPropagation()}
+      >
         {showSkipOption && !isSearching && (
           <div className="mb-1 pb-1 border-b border-border/40">
             <div

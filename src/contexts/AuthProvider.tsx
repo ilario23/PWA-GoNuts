@@ -12,6 +12,7 @@
 
 import * as React from "react";
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { db } from "@/lib/db";
 import { syncManager } from "@/lib/sync";
@@ -113,6 +114,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
   const shouldPreserveDataRef = React.useRef(false);
+  const navigate = useNavigate();
 
   const updateUser = useCallback((newUser: User | null, offline = false) => {
     setUser(newUser);
@@ -291,6 +293,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             "[AuthProvider] Page reload detected, skipping full sync"
           );
         }
+      } else if (event === "PASSWORD_RECOVERY") {
+        console.log("[AuthProvider] Password recovery event detected");
+        navigate("/update-password");
       }
     });
 

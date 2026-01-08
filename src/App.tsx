@@ -60,6 +60,16 @@ const SettingsPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import("@/pages/Profile").then((m) => ({ default: m.ProfilePage }))
 );
+const RequestPasswordResetPage = lazy(() =>
+  import("@/pages/RequestPasswordReset").then((m) => ({
+    default: m.RequestPasswordResetPage,
+  }))
+);
+const UpdatePasswordPage = lazy(() =>
+  import("@/pages/UpdatePassword").then((m) => ({
+    default: m.UpdatePasswordPage,
+  }))
+);
 
 /**
  * Loading fallback for lazy-loaded pages
@@ -386,6 +396,22 @@ function App() {
             <OfflineIndicator />
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
+              <Route
+                path="/auth/reset-password"
+                element={
+                  <Suspense fallback={<PageLoadingFallback />}>
+                    <RequestPasswordResetPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/update-password"
+                element={
+                  <Suspense fallback={<PageLoadingFallback />}>
+                    <UpdatePasswordPage />
+                  </Suspense>
+                }
+              />
               <Route
                 path="/*"
                 element={

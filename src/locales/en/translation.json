@@ -88,6 +88,18 @@
   "magic_link_sent": "We sent you a login link. Be sure to check your spam too.",
   "auth_error": "Authentication Error",
   "passwords_mismatch": "Passwords do not match",
+  "forgot_password": "Forgot password?",
+  "reset_password": "Reset Password",
+  "send_reset_link": "Send reset link",
+  "reset_link_sent": "Reset link sent. Check your email.",
+  "update_password": "Update Password",
+  "new_password": "New Password",
+  "password_updated": "Password updated successfully",
+  "back_to_login": "Back to Login",
+  "strength_weak": "Weak",
+  "strength_fair": "Fair",
+  "strength_good": "Good",
+  "strength_strong": "Strong",
   "confirm_password": "Confirm Password",
   "session_expired": "Session Expired",
   "logging_out_in": "Logging out in",
@@ -209,6 +221,7 @@
   "yearly_statistics": "Yearly",
   "tap_for_average": "Tap for monthly avg",
   "tap_to_flip": "Tap to flip",
+  "tap_to_flip_desc": "Tap the card to see the next insight",
   "monthly_average": "Monthly Average",
   "period_comparison": "Period Comparison",
   "comparison_vs_previous_month": "{{current}} vs {{previous}}",
@@ -927,6 +940,36 @@
   "balance_amount_positive": "+€{{amount}}",
   "balance_amount_negative": "€{{amount}}",
   "trend_value": "€{{previous}} → €{{current}}",
-  "language_en": "🇬🇧 English",
-  "language_it": "🇮🇹 Italiano"
+  "insights": {
+    "section_title": "Highlights",
+    "top_category": {
+      "title": "The Whale",
+      "message": "{{category}} is your top expense ({{percentage}}%)"
+    },
+    "spending_spike": {
+      "title": "Trend Watch",
+      "message": "Woah, spending is up {{percent}}% vs last month!"
+    },
+    "spending_drop": {
+      "title": "Nice Drop",
+      "message": "You're spending {{percent}}% less than usual."
+    },
+    "good_saver": {
+      "title": "Saver Mode",
+      "message": "Great job! You saved {{percent}}% of your income."
+    },
+    "overspending": {
+      "title": "Balance Warning",
+      "message": "Be careful, your expenses (€{{expense}}) exceed (€{{income}})."
+    },
+    "advice": {
+      "title": "Advice",
+      "previous_whale": "Spent {{percentage}}% on {{category}} last month. Keep an eye on it."
+    }
+  },
+  "statistics_overview": {
+    "summary_section_title": "Summary",
+    "graphs_section_title": "Graphs",
+    "not_enough_data": "Not enough data to display graphs"
+  }
 }
