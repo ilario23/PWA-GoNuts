@@ -440,7 +440,7 @@ export function useStatistics(params?: UseStatisticsParams) {
     previousMonthCumulativeExpenses: workerResult.previousMonthCumulativeExpenses || [],
     yearlyCumulativeExpenses: workerResult.yearlyCumulativeExpenses || [],
     previousYearCumulativeExpenses: workerResult.previousYearCumulativeExpenses || [],
-    isLoading,
+    isLoading: isLoading || !transactions || !categories || !contexts, // effectively loading if DB is fetching or worker is calculating
     insights,
   };
 }

@@ -221,6 +221,7 @@
   "yearly_statistics": "Annuali",
   "tap_for_average": "Tocca per media mensile",
   "tap_to_flip": "Tocca per girare",
+  "tap_to_flip_desc": "Tocca la scheda per vedere il prossimo insight",
   "monthly_average": "Media Mensile",
   "period_comparison": "Confronto Periodi",
   "comparison_vs_previous_month": "{{current}} vs {{previous}}",
@@ -939,24 +940,33 @@
   "insights": {
     "section_title": "In Evidenza",
     "top_category": {
-      "title": "La Balena 🐋",
+      "title": "La Balena",
       "message": "{{category}} è la tua spesa top ({{percentage}}%)"
     },
     "spending_spike": {
-      "title": "Occhio al Trend 📈",
+      "title": "Occhio al Trend",
       "message": "Wow, spese su del {{percent}}% vs mese scorso!"
     },
     "spending_drop": {
-      "title": "Ottimo calo! 📉",
+      "title": "Ottimo calo",
       "message": "Stai spendendo il {{percent}}% in meno del solito."
     },
     "good_saver": {
-      "title": "Modalità Risparmio 🐷",
+      "title": "Modalità Risparmio",
       "message": "Grande! Hai risparmiato il {{percent}}% delle entrate."
     },
     "overspending": {
-      "title": "Attenzione Saldo ⚠️",
-      "message": "Hai speso più di quanto hai guadagnato questo mese."
+      "title": "Attenzione Saldo",
+      "message": "Hai speso più di quanto hai guadagnato."
+    },
+    "advice": {
+      "title": "Consiglio",
+      "previous_whale": "Il mese scorso {{percentage}}% in {{category}}. Dacci un occhio!"
     }
+  },
+  "statistics_overview": {
+    "summary_section_title": "Riepilogo",
+    "graphs_section_title": "Grafici",
+    "not_enough_data": "Dati insufficienti per visualizzare i grafici"
   }
 }

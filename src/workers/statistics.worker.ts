@@ -27,6 +27,48 @@ const getRootCategory = (
     if (!cat.parent_id) return cat; // This is already a root
     return getRootCategory(cat.parent_id, categoryMap);
 };
+// Helper to calculate basic stats
+const calculateStats = (
+    transactions: Transaction[] | undefined,
+    categoryMap: Map<string, Category>,
+    groupShareMap: Map<string, number>
+) => {
+    const stats = {
+        income: 0,
+        expense: 0,
+        investment: 0,
+        byCategory: [] as CategoryStat[],
+    };
+
+    if (!transactions) return stats;
+
+    transactions.forEach((t: Transaction) => {
+        if (t.deleted_at) return;
+
+        const amount = getEffectiveAmount(t, groupShareMap);
+        if (t.type === "income") stats.income += amount;
+        else if (t.type === "expense") stats.expense += amount;
+        else if (t.type === "investment") stats.investment += amount;
+
+        if (t.type === "expense" && t.category_id) {
+            const cat = categoryMap.get(t.category_id);
+            if (cat) {
+                const existing = stats.byCategory.find((c) => c.name === cat.name);
+                if (existing) {
+                    existing.value += amount;
+                } else {
+                    stats.byCategory.push({
+                        name: cat.name,
+                        value: amount,
+                        color: cat.color,
+                    });
+                }
+            }
+        }
+    });
+
+    return stats;
+};
 
 // Main message handler
 ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
@@ -54,41 +96,13 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
     const categoryMap = new Map(categories.map((c: Category) => [c.id, c]));
 
     // --- 1. Monthly Statistics ---
-    const monthlyStats = {
-        income: 0,
-        expense: 0,
-        investment: 0,
-        byCategory: [] as CategoryStat[],
-    };
+    const monthlyStats = mode === "monthly"
+        ? calculateStats(transactions, categoryMap, groupShareMap)
+        : { income: 0, expense: 0, investment: 0, byCategory: [] };
 
-    if (mode === "monthly" && transactions) {
-        transactions.forEach((t: Transaction) => {
-            if (t.deleted_at) return;
-
-            const amount = getEffectiveAmount(t, groupShareMap);
-            if (t.type === "income") monthlyStats.income += amount;
-            else if (t.type === "expense") monthlyStats.expense += amount;
-            else if (t.type === "investment") monthlyStats.investment += amount;
-
-            if (t.type === "expense" && t.category_id) {
-                const cat = categoryMap.get(t.category_id);
-                if (cat) {
-                    const existing = monthlyStats.byCategory.find(
-                        (c) => c.name === cat.name
-                    );
-                    if (existing) {
-                        existing.value += amount;
-                    } else {
-                        monthlyStats.byCategory.push({
-                            name: cat.name,
-                            value: amount,
-                            color: cat.color,
-                        });
-                    }
-                }
-            }
-        });
-    }
+    const previousMonthStats = mode === "monthly" && event.data.payload.previousMonthTransactions
+        ? calculateStats(event.data.payload.previousMonthTransactions, categoryMap, groupShareMap)
+        : undefined;
 
     // --- 2. Yearly Statistics ---
     const yearlyStats = {
@@ -786,7 +800,8 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
             previousYearCumulativeExpenses,
 
             groupBalances,
-            monthlyBudgetHealth
+            monthlyBudgetHealth,
+            previousMonthStats
         },
     });
 };

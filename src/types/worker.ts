@@ -141,5 +141,6 @@ export type StatisticsWorkerResponse = {
 
         groupBalances: GroupBalance[];
         monthlyBudgetHealth: BudgetHealth[];
+        previousMonthStats?: { income: number; expense: number; investment: number; byCategory: CategoryStat[] };
     };
 };

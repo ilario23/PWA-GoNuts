@@ -221,6 +221,7 @@
   "yearly_statistics": "Yearly",
   "tap_for_average": "Tap for monthly avg",
   "tap_to_flip": "Tap to flip",
+  "tap_to_flip_desc": "Tap the card to see the next insight",
   "monthly_average": "Monthly Average",
   "period_comparison": "Period Comparison",
   "comparison_vs_previous_month": "{{current}} vs {{previous}}",
@@ -942,27 +943,33 @@
   "insights": {
     "section_title": "Highlights",
     "top_category": {
-      "title": "The Whale 🐋",
+      "title": "The Whale",
       "message": "{{category}} is your top expense ({{percentage}}%)"
     },
     "spending_spike": {
-      "title": "Trend Watch 📈",
+      "title": "Trend Watch",
       "message": "Woah, spending is up {{percent}}% vs last month!"
     },
     "spending_drop": {
-      "title": "Nice Drop! 📉",
+      "title": "Nice Drop",
       "message": "You're spending {{percent}}% less than usual."
     },
     "good_saver": {
-      "title": "Saver Mode 🐷",
+      "title": "Saver Mode",
       "message": "Great job! You saved {{percent}}% of your income."
     },
     "overspending": {
-      "title": "Balance Warning ⚠️",
-      "message": "Be careful, your expenses (€{{expense}}) exceed your income (€{{income}}). You are burning savings."
+      "title": "Balance Warning",
+      "message": "Be careful, your expenses (€{{expense}}) exceed (€{{income}})."
+    },
+    "advice": {
+      "title": "Advice",
+      "previous_whale": "Spent {{percentage}}% on {{category}} last month. Keep an eye on it."
     }
   },
   "statistics_overview": {
-    "summary_section_title": "Riepilogo"
+    "summary_section_title": "Summary",
+    "graphs_section_title": "Graphs",
+    "not_enough_data": "Not enough data to display graphs"
   }
 }
