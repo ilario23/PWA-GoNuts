@@ -88,6 +88,18 @@
   "magic_link_sent": "Ti abbiamo inviato un link di accesso. Controlla anche lo spam.",
   "auth_error": "Errore di Autenticazione",
   "passwords_mismatch": "Le due password non coincidono",
+  "forgot_password": "Password dimenticata?",
+  "reset_password": "Reset Password",
+  "send_reset_link": "Invia link di reset",
+  "reset_link_sent": "Link di reset inviato. Controlla la tua email.",
+  "update_password": "Aggiorna Password",
+  "new_password": "Nuova Password",
+  "password_updated": "Password aggiornata con successo",
+  "back_to_login": "Torna al Login",
+  "strength_weak": "Debole",
+  "strength_fair": "Discreta",
+  "strength_good": "Buona",
+  "strength_strong": "Forte",
   "confirm_password": "Conferma Password",
   "session_expired": "Sessione Scaduta",
   "logging_out_in": "Logout tra",
@@ -501,8 +513,6 @@
   "include_group_expenses": "Includi Spese di Gruppo nei Totali",
   "include_group_expenses_desc": "Se abilitato, le spese di gruppo verranno incluse nei tuoi totali personali.",
   "language": "Lingua",
-  "language_en": "🇬🇧 English",
-  "language_it": "🇮🇹 Italiano",
   "select_language": "Seleziona lingua",
   "select_theme": "Seleziona tema",
   "select_start_day": "Seleziona giorno inizio",
@@ -926,6 +936,27 @@
   "balance_amount_positive": "+€{{amount}}",
   "balance_amount_negative": "€{{amount}}",
   "trend_value": "€{{previous}} → €{{current}}",
-  "language_en": "🇬🇧 English",
-  "language_it": "🇮🇹 Italiano"
+  "insights": {
+    "section_title": "In Evidenza",
+    "top_category": {
+      "title": "La Balena 🐋",
+      "message": "{{category}} è la tua spesa top ({{percentage}}%)"
+    },
+    "spending_spike": {
+      "title": "Occhio al Trend 📈",
+      "message": "Wow, spese su del {{percent}}% vs mese scorso!"
+    },
+    "spending_drop": {
+      "title": "Ottimo calo! 📉",
+      "message": "Stai spendendo il {{percent}}% in meno del solito."
+    },
+    "good_saver": {
+      "title": "Modalità Risparmio 🐷",
+      "message": "Grande! Hai risparmiato il {{percent}}% delle entrate."
+    },
+    "overspending": {
+      "title": "Attenzione Saldo ⚠️",
+      "message": "Hai speso più di quanto hai guadagnato questo mese."
+    }
+  }
 }

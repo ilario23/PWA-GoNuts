@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { syncManager } from "@/lib/sync";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Eye, EyeOff } from "lucide-react";
+import { usePasswordStrength } from "@/hooks/usePasswordStrength";
 
 export function AuthPage() {
   const [email, setEmail] = useState("");
@@ -26,6 +27,9 @@ export function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  // Password strength hook
+  const { score: strengthScore, feedback: strengthFeedback } = usePasswordStrength(password);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +135,42 @@ export function AuthPage() {
                 </Button>
               </div>
             </div>
+
+            {/* Password Strength Meter (Sign Up Only) */}
+            {isSignUp && password && (
+              <div className="space-y-2 pt-1 transition-all animate-in fade-in slide-in-from-top-1">
+                <div className="flex h-2 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className={`h-full transition-all duration-500 ease-out ${strengthScore <= 1 ? "bg-red-500 w-[25%]" :
+                        strengthScore === 2 ? "bg-orange-500 w-[50%]" :
+                          strengthScore === 3 ? "bg-yellow-500 w-[75%]" :
+                            "bg-green-500 w-full"
+                      }`}
+                  />
+                </div>
+                <p className={`text-xs font-medium ${strengthScore <= 1 ? "text-red-500" :
+                    strengthScore === 2 ? "text-orange-500" :
+                      strengthScore === 3 ? "text-yellow-500" :
+                        "text-green-500"
+                  }`}>
+                  {strengthFeedback.warning || strengthFeedback.suggestions[0] ||
+                    (strengthScore <= 1 ? t("strength_weak") :
+                      strengthScore === 2 ? t("strength_fair") :
+                        strengthScore === 3 ? t("strength_good") :
+                          t("strength_strong"))}
+                </p>
+              </div>
+            )}
+            {!isSignUp && (
+              <div className="flex justify-end">
+                <Link
+                  to="/auth/reset-password"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  {t("forgot_password")}
+                </Link>
+              </div>
+            )}
 
             {isSignUp && (
               <div className="space-y-2">

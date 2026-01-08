@@ -155,7 +155,11 @@ export function GroupBalanceDrawer({
     );
 
     const MainContent = (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+            data-vaul-no-drag
+            onTouchStart={(e) => e.stopPropagation()}
+        >
             {/* Hero Balance Card */}
             <Card className={`${config.gradientBg} border-0 shadow-sm`}>
                 <CardContent className="p-5 space-y-4">

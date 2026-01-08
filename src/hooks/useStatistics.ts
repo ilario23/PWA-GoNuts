@@ -5,6 +5,7 @@ import { format, subMonths } from "date-fns";
 import { useMemo, useCallback, useEffect, useState, useRef } from "react";
 import StatsWorker from "../workers/statistics.worker?worker";
 import { StatisticsWorkerRequest, StatisticsWorkerResponse, CategoryComparisonData } from "../types/worker";
+import { generateInsights, Insight } from "../lib/insightUtils";
 
 /**
  * Parameters for configuring the statistics hook.
@@ -392,6 +393,11 @@ export function useStatistics(params?: UseStatisticsParams) {
     }
   }, [currentYear, workerResult.yearlyStats.expense]);
 
+  const insights: Insight[] = useMemo(() => {
+    if (isLoading || !workerResult) return [];
+    return generateInsights(workerResult, monthlyComparison);
+  }, [workerResult, monthlyComparison, isLoading]);
+
   return {
     ...workerResult,
     monthlyComparison,
@@ -435,5 +441,6 @@ export function useStatistics(params?: UseStatisticsParams) {
     yearlyCumulativeExpenses: workerResult.yearlyCumulativeExpenses || [],
     previousYearCumulativeExpenses: workerResult.previousYearCumulativeExpenses || [],
     isLoading,
+    insights,
   };
 }

@@ -252,7 +252,11 @@ export function ManageMembersDrawer({
                 <DrawerContent className="h-[90vh] flex flex-col">
                     <MobileHeader view={view} t={t} group={group} isShareValid={isShareValid} totalShare={totalShare} />
 
-                    <div className="flex-1 overflow-y-auto">
+                    <div
+                        className="flex-1 overflow-y-auto"
+                        data-vaul-no-drag
+                        onTouchStart={(e) => e.stopPropagation()}
+                    >
                         {view === "list" ? (
                             <div className="p-4 space-y-3">
                                 {group.members.map((member) => {

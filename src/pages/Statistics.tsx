@@ -64,6 +64,7 @@ import { StatsGroupBalances } from "@/components/statistics/StatsGroupBalances";
 import { StatsBudgetHealth } from "@/components/statistics/StatsBudgetHealth";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
+import { InsightsCarousel } from "@/components/insights/InsightsCarousel";
 
 export function StatisticsPage() {
   const { t, i18n } = useTranslation();
@@ -148,6 +149,7 @@ export function StatisticsPage() {
     monthlyContextTrends,
     groupBalances,
     monthlyBudgetHealth,
+    insights,
   } = useStatistics({
     selectedMonth,
     selectedYear,
@@ -365,6 +367,8 @@ export function StatisticsPage() {
         {/* The page now behaves as a dedicated view when accessed from a group card */}
       </Tabs >
 
+
+
       {/* Summary Cards - using extracted component */}
       <StatsSummaryCards
         activeTab={activeTab}
@@ -374,6 +378,9 @@ export function StatisticsPage() {
         flippedCards={flippedCards}
         toggleCard={toggleCard}
       />
+
+      {/* Insights Carousel */}
+      <InsightsCarousel insights={insights} isLoading={isLoading} />
 
       {/* Charts based on selected tab */}
       {

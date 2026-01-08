@@ -88,6 +88,18 @@
   "magic_link_sent": "We sent you a login link. Be sure to check your spam too.",
   "auth_error": "Authentication Error",
   "passwords_mismatch": "Passwords do not match",
+  "forgot_password": "Forgot password?",
+  "reset_password": "Reset Password",
+  "send_reset_link": "Send reset link",
+  "reset_link_sent": "Reset link sent. Check your email.",
+  "update_password": "Update Password",
+  "new_password": "New Password",
+  "password_updated": "Password updated successfully",
+  "back_to_login": "Back to Login",
+  "strength_weak": "Weak",
+  "strength_fair": "Fair",
+  "strength_good": "Good",
+  "strength_strong": "Strong",
   "confirm_password": "Confirm Password",
   "session_expired": "Session Expired",
   "logging_out_in": "Logging out in",
@@ -927,6 +939,30 @@
   "balance_amount_positive": "+€{{amount}}",
   "balance_amount_negative": "€{{amount}}",
   "trend_value": "€{{previous}} → €{{current}}",
-  "language_en": "🇬🇧 English",
-  "language_it": "🇮🇹 Italiano"
+  "insights": {
+    "section_title": "Highlights",
+    "top_category": {
+      "title": "The Whale 🐋",
+      "message": "{{category}} is your top expense ({{percentage}}%)"
+    },
+    "spending_spike": {
+      "title": "Trend Watch 📈",
+      "message": "Woah, spending is up {{percent}}% vs last month!"
+    },
+    "spending_drop": {
+      "title": "Nice Drop! 📉",
+      "message": "You're spending {{percent}}% less than usual."
+    },
+    "good_saver": {
+      "title": "Saver Mode 🐷",
+      "message": "Great job! You saved {{percent}}% of your income."
+    },
+    "overspending": {
+      "title": "Balance Warning ⚠️",
+      "message": "Be careful, your expenses (€{{expense}}) exceed your income (€{{income}}). You are burning savings."
+    }
+  },
+  "statistics_overview": {
+    "summary_section_title": "Riepilogo"
+  }
 }
