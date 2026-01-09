@@ -76,7 +76,6 @@ export function IconSelector({ value, onChange }: IconSelectorProps) {
             <div
                 className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-[300px] overflow-y-auto p-1"
                 data-vaul-no-drag
-                onTouchStart={(e) => e.stopPropagation()}
             >
                 {filteredIcons.map((item) => {
                     const Icon = item.icon;
