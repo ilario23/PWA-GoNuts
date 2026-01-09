@@ -61,6 +61,9 @@ import { ImportRulesManager } from "@/components/settings/ImportRulesManager";
 import { cn, getLocalDate } from "@/lib/utils";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
+import { useAvailableYears } from "@/hooks/useAvailableYears";
+import { exportTransactionsToCSV } from "@/lib/exportUtils";
+import { FileSpreadsheet } from "lucide-react";
 
 export function SettingsPage() {
   const { settings, updateSettings } = useSettings();
@@ -78,6 +81,61 @@ export function SettingsPage() {
 
   // Welcome wizard hook for "Review Tutorial" button
   const welcomeWizard = useWelcomeWizard();
+
+  const availableYears = useAvailableYears();
+  const [exportYear, setExportYear] = useState<string>(new Date().getFullYear().toString());
+  const [exportMonth, setExportMonth] = useState<string>("all");
+  const [isExportingCSV, setIsExportingCSV] = useState(false);
+
+  const handleCSVExport = async () => {
+    if (!user) return;
+    setIsExportingCSV(true);
+    try {
+      // Fetch filtered transactions
+      let transactions;
+      if (exportYear === "all") {
+        // Export EVERYTHING for this user
+        transactions = await db.transactions
+          .filter((t) => t.user_id === user.id && !t.deleted_at)
+          .toArray();
+        // Sort by date descending
+        transactions.sort((a, b) => b.date.localeCompare(a.date));
+      } else if (exportMonth === "all") {
+        transactions = await db.transactions
+          .where("year_month")
+          .between(`${exportYear}-01`, `${exportYear}-12\uffff`)
+          .filter((t) => t.user_id === user.id && !t.deleted_at)
+          .toArray();
+      } else {
+        transactions = await db.transactions
+          .where("year_month")
+          .equals(`${exportYear}-${exportMonth}`)
+          .filter((t) => t.user_id === user.id && !t.deleted_at)
+          .toArray();
+      }
+
+      // Fetch related data for resolution
+      const categories = await db.categories.toArray();
+      const contexts = await db.contexts.toArray();
+      const groups = await db.groups.toArray();
+      const members = await db.group_members.toArray();
+
+      exportTransactionsToCSV(
+        transactions,
+        categories,
+        contexts,
+        groups,
+        members,
+        t
+      );
+      toast.success(t("export_success"));
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast.error(t("export_error") || "Export failed");
+    } finally {
+      setIsExportingCSV(false);
+    }
+  };
 
   React.useEffect(() => {
     setMounted(true);
@@ -480,6 +538,74 @@ export function SettingsPage() {
                   <div className="font-medium truncate">{t("import_data")}</div>
                   <div className="text-xs text-muted-foreground truncate">{t("import_data_desc")}</div>
                 </div>
+              </Button>
+            </CardContent>
+          </Card>
+
+
+          {/* Export Transactions (CSV) */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t("export_csv") || "Export CSV"}</CardTitle>
+              <CardDescription>{t("export_csv_desc") || "Download your transactions for spreadsheets"}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Select value={exportYear} onValueChange={setExportYear}>
+                  <SelectTrigger
+                    className={cn(
+                      "flex-1 transition-colors",
+                      exportYear === "all" && "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+                    )}
+                  >
+                    <SelectValue placeholder={t("year")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-primary">{t("all_years") || "All Years"}</SelectItem>
+                    {availableYears.map((y) => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={exportMonth}
+                  onValueChange={setExportMonth}
+                  disabled={exportYear === "all"}
+                >
+                  <SelectTrigger className="flex-1 transition-opacity disabled:opacity-50">
+                    <SelectValue placeholder={t("month")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t("all_year") || "Whole Year"}</SelectItem>
+                    <SelectItem value="01">{t("january")}</SelectItem>
+                    <SelectItem value="02">{t("february")}</SelectItem>
+                    <SelectItem value="03">{t("march")}</SelectItem>
+                    <SelectItem value="04">{t("april")}</SelectItem>
+                    <SelectItem value="05">{t("may")}</SelectItem>
+                    <SelectItem value="06">{t("june")}</SelectItem>
+                    <SelectItem value="07">{t("july")}</SelectItem>
+                    <SelectItem value="08">{t("august")}</SelectItem>
+                    <SelectItem value="09">{t("september")}</SelectItem>
+                    <SelectItem value="10">{t("october")}</SelectItem>
+                    <SelectItem value="11">{t("november")}</SelectItem>
+                    <SelectItem value="12">{t("december")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full h-12 gap-2 touch-manipulation"
+                onClick={handleCSVExport}
+                disabled={isExportingCSV}
+              >
+                {isExportingCSV ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                )}
+                {t("download_csv") || "Download CSV"}
               </Button>
             </CardContent>
           </Card>

@@ -663,6 +663,13 @@
     "regenerate_colors": "Rigenera colori con palette moderna",
     "regenerate_colors_desc": "Sovrascrivi i colori del backup precedente con una palette semantica basata sul tipo (spese=caldi, entrate=verde, investimenti=blu)"
   },
+  "export_csv": "Esporta Transazioni (CSV)",
+  "export_csv_desc": "Scarica le tue transazioni per fogli di calcolo",
+  "download_csv": "Scarica CSV",
+  "all_years": "Tutti gli anni",
+  "all_year": "Tutto l'anno",
+  "year": "Anno",
+  "month": "Mese",
   "export_data": "Esporta Dati",
   "export_data_desc": "Scarica tutti i tuoi dati come file di backup JSON",
   "export_json": "Esporta JSON",
