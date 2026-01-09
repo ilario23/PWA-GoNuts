@@ -302,7 +302,6 @@ export function CategorySelector({
       <div
         className="flex-1 overflow-y-auto p-2 w-full"
         data-vaul-no-drag
-        onTouchStart={(e) => e.stopPropagation()}
       >
         {showSkipOption && !isSearching && (
           <div className="mb-1 pb-1 border-b border-border/40">

@@ -295,6 +295,11 @@ export function TransactionDialog({
 
     const handleEqual = () => {
         const currentVal = parseAmount(form.getValues("amount"));
+
+        // Always close calculator on equal, effectively confirming the input
+        setShowCalculator(false);
+        amountInputRef.current?.focus();
+
         if (isNaN(currentVal) || calcState.prevValue === null || !calcState.operation) return;
 
         const result = performCalculation(currentVal, calcState.prevValue, calcState.operation);
@@ -302,9 +307,6 @@ export function TransactionDialog({
 
         form.setValue("amount", formatted);
         setCalcState({ prevValue: null, operation: null });
-        setShowCalculator(false);
-
-        amountInputRef.current?.focus();
     };
 
     // Check if we have additional options to show
@@ -452,7 +454,7 @@ export function TransactionDialog({
                                                                         field.onChange(value);
                                                                     }
                                                                 }}
-                                                                onBlur={() => {
+                                                                onBlur={(e) => {
                                                                     field.onBlur(); // keep original RHF onBlur
 
                                                                     // Auto-calculate on blur
@@ -467,6 +469,14 @@ export function TransactionDialog({
                                                                             // Reset on error (e.g. division by zero)
                                                                             setCalcState({ prevValue: null, operation: null });
                                                                         }
+                                                                    }
+
+                                                                    // Close calculator if focus leaves the calculator container
+                                                                    if (
+                                                                        calculatorContainerRef.current &&
+                                                                        !calculatorContainerRef.current.contains(e.relatedTarget as Node)
+                                                                    ) {
+                                                                        setShowCalculator(false);
                                                                     }
                                                                 }}
                                                                 data-testid="amount-input"
