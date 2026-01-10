@@ -63,6 +63,7 @@ import { StatsExpenseBreakdown } from "@/components/statistics/StatsExpenseBreak
 import { StatsContextTrends } from "@/components/statistics/StatsContextTrends";
 import { StatsGroupBalances } from "@/components/statistics/StatsGroupBalances";
 import { StatsBudgetHealth } from "@/components/statistics/StatsBudgetHealth";
+import { BudgetHealthChart } from "@/components/statistics/BudgetHealthChart";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 
@@ -381,6 +382,8 @@ export function StatisticsPage() {
           {
             activeTab === "monthly" ? (
               <div className="space-y-4">
+
+
                 {/* Monthly Charts */}
                 <div className="grid gap-4 md:grid-cols-2 min-w-0">
                   {/* Pie Chart - Income vs Expense */}
@@ -429,6 +432,9 @@ export function StatisticsPage() {
                     totalExpense={currentStats.expense}
                     isLoading={isLoading}
                   />
+
+                  {/* Budget Health Chart */}
+                  <BudgetHealthChart />
                 </div>
 
                 {/* Burn Rate / Spending Projection Card */}

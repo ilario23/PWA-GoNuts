@@ -13,7 +13,7 @@ interface CategoryMobileListProps {
     expandedCategoryIds: Set<string>;
     setExpandedCategoryIds: React.Dispatch<React.SetStateAction<Set<string>>>;
     groups: Group[];
-    getBudgetForCategory: (categoryId: string) => { amount: number } | null | undefined;
+    getBudgetForCategory: (categoryId: string) => { amount: number; spent: number; percentage: number; period: "monthly" | "yearly" } | null | undefined;
     onEdit: (category: Category) => void;
     onDelete: (id: string) => void;
     onCategoryClick: (category: Category) => void;
@@ -74,8 +74,14 @@ export function CategoryMobileList({
                         onDelete={onDelete}
                         onClick={onCategoryClick}
                         childCount={children.length}
-                        budgetAmount={budget?.amount}
+                        budget={budget ? {
+                            amount: budget.amount,
+                            spent: budget.spent,
+                            percentage: budget.percentage,
+                            period: budget.period
+                        } : null}
                         isExpanded={isExpanded}
+
                         groupName={
                             category.group_id
                                 ? groups?.find((g) => g.id === category.group_id)?.name
@@ -131,7 +137,12 @@ export function CategoryMobileList({
                     onDelete={onDelete}
                     onClick={onCategoryClick}
                     childCount={children.length}
-                    budgetAmount={budget?.amount}
+                    budget={budget ? {
+                        amount: budget.amount,
+                        spent: budget.spent,
+                        percentage: budget.percentage,
+                        period: budget.period
+                    } : null}
                     isExpanded={isExpanded}
                     groupName={
                         category.group_id

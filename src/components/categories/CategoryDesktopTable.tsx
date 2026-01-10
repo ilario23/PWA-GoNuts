@@ -20,6 +20,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Progress } from "@/components/ui/progress";
 import type { Category, Group } from "@/lib/db";
 
 interface CategoryListProps {
@@ -34,6 +35,7 @@ interface CategoryListProps {
     groups: Group[];
     onEdit: (category: Category) => void;
     onDelete: (id: string) => void;
+    getBudgetForCategory: (categoryId: string) => { amount: number; spent: number; percentage: number; period: "monthly" | "yearly" } | null | undefined;
 }
 
 // Recursive Desktop Category Rows Component
@@ -49,10 +51,17 @@ function DesktopCategoryRows({
     groups,
     onEdit,
     onDelete,
+    getBudgetForCategory,
 }: CategoryListProps) {
     const maxDepth = 10; // Prevent infinite recursion
 
     if (depth > maxDepth) return null;
+
+    const getProgressColor = (percentage: number) => {
+        if (percentage >= 100) return "bg-red-500";
+        if (percentage >= 80) return "bg-amber-500";
+        return "bg-green-500";
+    };
 
     return (
         <>
@@ -62,6 +71,7 @@ function DesktopCategoryRows({
                 const isRoot = depth === 0;
                 const indentPx = depth * 24; // 24px per level
                 const isInactive = c.active === 0;
+                const budget = c.type === "expense" ? getBudgetForCategory(c.id) : null;
 
                 return (
                     <React.Fragment key={c.id}>
@@ -161,6 +171,24 @@ function DesktopCategoryRows({
                             <TableCell className={`capitalize ${isRoot ? "" : "text-sm"}`}>
                                 {t(c.type)}
                             </TableCell>
+                            {/* Budget Column */}
+                            <TableCell className="w-32 md:w-48">
+                                {budget ? (
+                                    <div className="w-full space-y-1">
+                                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                                            <span>{budget.spent.toFixed(0)}€</span>
+                                            <span>{budget.amount.toFixed(0)}€</span>
+                                        </div>
+                                        <Progress
+                                            value={Math.min(budget.percentage, 100)}
+                                            className="h-1.5"
+                                            indicatorClassName={getProgressColor(budget.percentage)}
+                                        />
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">-</span>
+                                )}
+                            </TableCell>
                             <TableCell>
                                 {c.active === 0 ? (
                                     <Badge
@@ -239,6 +267,7 @@ function DesktopCategoryRows({
                                 groups={groups}
                                 onEdit={onEdit}
                                 onDelete={onDelete}
+                                getBudgetForCategory={getBudgetForCategory}
                             />
                         )}
                     </React.Fragment>
@@ -260,6 +289,7 @@ interface CategoryDesktopTableProps {
     t: (key: string) => string;
     onEdit: (category: Category) => void;
     onDelete: (id: string) => void;
+    getBudgetForCategory: (categoryId: string) => { amount: number; spent: number; percentage: number; period: "monthly" | "yearly" } | null | undefined;
 }
 
 export function CategoryDesktopTable({
@@ -274,6 +304,7 @@ export function CategoryDesktopTable({
     t,
     onEdit,
     onDelete,
+    getBudgetForCategory,
 }: CategoryDesktopTableProps) {
     return (
         <SmoothLoader
@@ -291,6 +322,7 @@ export function CategoryDesktopTable({
                         <TableHead className="w-8"></TableHead>
                         <TableHead>{t("name")}</TableHead>
                         <TableHead>{t("type")}</TableHead>
+                        <TableHead>{t("budget")}</TableHead>
                         <TableHead>{t("sync_short")}</TableHead>
                         <TableHead></TableHead>
                     </TableRow>
@@ -308,9 +340,11 @@ export function CategoryDesktopTable({
                         groups={groups}
                         onEdit={onEdit}
                         onDelete={onDelete}
+                        getBudgetForCategory={getBudgetForCategory}
                     />
                 </TableBody>
             </Table>
         </SmoothLoader>
     );
 }
+

@@ -45,8 +45,9 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { CategoryMobileList } from "@/components/categories/CategoryMobileList";
 import { CategoryDesktopTable } from "@/components/categories/CategoryDesktopTable";
-import { CategoryBudgetDialog } from "@/components/categories/CategoryBudgetDialog";
+
 import { CategoryMigrationDialog } from "@/components/categories/CategoryMigrationDialog";
+// import { CategoryBudgetDialog } from "@/components/categories/CategoryBudgetDialog";
 
 import { CategoryFormValues } from "@/lib/schemas";
 import type { Category } from "@/lib/db";
@@ -94,10 +95,8 @@ export function CategoriesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Budget Dialog State
-  const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
-  const [budgetCategoryId, setBudgetCategoryId] = useState<string | null>(null);
-  const [budgetAmount, setBudgetAmount] = useState<string>("");
+
+
 
   // Category Detail Sheet State
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -125,6 +124,15 @@ export function CategoriesPage() {
   } | null>(null);
 
   const [initialData, setInitialData] = useState<CategoryFormValues | null>(null);
+
+  // Budget Dialog State (Temporarily Removed due to missing component)
+  // const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
+  // const [budgetCategoryId, setBudgetCategoryId] = useState<string | null>(null);
+
+  // const handleOpenBudgetDialog = (categoryId: string) => {
+  //   setBudgetCategoryId(categoryId);
+  //   setBudgetDialogOpen(true);
+  // };
 
   const handleSubmit = async (data: CategoryFormValues) => {
     if (!user) return;
@@ -368,29 +376,7 @@ export function CategoriesPage() {
     checkChildrenAndProceedDelete(migrationData.oldCategoryId);
   };
 
-  // Budget handlers
-  const handleOpenBudgetDialog = (categoryId: string) => {
-    const existingBudget = getBudgetForCategory(categoryId);
-    setBudgetCategoryId(categoryId);
-    setBudgetAmount(existingBudget ? existingBudget.amount.toString() : "");
-    setBudgetDialogOpen(true);
-  };
 
-  const handleSaveBudget = async () => {
-    if (!budgetCategoryId || !budgetAmount) return;
-    await setCategoryBudget(budgetCategoryId, parseFloat(budgetAmount));
-    setBudgetDialogOpen(false);
-    setBudgetCategoryId(null);
-    setBudgetAmount("");
-  };
-
-  const handleRemoveBudget = async () => {
-    if (!budgetCategoryId) return;
-    await removeCategoryBudget(budgetCategoryId);
-    setBudgetDialogOpen(false);
-    setBudgetCategoryId(null);
-    setBudgetAmount("");
-  };
 
   const getCategoryBudgetInfo = (categoryId: string) => {
     return budgetsWithSpent?.find((b) => b.category_id === categoryId);
@@ -738,12 +724,16 @@ export function CategoriesPage() {
         hasChildren={hasChildren}
         expandedCategories={expandedCategories}
         toggleCategory={toggleCategory}
-        onCategoryClick={handleCategoryClick}
+        onCategoryClick={(cat) => {
+          // On desktop, click might open detail or edit. Let's make it open edit
+          handleEdit(cat);
+        }}
         groups={groups}
         isLoading={isLoading}
         t={t}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
+        getBudgetForCategory={getBudgetForCategory}
       />
 
       {/* Form Dialog */}
@@ -761,6 +751,38 @@ export function CategoriesPage() {
           const recCount = recurringTransactions?.filter(r => r.category_id === editingId && !r.deleted_at).length || 0;
           return txCount > 0 || recCount > 0;
         })()}
+      />
+
+      {/* Budget Dialog (Temporarily Removed) */}
+      {/* <CategoryBudgetDialog
+        open={budgetDialogOpen}
+        onOpenChange={setBudgetDialogOpen}
+        category={budgetCategoryId ? categories?.find(c => c.id === budgetCategoryId) || null : null}
+      /> */}
+
+      {/* Detail Drawer (Mobile) */}
+      <CategoryDetailDrawer
+        category={selectedCategory}
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+        budgetInfo={selectedCategory ? (() => {
+          const budget = getBudgetForCategory(selectedCategory.id);
+          return budget ? {
+            amount: budget.amount,
+            spent: budget.spent,
+            percentage: budget.percentage
+          } : null;
+        })() : undefined}
+        parentCategory={selectedCategory ? getParentCategory(selectedCategory.parent_id) : null}
+        childrenCount={selectedCategory ? getChildrenCount(selectedCategory.id) : 0}
+        groupName={selectedCategory?.group_id ? groups.find(g => g.id === selectedCategory.group_id)?.name : undefined}
+        onEdit={handleEdit}
+        onDelete={handleDeleteClick}
+      // onSetBudget={() => {
+      //   if (selectedCategory) {
+      //     handleOpenBudgetDialog(selectedCategory.id);
+      //   }
+      // }}
       />
 
       <DeleteConfirmDialog
@@ -799,17 +821,6 @@ export function CategoriesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Budget Dialog */}
-      <CategoryBudgetDialog
-        open={budgetDialogOpen}
-        onOpenChange={setBudgetDialogOpen}
-        budgetAmount={budgetAmount}
-        setBudgetAmount={setBudgetAmount}
-        hasExistingBudget={!!getBudgetForCategory(budgetCategoryId || "")}
-        onSave={handleSaveBudget}
-        onRemove={handleRemoveBudget}
-      />
-
       {/* Category Detail Drawer */}
       <CategoryDetailDrawer
         category={selectedCategory}
@@ -833,9 +844,7 @@ export function CategoriesPage() {
         onDelete={() =>
           selectedCategory && handleDeleteClick(selectedCategory.id)
         }
-        onSetBudget={() =>
-          selectedCategory && handleOpenBudgetDialog(selectedCategory.id)
-        }
+
       />
 
       {/* Migration Dialog */}

@@ -38,7 +38,6 @@ interface CategoryDetailDrawerProps {
   groupName?: string;
   onEdit: (category: Category) => void;
   onDelete: (id: string) => void;
-  onSetBudget?: () => void;
 }
 
 export function CategoryDetailDrawer({
@@ -176,27 +175,16 @@ export function CategoryDetailDrawer({
           {/* Budget (Expense Only) */}
           {category.type === "expense" && (
             <div className="space-y-3 pt-2 border-t">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center text-muted-foreground">
-                  <Target className="h-4 w-4 mr-2" />
-                  <span className="text-sm">{t("budget")}</span>
-                </div>
-                {budgetInfo ? (
-                  <span className="text-sm font-medium">
-                    €{budgetInfo.amount.toFixed(2)}
-                  </span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    {t("budget_not_set")}
-                  </span>
-                )}
+              <div className="flex items-center text-muted-foreground">
+                <Target className="h-4 w-4 mr-2" />
+                <span className="text-sm">{t("budget")}</span>
               </div>
 
-              {budgetInfo && (
+              {budgetInfo ? (
                 <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between text-xs font-medium">
                     <span>
-                      €{budgetInfo.spent.toFixed(2)} {t("used")}
+                      €{budgetInfo.spent.toFixed(2)} / €{budgetInfo.amount.toFixed(0)}
                     </span>
                     <span
                       className={
@@ -221,6 +209,10 @@ export function CategoryDetailDrawer({
                       }}
                     />
                   </div>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground text-center py-1">
+                  {t("budget_not_set")}
                 </div>
               )}
             </div>
@@ -248,33 +240,35 @@ export function CategoryDetailDrawer({
       </div>
 
       {/* Actions Footer - Hidden on mobile since swipe gestures are used */}
-      {!isMobile && (
-        <div className="pt-4 mt-6 border-t flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => {
-              onEdit(category);
-              onOpenChange(false);
-            }}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            {t("edit")}
-          </Button>
-          <Button
-            variant="destructive"
-            className="flex-1"
-            onClick={() => {
-              onDelete(category.id);
-              onOpenChange(false);
-            }}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {t("delete")}
-          </Button>
-        </div>
-      )}
-    </div>
+      {
+        !isMobile && (
+          <div className="pt-4 mt-6 border-t flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                onEdit(category);
+                onOpenChange(false);
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              {t("edit")}
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => {
+                onDelete(category.id);
+                onOpenChange(false);
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t("delete")}
+            </Button>
+          </div>
+        )
+      }
+    </div >
   );
 
   if (!isMobile) {
