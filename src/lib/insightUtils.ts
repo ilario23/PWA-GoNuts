@@ -101,13 +101,6 @@ export const generateInsights = (
 
     // 5. Recurring Creep (High recurring expenses) - placeholder for now
 
-    // We added `gamificationStatus` to stats! It has useful info.
-    const gameStatus = stats.gamificationStatus;
-    // Budget Pacing logic placeholder
-    if (gameStatus && gameStatus.budgetAdherence > 0 && gameStatus.budgetAdherence < 100) {
-        // Implementation for future
-    }
-
     // "Diversity Score" / "Balanced Life"
     // If spending is spread across many categories ( > 5 categories with > 5% spend)
     const significantCategories = stats.monthlyStats.byCategory.filter(c => (c.value / stats.monthlyStats.expense) > 0.05);
