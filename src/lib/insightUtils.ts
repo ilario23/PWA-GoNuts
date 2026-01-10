@@ -99,36 +99,27 @@ export const generateInsights = (
         }
     }
 
-    // 4. Recurring Check (Subscription alert?)
-    // If recurring ratio is high? (Maybe later)
+    // 5. Recurring Creep (High recurring expenses) - placeholder for now
 
-    // 5. No Spend Days (if we had daily data readily available in memory here easily... 
-    // currently we have dailyCumulativeExpenses, can infer flat lines)
-    // Let's keep it simple for v1.
+    // We added `gamificationStatus` to stats! It has useful info.
+    const gameStatus = stats.gamificationStatus;
+    // Budget Pacing logic placeholder
+    if (gameStatus && gameStatus.budgetAdherence > 0 && gameStatus.budgetAdherence < 100) {
+        // Implementation for future
+    }
 
-    // 5. Advice (Fallback if no insights)
-    if (insights.length === 0 && stats.previousMonthStats) {
-        const prevStats = stats.previousMonthStats;
-        const totalPrevExpense = prevStats.expense;
-
-        // Check for "Whale" in previous month
-        if (prevStats.byCategory.length > 0 && totalPrevExpense > 0) {
-            const sortedPrevCats = [...prevStats.byCategory].sort((a, b) => b.value - a.value);
-            const topPrevCat = sortedPrevCats[0];
-            const percentage = Math.round((topPrevCat.value / totalPrevExpense) * 100);
-
-            if (percentage > 20) {
-                insights.push({
-                    id: "advice-previous-whale",
-                    title: "insights.advice.title",
-                    message: "insights.advice.previous_whale",
-                    messageParams: { category: topPrevCat.name, percentage },
-                    type: "tip",
-                    icon: "Lightbulb",
-                    priority: 50, // Low priority, but it's the only one so it will show
-                });
-            }
-        }
+    // "Diversity Score" / "Balanced Life"
+    // If spending is spread across many categories ( > 5 categories with > 5% spend)
+    const significantCategories = stats.monthlyStats.byCategory.filter(c => (c.value / stats.monthlyStats.expense) > 0.05);
+    if (significantCategories.length >= 5) {
+        insights.push({
+            id: "balanced-spending",
+            title: "insights.balanced_life.title",
+            message: "insights.balanced_life.message",
+            type: "positive",
+            icon: "Scale",
+            priority: 60,
+        });
     }
 
     // Sort by priority
