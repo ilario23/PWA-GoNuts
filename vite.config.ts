@@ -216,7 +216,7 @@ export default defineConfig({
     // Target Safari 14+ for iOS compatibility
     target: ["es2020", "safari14"],
     // Adjust warning limit
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1300,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -225,6 +225,13 @@ export default defineConfig({
           "db-vendor": ["@supabase/supabase-js", "dexie", "dexie-react-hooks"],
           "chart-vendor": ["recharts"],
           "utils-vendor": ["date-fns", "i18next", "react-i18next", "zod"],
+          "animation-vendor": [
+            "framer-motion",
+            "canvas-confetti",
+          ],
+          "password-core": ["@zxcvbn-ts/core"],
+          "password-lang": ["@zxcvbn-ts/language-en"],
+          "file-processing-vendor": ["xlsx", "papaparse"],
         },
       },
     },
