@@ -119,10 +119,19 @@ export function useTransactions(
     syncManager.schedulePush();
   };
 
+  const restoreTransaction = async (id: string) => {
+    await db.transactions.update(id, {
+      deleted_at: null,
+      pendingSync: 1,
+    });
+    syncManager.schedulePush();
+  };
+
   return {
     transactions,
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    restoreTransaction,
   };
 }

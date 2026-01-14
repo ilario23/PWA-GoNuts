@@ -40,6 +40,7 @@ import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { Category, Group, Context } from "@/lib/db";
 
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface FilterState {
   text: string;
@@ -266,7 +267,7 @@ export function TransactionsPage() {
 
   // Pass undefined for limit, and the selectedMonth (which is in yyyy-MM format) for yearMonth
   // When showAllMonths is true, pass only the year
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } =
+  const { transactions, addTransaction, updateTransaction, deleteTransaction, restoreTransaction } =
     useTransactions(undefined, showAllMonths ? selectedYear : selectedMonth);
 
   const { t } = useTranslation();
@@ -420,7 +421,15 @@ export function TransactionsPage() {
 
   const handleConfirmDelete = () => {
     if (deletingId) {
+      // Capture ID for closure
+      const idToRestore = deletingId;
       deleteTransaction(deletingId);
+      toast.success(t("transaction_deleted"), {
+        action: {
+          label: t("undo"),
+          onClick: () => restoreTransaction(idToRestore),
+        },
+      });
       setDeletingId(null);
     }
   };
