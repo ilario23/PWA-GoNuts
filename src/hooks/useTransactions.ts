@@ -60,6 +60,9 @@ export function useTransactions(
       }
     }
 
+    // Filter out soft-deleted transactions
+    results = results.filter((t) => !t.deleted_at);
+
     // Apply limit if needed (and not already applied effectively)
     if (limit && results.length > limit) {
       results = results.slice(0, limit);
