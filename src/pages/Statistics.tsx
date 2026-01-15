@@ -455,11 +455,19 @@ export function StatisticsPage() {
                   <CardHeader>
                     <CardTitle>{t("period_comparison")}</CardTitle>
                     <CardDescription>
-                      {t("comparison_vs_previous_month", {
-                        current: format(new Date(selectedMonth), "MMMM", { locale: dateLocale }),
-                        previous: format(new Date(previousMonth), "MMMM", { locale: dateLocale }),
+                      {format(new Date(`${selectedMonth}-01`), "MMMM", {
+                        locale: dateLocale,
+                      })}{" "}
+                      vs{" "}
+                      {format(new Date(`${comparisonMonth || previousMonth}-01`), "MMMM", {
+                        locale: dateLocale,
                       })}
                     </CardDescription>
+                    {selectedMonth === format(new Date(), "yyyy-MM") && (
+                      <p className="text-xs text-muted-foreground/80 mt-1">
+                        {t("mtd_comparison_expl", { day: new Date().getDate() })}
+                      </p>
+                    )}
                   </CardHeader>
                   <CardContent>
                     {/* Comparison month selector */}
@@ -531,12 +539,16 @@ export function StatisticsPage() {
                           }
                         </div>
                         <div
-                          className={`text-xs flex items-center gap-1 ${monthlyComparison.income.trend === "up"
-                            ? "text-green-500"
-                            : "text-red-500"
+                          className={`text-xs flex items-center gap-1 ${Math.abs(monthlyComparison.income.change) < 0.1
+                            ? "text-muted-foreground"
+                            : monthlyComparison.income.trend === "up"
+                              ? "text-green-500"
+                              : "text-red-500"
                             }`}
                         >
-                          {monthlyComparison.income.trend === "up" ? (
+                          {Math.abs(monthlyComparison.income.change) < 0.1 ? (
+                            null
+                          ) : monthlyComparison.income.trend === "up" ? (
                             <ArrowUp className="h-3 w-3" />
                           ) : (
                             <ArrowDown className="h-3 w-3" />
@@ -555,13 +567,16 @@ export function StatisticsPage() {
                           €{monthlyComparison.expense.current.toFixed(0)}
                         </div>
                         <div
-                          className={`text-xs flex items-center gap-1 ${monthlyComparison.expense.current <=
-                            monthlyComparison.expense.previous
-                            ? "text-green-500" // Lower expense is good
-                            : "text-red-500"   // Higher expense is bad
+                          className={`text-xs flex items-center gap-1 ${Math.abs(monthlyComparison.expense.change) < 0.1
+                            ? "text-muted-foreground"
+                            : monthlyComparison.expense.current <= monthlyComparison.expense.previous
+                              ? "text-green-500" // Lower expense is good
+                              : "text-red-500"   // Higher expense is bad
                             }`}
                         >
-                          {monthlyComparison.expense.current <=
+                          {Math.abs(monthlyComparison.expense.change) < 0.1 ? (
+                            null
+                          ) : monthlyComparison.expense.current <=
                             monthlyComparison.expense.previous ? (
                             <ArrowDown className="h-3 w-3" />
                           ) : (
@@ -586,12 +601,16 @@ export function StatisticsPage() {
                           €{monthlyComparison.balance.current.toFixed(0)}
                         </div>
                         <div
-                          className={`text-xs flex items-center gap-1 ${monthlyComparison.balance.trend === "up"
-                            ? "text-green-500"
-                            : "text-red-500"
+                          className={`text-xs flex items-center gap-1 ${Math.abs(monthlyComparison.balance.change) < 0.1
+                            ? "text-muted-foreground"
+                            : monthlyComparison.balance.trend === "up"
+                              ? "text-green-500"
+                              : "text-red-500"
                             }`}
                         >
-                          {monthlyComparison.balance.trend === "up" ? (
+                          {Math.abs(monthlyComparison.balance.change) < 0.1 ? (
+                            null
+                          ) : monthlyComparison.balance.trend === "up" ? (
                             <ArrowUp className="h-3 w-3" />
                           ) : (
                             <ArrowDown className="h-3 w-3" />
@@ -618,12 +637,16 @@ export function StatisticsPage() {
                           }
                         </div>
                         <div
-                          className={`text-xs flex items-center gap-1 ${monthlyComparison.savingRate.trend === "up"
-                            ? "text-green-500"
-                            : "text-red-500"
+                          className={`text-xs flex items-center gap-1 ${Math.abs(monthlyComparison.savingRate.change) < 0.1
+                            ? "text-muted-foreground"
+                            : monthlyComparison.savingRate.trend === "up"
+                              ? "text-green-500"
+                              : "text-red-500"
                             }`}
                         >
-                          {monthlyComparison.savingRate.trend === "up" ? (
+                          {Math.abs(monthlyComparison.savingRate.change) < 0.1 ? (
+                            null
+                          ) : monthlyComparison.savingRate.trend === "up" ? (
                             <ArrowUp className="h-3 w-3" />
                           ) : (
                             <ArrowDown className="h-3 w-3" />

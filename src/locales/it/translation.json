@@ -740,6 +740,7 @@
     "dec": "Dic"
   },
   "of_total": "% del totale",
+  "mtd_comparison_expl": "Confronto dati fino al giorno {{day}}",
   "app_user": "Utente App",
   "validation": {
     "invalid_uuid": "Formato UUID non valido",

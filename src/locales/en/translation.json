@@ -743,6 +743,7 @@
     "dec": "Dec"
   },
   "of_total": "% of total",
+  "mtd_comparison_expl": "Comparing data up to day {{day}}",
   "app_user": "App User",
   "validation": {
     "invalid_uuid": "Invalid UUID format",
