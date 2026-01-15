@@ -290,6 +290,7 @@ interface CategoryDesktopTableProps {
     onEdit: (category: Category) => void;
     onDelete: (id: string) => void;
     getBudgetForCategory: (categoryId: string) => { amount: number; spent: number; percentage: number; period: "monthly" | "yearly" } | null | undefined;
+    totalCount: number;
 }
 
 export function CategoryDesktopTable({
@@ -305,6 +306,7 @@ export function CategoryDesktopTable({
     onEdit,
     onDelete,
     getBudgetForCategory,
+    totalCount,
 }: CategoryDesktopTableProps) {
     return (
         <SmoothLoader
@@ -342,6 +344,13 @@ export function CategoryDesktopTable({
                         onDelete={onDelete}
                         getBudgetForCategory={getBudgetForCategory}
                     />
+                    {rootCategories.length === 0 && totalCount > 0 && (
+                        <TableRow>
+                            <TableCell colSpan={6} className="h-24 text-center">
+                                {t("no_results_found")}
+                            </TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
             </Table>
         </SmoothLoader>

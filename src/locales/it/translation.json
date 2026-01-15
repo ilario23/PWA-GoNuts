@@ -306,6 +306,7 @@
   "recurring_expenses_added": "{{count}} spese ricorrenti aggiunte",
   "recurring_generated": "✅ Generate {{count}} transazione/i ricorrente/i per un totale di {{amount}}",
   "no_recurring_transactions": "Nessuna transazione ricorrente trovata. Aggiungine una per automatizzare le tue spese.",
+  "no_results_found": "Nessun risultato trovato",
   "confirm_delete_recurring": "Eliminare la Transazione Ricorrente?",
   "confirm_delete_recurring_description": "Sei sicuro di voler eliminare questa transazione ricorrente? Questa azione non può essere annullata.",
   "frequency": "Frequenza",
@@ -738,6 +739,7 @@
     "nov": "Nov",
     "dec": "Dic"
   },
+  "of_total": "% del totale",
   "app_user": "Utente App",
   "validation": {
     "invalid_uuid": "Formato UUID non valido",

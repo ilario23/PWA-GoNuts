@@ -194,6 +194,10 @@ export function CategoryMobileList({
                     <div className="text-muted-foreground text-center py-8">
                         {t("no_categories")}
                     </div>
+                ) : filteredCategories.length === 0 ? (
+                    <div className="text-muted-foreground text-center py-8">
+                        {t("no_results_found")}
+                    </div>
                 ) : (
                     <div className="pb-20">
                         {/* Render each type group */}

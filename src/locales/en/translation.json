@@ -306,6 +306,7 @@
   "recurring_expenses_added": "{{count}} recurring expenses added",
   "recurring_generated": "Generated {{count}} recurring transaction(s) totaling {{amount}}",
   "no_recurring_transactions": "No recurring transactions found. Add one to automate your expenses.",
+  "no_results_found": "No results found",
   "confirm_delete_recurring": "Delete Recurring Transaction?",
   "confirm_delete_recurring_description": "Are you sure you want to delete this recurring transaction? This action cannot be undone.",
   "frequency": "Frequency",
@@ -741,6 +742,7 @@
     "nov": "Nov",
     "dec": "Dec"
   },
+  "of_total": "% of total",
   "app_user": "App User",
   "validation": {
     "invalid_uuid": "Invalid UUID format",

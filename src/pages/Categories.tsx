@@ -734,6 +734,7 @@ export function CategoriesPage() {
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
         getBudgetForCategory={getBudgetForCategory}
+        totalCount={categories?.length || 0}
       />
 
       {/* Form Dialog */}
