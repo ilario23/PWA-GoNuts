@@ -422,7 +422,7 @@ export function StatisticsPage() {
 
                   {/* Category Distribution - Hybrid Component */}
                   <StatsCategoryDistribution
-                    categoryData={currentCategoryPercentages.map(c => ({ ...c, amount: c.value, fill: c.color }))}
+                    categoryData={currentCategoryPercentages.map(c => ({ ...c, amount: c.amount, fill: c.color }))}
                     isLoading={isLoading}
                   />
 
@@ -525,7 +525,10 @@ export function StatisticsPage() {
                           {t("income")}
                         </div>
                         <div className="text-xl font-bold">
-                          €{monthlyComparison.income.current.toFixed(0)}
+                          {monthlyComparison.income.current === 0
+                            ? "-"
+                            : `€${monthlyComparison.income.current.toFixed(0)}`
+                          }
                         </div>
                         <div
                           className={`text-xs flex items-center gap-1 ${monthlyComparison.income.trend === "up"
@@ -550,9 +553,10 @@ export function StatisticsPage() {
                           €{monthlyComparison.expense.current.toFixed(0)}
                         </div>
                         <div
-                          className={`text-xs flex items-center gap-1 ${monthlyComparison.expense.trend === "up"
-                            ? "text-green-500"
-                            : "text-red-500"
+                          className={`text-xs flex items-center gap-1 ${monthlyComparison.expense.current <=
+                            monthlyComparison.expense.previous
+                            ? "text-green-500" // Lower expense is good
+                            : "text-red-500"   // Higher expense is bad
                             }`}
                         >
                           {monthlyComparison.expense.current <=
@@ -602,7 +606,10 @@ export function StatisticsPage() {
                             : "text-red-500"
                             }`}
                         >
-                          {monthlyComparison.savingRate.current.toFixed(1)}%
+                          {monthlyComparison.income.current === 0
+                            ? "-"
+                            : `${monthlyComparison.savingRate.current.toFixed(1)}%`
+                          }
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {t("previous")}:{" "}
