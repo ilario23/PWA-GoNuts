@@ -111,8 +111,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 >
                                     <UserAvatar
                                         userId={user?.id || ""}
-                                        className="rounded-lg h-8 w-8"
-                                        avatarClassName="rounded-lg h-8 w-8"
+                                        className="rounded-full h-8 w-8"
+                                        avatarClassName="rounded-full h-8 w-8"
                                         fallbackName={profile?.full_name || user?.email}
                                     />
                                     <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">

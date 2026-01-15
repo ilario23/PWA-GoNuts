@@ -236,8 +236,8 @@ export function useStatistics(params?: UseStatisticsParams) {
       savingRate: {
         current: current.income ? ((current.income - current.expense) / current.income) * 100 : 0,
         previous: previous.income ? ((previous.income - previous.expense) / previous.income) * 100 : 0,
-        change: 0,
-        trend: "neutral"
+        change: (current.income ? ((current.income - current.expense) / current.income) * 100 : 0) - (previous.income ? ((previous.income - previous.expense) / previous.income) * 100 : 0),
+        trend: (current.income ? ((current.income - current.expense) / current.income) : 0) >= (previous.income ? ((previous.income - previous.expense) / previous.income) : 0) ? "up" : "down"
       }
     }
   }, [workerResult.monthlyStats, previousMonthTransactions, mode, getEffectiveAmount, transactions, currentMonth]);

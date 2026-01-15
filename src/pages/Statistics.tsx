@@ -541,7 +541,9 @@ export function StatisticsPage() {
                           ) : (
                             <ArrowDown className="h-3 w-3" />
                           )}
-                          {Math.abs(monthlyComparison.income.change).toFixed(1)}%
+                          {Math.abs(monthlyComparison.income.change).toFixed(1)}% <span className="text-muted-foreground/70">
+                            (€{monthlyComparison.income.previous.toFixed(0)})
+                          </span>
                         </div>
                       </div>
                       {/* Expense Comparison */}
@@ -565,7 +567,9 @@ export function StatisticsPage() {
                           ) : (
                             <ArrowUp className="h-3 w-3" />
                           )}
-                          {Math.abs(monthlyComparison.expense.change).toFixed(1)}%
+                          {Math.abs(monthlyComparison.expense.change).toFixed(1)}% <span className="text-muted-foreground/70">
+                            (€{monthlyComparison.expense.previous.toFixed(0)})
+                          </span>
                         </div>
                       </div>
                       {/* Balance Comparison */}
@@ -592,7 +596,9 @@ export function StatisticsPage() {
                           ) : (
                             <ArrowDown className="h-3 w-3" />
                           )}
-                          {Math.abs(monthlyComparison.balance.change).toFixed(1)}%
+                          {Math.abs(monthlyComparison.balance.change).toFixed(1)}% <span className="text-muted-foreground/70">
+                            (€{monthlyComparison.balance.previous.toFixed(0)})
+                          </span>
                         </div>
                       </div>
                       {/* Saving Rate Comparison */}
@@ -611,9 +617,20 @@ export function StatisticsPage() {
                             : `${monthlyComparison.savingRate.current.toFixed(1)}%`
                           }
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {t("previous")}:{" "}
-                          {monthlyComparison.savingRate.previous.toFixed(1)}%
+                        <div
+                          className={`text-xs flex items-center gap-1 ${monthlyComparison.savingRate.trend === "up"
+                            ? "text-green-500"
+                            : "text-red-500"
+                            }`}
+                        >
+                          {monthlyComparison.savingRate.trend === "up" ? (
+                            <ArrowUp className="h-3 w-3" />
+                          ) : (
+                            <ArrowDown className="h-3 w-3" />
+                          )}
+                          {Math.abs(monthlyComparison.savingRate.change).toFixed(1)}% <span className="text-muted-foreground/70">
+                            ({monthlyComparison.savingRate.previous.toFixed(1)}%)
+                          </span>
                         </div>
                       </div>
                     </div>
