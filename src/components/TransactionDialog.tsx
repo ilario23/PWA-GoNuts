@@ -647,7 +647,7 @@ export function TransactionDialog({
                                                         } else if (contextName) {
                                                             return `${t("personal_expense")} • ${contextName}`;
                                                         } else {
-                                                            return t("personal_expense");
+                                                            return t("transaction_options_label");
                                                         }
                                                     })()}
                                                 </>
