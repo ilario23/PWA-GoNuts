@@ -991,5 +991,22 @@
     "summary_section_title": "Summary",
     "graphs_section_title": "Graphs",
     "not_enough_data": "Not enough data to display graphs"
-  }
+  },
+  "changelog_v1_0_5_0": "Added Changelog page",
+  "changelog_v1_0_5_1": "Added description column to recurring transactions",
+  "changelog_v1_0_5_2": "Improved statistics period comparison",
+  "changelog_v1_0_5_3": "Made sidebar avatar round",
+  "changelog_v1_0_5_4": "Added 'No results' state to categories",
+  "changelog_v1_0_5_5": "Translation updates for transaction dialogs",
+  "changelog_v1_0_4_0": "Implemented Undo for deleted transactions",
+  "changelog_v1_0_4_1": "Excluded soft-deleted transactions from views",
+  "changelog_v1_0_3_0": "Implemented CSV export for transactions",
+  "changelog_v1_0_3_1": "Added 'Balanced Life' insight",
+  "changelog_v1_0_2_0": "Added Budget Health chart and category progress",
+  "changelog_v1_0_2_1": "Integrated insights into dashboard",
+  "changelog_v1_0_2_2": "Enabled scrolling in category selectors on mobile",
+  "changelog_v1_0_2_3": "Refined calculator closing logic",
+  "changelog_v1_0_1_0": "Implemented Password Strength Meter",
+  "changelog_v1_0_1_1": "Enhanced statistics page (graphs header, empty state)",
+  "changelog_v1_0_0_0": "Initial release of GoNuts PWA"
 }

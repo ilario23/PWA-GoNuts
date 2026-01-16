@@ -988,5 +988,22 @@
     "summary_section_title": "Riepilogo",
     "graphs_section_title": "Grafici",
     "not_enough_data": "Dati insufficienti per visualizzare i grafici"
-  }
+  },
+  "changelog_v1_0_5_0": "Aggiunta pagina Changelog",
+  "changelog_v1_0_5_1": "Aggiunta colonna descrizione alle transazioni ricorrenti",
+  "changelog_v1_0_5_2": "Migliorato confronto periodi nelle statistiche",
+  "changelog_v1_0_5_3": "Reso rotondo l'avatar nella barra laterale",
+  "changelog_v1_0_5_4": "Aggiunto stato 'Nessun risultato' per le categorie",
+  "changelog_v1_0_5_5": "Aggiornamenti traduzioni per i dialoghi transazione",
+  "changelog_v1_0_4_0": "Implementato Annulla per transazioni eliminate",
+  "changelog_v1_0_4_1": "Escluse transazioni eliminate (soft-delete) dalle viste",
+  "changelog_v1_0_3_0": "Implementata esportazione CSV per le transazioni",
+  "changelog_v1_0_3_1": "Aggiunto insight 'Vita Equilibrata'",
+  "changelog_v1_0_2_0": "Aggiunto grafico Salute Budget e progresso categorie",
+  "changelog_v1_0_2_1": "Integrati insights nella dashboard",
+  "changelog_v1_0_2_2": "Abilitato scorrimento nei selettori di categoria su mobile",
+  "changelog_v1_0_2_3": "Raffinata logica di chiusura calcolatrice",
+  "changelog_v1_0_1_0": "Implementato misuratore forza password",
+  "changelog_v1_0_1_1": "Migliorata pagina statistiche (header grafici, stato vuoto)",
+  "changelog_v1_0_0_0": "Rilascio iniziale di GoNuts PWA"
 }

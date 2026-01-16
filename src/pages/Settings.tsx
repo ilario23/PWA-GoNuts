@@ -50,6 +50,7 @@ import {
   Check,
   Compass,
   BookOpen,
+  History,
 } from "lucide-react";
 import { HelpSystemWrapper } from "@/components/help/HelpSystem";
 import { useTranslation } from "react-i18next";
@@ -655,6 +656,26 @@ export function SettingsPage() {
               <p className="text-xs text-muted-foreground">
                 {t("full_sync_hint")}
               </p>
+            </CardContent>
+          </Card>
+
+          {/* App Info */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t("app_info")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                className="w-full h-12 gap-3 touch-manipulation justify-start"
+                onClick={() => window.location.href = "/changelog"}
+              >
+                <History className="h-5 w-5 text-primary" />
+                <div className="flex flex-col items-start gap-0.5">
+                  <span className="font-medium text-sm">{t("changelog")}</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">{t("changelog_desc", "See what's new in this version")}</span>
+                </div>
+              </Button>
             </CardContent>
           </Card>
 

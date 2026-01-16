@@ -70,6 +70,9 @@ const UpdatePasswordPage = lazy(() =>
     default: m.UpdatePasswordPage,
   }))
 );
+const ChangelogPage = lazy(() =>
+  import("@/pages/Changelog").then((m) => ({ default: m.ChangelogPage }))
+);
 
 /**
  * Loading fallback for lazy-loaded pages
@@ -373,6 +376,18 @@ function AppRoutes() {
               <Suspense fallback={<PageLoadingFallback />}>
                 <PageTransition>
                   <ProfilePage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/changelog"
+          element={
+            <ErrorBoundary section="Changelog" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <ChangelogPage />
                 </PageTransition>
               </Suspense>
             </ErrorBoundary>
