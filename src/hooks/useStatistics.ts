@@ -190,7 +190,19 @@ export function useStatistics(params?: UseStatisticsParams) {
       };
 
     const current = { income: workerResult.monthlyStats.income, expense: workerResult.monthlyStats.expense };
+
+    // MTD Logic
+    const today = new Date();
+    const isCurrentMonth = currentMonth === format(today, "yyyy-MM");
+    const currentDay = today.getDate();
+
     const previous = previousMonthTransactions.reduce((acc, t) => {
+      // If comparing against current incomplete month, filter previous transactions by day
+      if (isCurrentMonth) {
+        const tDate = new Date(t.date);
+        if (tDate.getDate() > currentDay) return acc;
+      }
+
       const amt = getEffectiveAmount(t);
       if (t.type === 'income') acc.income += amt;
       if (t.type === 'expense') acc.expense += amt;
@@ -224,11 +236,11 @@ export function useStatistics(params?: UseStatisticsParams) {
       savingRate: {
         current: current.income ? ((current.income - current.expense) / current.income) * 100 : 0,
         previous: previous.income ? ((previous.income - previous.expense) / previous.income) * 100 : 0,
-        change: 0,
-        trend: "neutral"
+        change: (current.income ? ((current.income - current.expense) / current.income) * 100 : 0) - (previous.income ? ((previous.income - previous.expense) / previous.income) * 100 : 0),
+        trend: (current.income ? ((current.income - current.expense) / current.income) : 0) >= (previous.income ? ((previous.income - previous.expense) / previous.income) : 0) ? "up" : "down"
       }
     }
-  }, [workerResult.monthlyStats, previousMonthTransactions, mode, getEffectiveAmount, transactions]);
+  }, [workerResult.monthlyStats, previousMonthTransactions, mode, getEffectiveAmount, transactions, currentMonth]);
 
 
   const previousYearTransactions = useLiveQuery(

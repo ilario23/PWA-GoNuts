@@ -224,9 +224,9 @@ export function StatsExpenseBreakdown({
                                                                                 </span>
                                                                             </div>
 
-                                                                            {/* Mini progress bar */}
-                                                                            <div className="flex items-center gap-2 mt-0.5">
-                                                                                <div className="flex-1 bg-muted rounded-full h-1">
+                                                                            {/* Mini progress bar and percentages */}
+                                                                            <div className="flex items-start gap-2 mt-0.5">
+                                                                                <div className="flex-1 bg-muted rounded-full h-1 mt-1.5">
                                                                                     <div
                                                                                         className="h-1 rounded-full transition-all duration-300"
                                                                                         style={{
@@ -236,9 +236,16 @@ export function StatsExpenseBreakdown({
                                                                                         }}
                                                                                     />
                                                                                 </div>
-                                                                                <span className="text-xs text-muted-foreground shrink-0 w-12 text-right">
-                                                                                    {childPercentage.toFixed(1)}%
-                                                                                </span>
+                                                                                <div className="flex flex-col items-end shrink-0 w-24">
+                                                                                    <span className="text-xs text-muted-foreground font-medium">
+                                                                                        {childPercentage.toFixed(1)}%
+                                                                                    </span>
+                                                                                    {totalExpense > 0 && (
+                                                                                        <span className="text-[10px] text-muted-foreground/70">
+                                                                                            {((child.amount / totalExpense) * 100).toFixed(1)}% {t("of_total")}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>

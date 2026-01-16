@@ -647,7 +647,7 @@ export function TransactionDialog({
                                                         } else if (contextName) {
                                                             return `${t("personal_expense")} • ${contextName}`;
                                                         } else {
-                                                            return t("personal_expense");
+                                                            return t("transaction_options_label");
                                                         }
                                                     })()}
                                                 </>
@@ -787,14 +787,14 @@ export function TransactionDialog({
                 <AlertDialog open={showLargeValueConfirm} onOpenChange={setShowLargeValueConfirm}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Confirm Large Transaction</AlertDialogTitle>
+                            <AlertDialogTitle>{t("confirm_large_transaction_title")}</AlertDialogTitle>
                             <AlertDialogDescription>
-                                You are about to save a transaction with a large amount ({pendingData?.amount?.toLocaleString()}). Are you sure this is correct?
+                                {t("confirm_large_transaction_description", { amount: pendingData?.amount?.toLocaleString() })}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => setPendingData(null)}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={confirmLargeValue}>Confirm</AlertDialogAction>
+                            <AlertDialogCancel onClick={() => setPendingData(null)}>{t("cancel")}</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmLargeValue}>{t("confirm")}</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>

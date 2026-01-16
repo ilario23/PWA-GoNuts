@@ -109,6 +109,7 @@ export function RecurringTransactionDesktopTable({
                 <TableHeader>
                     <TableRow>
                         <TableHead>{t("category")}</TableHead>
+                        <TableHead>{t("description")}</TableHead>
                         <TableHead>{t("frequency")}</TableHead>
                         <TableHead>{t("type")}</TableHead>
                         <TableHead className="text-right">{t("amount")}</TableHead>
@@ -119,7 +120,7 @@ export function RecurringTransactionDesktopTable({
                 <TableBody>
                     {!recurringTransactions || recurringTransactions.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center">
+                            <TableCell colSpan={7} className="h-24 text-center">
                                 {t("no_recurring_transactions")}
                             </TableCell>
                         </TableRow>
@@ -144,6 +145,9 @@ export function RecurringTransactionDesktopTable({
                                             )}
                                         </TooltipProvider>
                                     </div>
+                                </TableCell>
+                                <TableCell>
+                                    {t_item.description || "-"}
                                 </TableCell>
                                 <TableCell className="capitalize">
                                     {t(t_item.frequency)}
