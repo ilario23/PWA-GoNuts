@@ -993,7 +993,7 @@ export function StatisticsPage() {
                 <div className="grid gap-4 md:grid-cols-2 min-w-0">
                   {/* Category Distribution - Hybrid Component (Yearly) */}
                   <StatsCategoryDistribution
-                    categoryData={yearlyCategoryPercentages.map(c => ({ ...c, amount: c.value, fill: c.color }))}
+                    categoryData={yearlyCategoryPercentages.map(c => ({ ...c, amount: c.amount, fill: c.color }))}
                     isLoading={false}
                   />
 
@@ -1015,6 +1015,11 @@ export function StatisticsPage() {
                         previous: previousYear,
                       })}
                     </CardDescription>
+                    {selectedYear === new Date().getFullYear().toString() && (
+                      <p className="text-xs text-muted-foreground/80 mt-1">
+                        {t("ytd_comparison_expl", { month: format(new Date(), "MMMM", { locale: dateLocale }) })}
+                      </p>
+                    )}
                   </CardHeader>
                   <CardContent className="min-w-0">
                     {/* Comparison year selector */}
@@ -1041,6 +1046,8 @@ export function StatisticsPage() {
                           </SelectContent>
                         </Select>
                       </div>
+                      {/* YTD Warning */}
+
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                       {/* Income Comparison */}
@@ -1049,20 +1056,29 @@ export function StatisticsPage() {
                           {t("income")}
                         </div>
                         <div className="text-xl font-bold">
-                          €{yearlyComparison.income.current.toFixed(0)}
+                          {yearlyComparison.income.current === 0
+                            ? "-"
+                            : `€${yearlyComparison.income.current.toFixed(0)}`
+                          }
                         </div>
                         <div
-                          className={`text-xs flex items-center gap-1 ${yearlyComparison.income.trend === "up"
-                            ? "text-green-500"
-                            : "text-red-500"
+                          className={`text-xs flex items-center gap-1 ${Math.abs(yearlyComparison.income.change) < 0.1
+                            ? "text-muted-foreground"
+                            : yearlyComparison.income.trend === "up"
+                              ? "text-green-500"
+                              : "text-red-500"
                             }`}
                         >
-                          {yearlyComparison.income.trend === "up" ? (
+                          {Math.abs(yearlyComparison.income.change) < 0.1 ? (
+                            null
+                          ) : yearlyComparison.income.trend === "up" ? (
                             <ArrowUp className="h-3 w-3" />
                           ) : (
                             <ArrowDown className="h-3 w-3" />
                           )}
-                          {Math.abs(yearlyComparison.income.change).toFixed(1)}%
+                          {Math.abs(yearlyComparison.income.change).toFixed(1)}% <span className="text-muted-foreground/70">
+                            (€{yearlyComparison.income.previous.toFixed(0)})
+                          </span>
                         </div>
                       </div>
                       {/* Expense Comparison */}
@@ -1074,18 +1090,24 @@ export function StatisticsPage() {
                           €{yearlyComparison.expense.current.toFixed(0)}
                         </div>
                         <div
-                          className={`text-xs flex items-center gap-1 ${yearlyComparison.expense.trend === "up"
-                            ? "text-green-500"
-                            : "text-red-500"
+                          className={`text-xs flex items-center gap-1 ${Math.abs(yearlyComparison.expense.change) < 0.1
+                            ? "text-muted-foreground"
+                            : yearlyComparison.expense.current <= yearlyComparison.expense.previous
+                              ? "text-green-500" // Lower expense is good
+                              : "text-red-500"   // Higher expense is bad
                             }`}
                         >
-                          {yearlyComparison.expense.current <=
+                          {Math.abs(yearlyComparison.expense.change) < 0.1 ? (
+                            null
+                          ) : yearlyComparison.expense.current <=
                             yearlyComparison.expense.previous ? (
                             <ArrowDown className="h-3 w-3" />
                           ) : (
                             <ArrowUp className="h-3 w-3" />
                           )}
-                          {Math.abs(yearlyComparison.expense.change).toFixed(1)}%
+                          {Math.abs(yearlyComparison.expense.change).toFixed(1)}% <span className="text-muted-foreground/70">
+                            (€{yearlyComparison.expense.previous.toFixed(0)})
+                          </span>
                         </div>
                       </div>
                       {/* Balance Comparison */}
@@ -1102,17 +1124,23 @@ export function StatisticsPage() {
                           €{yearlyComparison.balance.current.toFixed(0)}
                         </div>
                         <div
-                          className={`text-xs flex items-center gap-1 ${yearlyComparison.balance.trend === "up"
-                            ? "text-green-500"
-                            : "text-red-500"
+                          className={`text-xs flex items-center gap-1 ${Math.abs(yearlyComparison.balance.change) < 0.1
+                            ? "text-muted-foreground"
+                            : yearlyComparison.balance.trend === "up"
+                              ? "text-green-500"
+                              : "text-red-500"
                             }`}
                         >
-                          {yearlyComparison.balance.trend === "up" ? (
+                          {Math.abs(yearlyComparison.balance.change) < 0.1 ? (
+                            null
+                          ) : yearlyComparison.balance.trend === "up" ? (
                             <ArrowUp className="h-3 w-3" />
                           ) : (
                             <ArrowDown className="h-3 w-3" />
                           )}
-                          {Math.abs(yearlyComparison.balance.change).toFixed(1)}%
+                          {Math.abs(yearlyComparison.balance.change).toFixed(1)}% <span className="text-muted-foreground/70">
+                            (€{yearlyComparison.balance.previous.toFixed(0)})
+                          </span>
                         </div>
                       </div>
                       {/* Saving Rate Comparison */}
@@ -1126,11 +1154,29 @@ export function StatisticsPage() {
                             : "text-red-500"
                             }`}
                         >
-                          {yearlyComparison.savingRate.current.toFixed(1)}%
+                          {yearlyComparison.income.current === 0
+                            ? "-"
+                            : `${yearlyComparison.savingRate.current.toFixed(1)}%`
+                          }
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {t("previous")}:{" "}
-                          {yearlyComparison.savingRate.previous.toFixed(1)}%
+                        <div
+                          className={`text-xs flex items-center gap-1 ${Math.abs(yearlyComparison.savingRate.change) < 0.1
+                            ? "text-muted-foreground"
+                            : yearlyComparison.savingRate.trend === "up"
+                              ? "text-green-500"
+                              : "text-red-500"
+                            }`}
+                        >
+                          {Math.abs(yearlyComparison.savingRate.change) < 0.1 ? (
+                            null
+                          ) : yearlyComparison.savingRate.trend === "up" ? (
+                            <ArrowUp className="h-3 w-3" />
+                          ) : (
+                            <ArrowDown className="h-3 w-3" />
+                          )}
+                          {Math.abs(yearlyComparison.savingRate.change).toFixed(1)}% <span className="text-muted-foreground/70">
+                            ({yearlyComparison.savingRate.previous.toFixed(1)}%)
+                          </span>
                         </div>
                       </div>
                     </div>

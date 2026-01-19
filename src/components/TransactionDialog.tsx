@@ -74,6 +74,7 @@ interface TransactionDialogProps {
     } | null;
     defaultGroupId?: string | null;
     defaultType?: "income" | "expense" | "investment";
+    initialData?: Partial<TransactionFormValues>;
 }
 
 export function TransactionDialog({
@@ -83,6 +84,7 @@ export function TransactionDialog({
     editingTransaction,
     defaultGroupId = null,
     defaultType = "expense",
+    initialData,
 }: TransactionDialogProps) {
     const { t } = useTranslation();
     const { user } = useAuth();
@@ -143,6 +145,23 @@ export function TransactionDialog({
                 } else {
                     setActiveSection("main");
                 }
+            } else if (initialData) {
+                // Pre-fill from initialData (e.g. for duplication) without setting editing mode
+                form.reset({
+                    amount: initialData.amount ?? ("" as any),
+                    description: initialData.description ?? "",
+                    type: initialData.type ?? defaultType,
+                    category_id: initialData.category_id ?? "",
+                    date: initialData.date ?? getLocalDate(), // Allow overriding date, or default to today
+                    context_id: initialData.context_id ?? null,
+                    group_id: initialData.group_id ?? defaultGroupId,
+                    paid_by_member_id: initialData.paid_by_member_id ?? null,
+                });
+                if (initialData.group_id || initialData.context_id) {
+                    setActiveSection("more");
+                } else {
+                    setActiveSection("main");
+                }
             } else {
                 form.reset({
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -165,7 +184,7 @@ export function TransactionDialog({
             setCalcState({ prevValue: null, operation: null });
             setShowCalculator(false);
         }
-    }, [open, editingTransaction, defaultGroupId, defaultType, form]);
+    }, [open, editingTransaction, defaultGroupId, defaultType, form, initialData]);
 
     // Watched values for effects
     const watchedGroupId = form.watch("group_id");

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
     Card,
     CardContent,
@@ -6,6 +7,9 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ContextStat {
     id: string;
@@ -29,8 +33,23 @@ export function StatsContextAnalytics({
     contextStats,
 }: StatsContextAnalyticsProps) {
     const { t } = useTranslation();
+    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+    const toggleExpand = (itemId: string) => {
+        setExpandedItems((prev) => {
+            const next = new Set(prev);
+            if (next.has(itemId)) {
+                next.delete(itemId);
+            } else {
+                next.add(itemId);
+            }
+            return next;
+        });
+    };
 
     if (contextStats.length === 0) return null;
+
+    const grandTotal = contextStats.reduce((acc, curr) => acc + curr.total, 0);
 
     return (
         <Card className="min-w-0">
@@ -38,78 +57,160 @@ export function StatsContextAnalytics({
                 <CardTitle>{t("context_analytics")}</CardTitle>
                 <CardDescription>{t("context_analytics_desc")}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                {contextStats.map((ctx, index) => (
-                    <div key={ctx.id} className="border rounded-lg p-4 space-y-3">
-                        {/* Context header */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{
-                                        backgroundColor: `hsl(var(--chart-${(index % 5) + 1}))`,
-                                    }}
-                                />
-                                <span className="font-semibold">{ctx.name}</span>
-                            </div>
-                            <span className="text-lg font-bold">€{Number(ctx.total).toFixed(2)}</span>
-                        </div>
+            <CardContent className="space-y-2 px-3 sm:px-6">
+                <AnimatePresence initial={false}>
+                    {contextStats.map((ctx, index) => {
+                        const isExpanded = expandedItems.has(ctx.id);
+                        const percentage = grandTotal > 0
+                            ? (ctx.total / grandTotal) * 100
+                            : 0;
+                        const hasChildren = ctx.categoryBreakdown.length > 0;
 
-                        {/* Stats row */}
-                        <div className="grid grid-cols-3 gap-2 text-sm">
-                            <div className="text-center p-2 rounded bg-muted/50 dark:bg-muted/20 border border-border/50">
-                                <div className="text-muted-foreground text-xs font-medium">
-                                    {t("transactions")}
-                                </div>
-                                <div className="font-semibold mt-0.5">{ctx.transactionCount}</div>
-                            </div>
-                            <div className="text-center p-2 rounded bg-muted/50 dark:bg-muted/20 border border-border/50">
-                                <div className="text-muted-foreground text-xs font-medium">
-                                    {t("average")}
-                                </div>
-                                <div className="font-semibold mt-0.5">€{Number(ctx.avgPerTransaction).toFixed(2)}</div>
-                            </div>
-                            <div className="text-center p-2 rounded bg-muted/50 dark:bg-muted/20 border border-border/50">
-                                <div className="text-muted-foreground text-xs font-medium">
-                                    {t("top_category")}
-                                </div>
-                                <div className="font-semibold mt-0.5 truncate px-1">
-                                    {ctx.topCategory || "-"}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Category breakdown - top 3 */}
-                        {ctx.categoryBreakdown.length > 1 && (
-                            <div className="space-y-1 pt-2 border-t">
-                                <div className="text-xs text-muted-foreground mb-2">
-                                    {t("breakdown_by_category")}
-                                </div>
-                                {ctx.categoryBreakdown.slice(0, 3).map((cat) => (
+                        return (
+                            <motion.div
+                                key={ctx.id}
+                                layout
+                                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+                                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="rounded-lg border bg-card overflow-hidden"
+                            >
+                                {/* Parent Context Header */}
+                                <button
+                                    onClick={() => hasChildren && toggleExpand(ctx.id)}
+                                    disabled={!hasChildren}
+                                    className={cn(
+                                        "w-full flex items-center gap-3 p-3 text-left transition-colors",
+                                        hasChildren && "hover:bg-accent/50 cursor-pointer",
+                                        !hasChildren && "cursor-default"
+                                    )}
+                                >
+                                    {/* Color indicator */}
                                     <div
-                                        key={cat.name}
-                                        className="flex items-center justify-between text-sm"
-                                    >
-                                        <span className="text-muted-foreground truncate max-w-[50%]">
-                                            {cat.name}
-                                        </span>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-16 h-1.5 rounded overflow-hidden bg-muted/50 dark:bg-muted/20">
-                                                <div
-                                                    className="h-full bg-primary rounded"
-                                                    style={{ width: `${cat.percentage}%` }}
-                                                />
-                                            </div>
-                                            <span className="font-medium w-16 text-right">
-                                                €{Number(cat.amount).toFixed(2)}
+                                        className="w-3 h-3 rounded-full shrink-0"
+                                        style={{
+                                            backgroundColor: `hsl(var(--chart-${(index % 5) + 1}))`,
+                                        }}
+                                    />
+
+                                    {/* Context info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="font-medium truncate text-sm">
+                                                {ctx.name}
+                                            </span>
+                                            <span className="font-semibold text-sm ml-2 shrink-0">
+                                                €{Number(ctx.total).toFixed(2)}
                                             </span>
                                         </div>
+
+                                        {/* Progress bar */}
+                                        <div className="w-full bg-muted rounded-full h-2">
+                                            <div
+                                                className="h-2 rounded-full transition-all duration-500 ease-out"
+                                                style={{
+                                                    width: `${Math.max(percentage, 1)}%`,
+                                                    backgroundColor: `hsl(var(--chart-${(index % 5) + 1}))`,
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Stats row inside header */}
+                                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                            <div>
+                                                {percentage.toFixed(1)}% {t("of_total")}
+                                            </div>
+                                            <div>
+                                                {ctx.transactionCount} {t("transactions")}
+                                            </div>
+                                            <div>
+                                                {t("average")}: €{Number(ctx.avgPerTransaction).toFixed(2)}
+                                            </div>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                ))}
+
+                                    {/* Expand/Collapse indicator */}
+                                    {hasChildren && (
+                                        <div className="shrink-0 text-muted-foreground">
+                                            {isExpanded ? (
+                                                <ChevronDown className="h-4 w-4" />
+                                            ) : (
+                                                <ChevronRight className="h-4 w-4" />
+                                            )}
+                                        </div>
+                                    )}
+                                </button>
+
+                                {/* Children - Expandable Category Breakdown */}
+                                <AnimatePresence>
+                                    {isExpanded && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                        >
+                                            <div className="border-t bg-accent/20 px-3 py-2 space-y-2">
+                                                {ctx.categoryBreakdown.map((cat, catIndex) => (
+                                                    <div
+                                                        key={cat.name}
+                                                        className="flex items-center gap-3 py-1.5 pl-6"
+                                                        style={{
+                                                            animationDelay: `${catIndex * 50}ms`,
+                                                        }}
+                                                    >
+                                                        {/* Tree connector */}
+                                                        <div className="absolute left-6 w-3 border-l-2 border-b-2 border-muted-foreground/20 h-4 rounded-bl-sm" />
+
+                                                        {/* Color dot */}
+                                                        <div
+                                                            className="w-2 h-2 rounded-full shrink-0 opacity-70"
+                                                            style={{
+                                                                backgroundColor: `hsl(var(--chart-${(index % 5) + 1}))`,
+                                                            }}
+                                                        />
+
+                                                        {/* Category info */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-sm truncate text-muted-foreground">
+                                                                    {cat.name}
+                                                                </span>
+                                                                <span className="text-sm ml-2 shrink-0">
+                                                                    €{Number(cat.amount).toFixed(2)}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Mini progress bar and percentages */}
+                                                            <div className="flex items-start gap-2 mt-0.5">
+                                                                <div className="flex-1 bg-muted rounded-full h-1 mt-1.5">
+                                                                    <div
+                                                                        className="h-1 rounded-full transition-all duration-300"
+                                                                        style={{
+                                                                            width: `${Math.max(cat.percentage, 1)}%`,
+                                                                            backgroundColor: `hsl(var(--chart-${(index % 5) + 1}))`,
+                                                                            opacity: 0.6,
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                                <div className="flex flex-col items-end shrink-0 w-24">
+                                                                    <span className="text-xs text-muted-foreground font-medium">
+                                                                        {cat.percentage.toFixed(1)}%
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </motion.div>
+                        );
+                    })}
+                </AnimatePresence>
             </CardContent>
         </Card>
     );

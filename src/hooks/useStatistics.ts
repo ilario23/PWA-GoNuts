@@ -316,7 +316,25 @@ export function useStatistics(params?: UseStatisticsParams) {
       };
 
     const current = { income: workerResult.yearlyStats.income, expense: workerResult.yearlyStats.expense };
+
+    // YTD Logic: If comparing current incomplete year, filter previous transactions
+    const today = new Date();
+    const isCurrentYear = currentYear === today.getFullYear().toString();
+    const currentMonthIdx = today.getMonth(); // 0-indexed
+    const currentDay = today.getDate();
+
     const previous = previousYearTransactions.reduce((acc, t) => {
+      if (isCurrentYear) {
+        const tDate = new Date(t.date);
+        const tMonth = tDate.getMonth();
+        const tDay = tDate.getDate();
+
+        // Skip if transaction is from a future month OR same month but future day
+        if (tMonth > currentMonthIdx || (tMonth === currentMonthIdx && tDay > currentDay)) {
+          return acc;
+        }
+      }
+
       const amt = getEffectiveAmount(t);
       if (t.type === 'income') acc.income += amt;
       if (t.type === 'expense') acc.expense += amt;
@@ -354,7 +372,7 @@ export function useStatistics(params?: UseStatisticsParams) {
         trend: "neutral"
       }
     }
-  }, [workerResult.yearlyStats, previousYearTransactions, mode, getEffectiveAmount, yearlyTransactions]);
+  }, [workerResult.yearlyStats, previousYearTransactions, mode, getEffectiveAmount, yearlyTransactions, currentYear]);
 
   const burnRate = useMemo(() => {
     const [yearStr, monthStr] = currentMonth.split("-");

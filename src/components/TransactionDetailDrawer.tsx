@@ -25,6 +25,7 @@ import {
   Cloud,
   Calculator,
   X,
+  Copy,
 } from "lucide-react";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +38,7 @@ interface TransactionDetailDrawerProps {
   group?: Group | GroupWithMembers;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onEdit?: (transaction: Transaction) => void;
+  onDuplicate?: (transaction: Transaction) => void;
 }
 
 export function TransactionDetailDrawer({
@@ -47,6 +48,8 @@ export function TransactionDetailDrawer({
   group,
   open,
   onOpenChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onDuplicate,
 }: TransactionDetailDrawerProps) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -101,16 +104,18 @@ export function TransactionDetailDrawer({
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader className="text-center pt-8 pb-4 relative">
-            <DrawerClose asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-4 h-8 w-8 rounded-full opacity-70 hover:opacity-100"
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">{t("close")}</span>
-              </Button>
-            </DrawerClose>
+            <div className="absolute right-4 top-4 flex gap-2">
+              <DrawerClose asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full opacity-70 hover:opacity-100"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">{t("close")}</span>
+                </Button>
+              </DrawerClose>
+            </div>
             <div className="flex justify-center mb-4">
               <div
                 className="h-16 w-16 rounded-full flex items-center justify-center"
@@ -128,9 +133,30 @@ export function TransactionDetailDrawer({
                 )}
               </div>
             </div>
-            <DrawerTitle className="text-2xl font-bold truncate px-4">
-              {transaction.description}
-            </DrawerTitle>
+            <div className="flex items-center justify-center px-4">
+              <div className="relative flex items-center justify-center min-w-0 max-w-full">
+                <DrawerTitle className="text-2xl font-bold truncate">
+                  {transaction.description}
+                </DrawerTitle>
+                {onDuplicate && (
+                  <div className="absolute left-full top-[40%] -translate-y-1/2 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 rounded-full opacity-50 hover:opacity-100"
+                      onClick={() => {
+                        onDuplicate(transaction);
+                        onOpenChange(false);
+                      }}
+                      title={t("duplicate")}
+                    >
+                      <Copy className="h-4 w-4" />
+                      <span className="sr-only">{t("duplicate")}</span>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
             <DrawerDescription asChild>
               <div className="text-lg font-medium mt-1">
                 <span className={getTypeColor(transaction.type)}>
@@ -274,6 +300,7 @@ export function TransactionDetailDrawer({
                   </Badge>
                 )}
               </div>
+
             </div>
           </div>
         </div>
