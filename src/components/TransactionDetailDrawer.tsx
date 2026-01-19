@@ -25,6 +25,7 @@ import {
   Cloud,
   Calculator,
   X,
+  Copy,
 } from "lucide-react";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ interface TransactionDetailDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit?: (transaction: Transaction) => void;
+  onDuplicate?: (transaction: Transaction) => void;
 }
 
 export function TransactionDetailDrawer({
@@ -47,6 +49,9 @@ export function TransactionDetailDrawer({
   group,
   open,
   onOpenChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onEdit,
+  onDuplicate,
 }: TransactionDetailDrawerProps) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -101,16 +106,18 @@ export function TransactionDetailDrawer({
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader className="text-center pt-8 pb-4 relative">
-            <DrawerClose asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-4 h-8 w-8 rounded-full opacity-70 hover:opacity-100"
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">{t("close")}</span>
-              </Button>
-            </DrawerClose>
+            <div className="absolute right-4 top-4 flex gap-2">
+              <DrawerClose asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full opacity-70 hover:opacity-100"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">{t("close")}</span>
+                </Button>
+              </DrawerClose>
+            </div>
             <div className="flex justify-center mb-4">
               <div
                 className="h-16 w-16 rounded-full flex items-center justify-center"
@@ -274,6 +281,20 @@ export function TransactionDetailDrawer({
                   </Badge>
                 )}
               </div>
+
+              {/* Actions - Duplicate Row */}
+              {onDuplicate && (
+                <div
+                  className="flex items-center justify-start text-primary cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-md transition-colors"
+                  onClick={() => {
+                    onDuplicate(transaction);
+                    onOpenChange(false);
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  <span className="text-sm font-medium">{t("duplicate")}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

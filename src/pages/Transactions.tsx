@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/sheet";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { TransactionDialog, TransactionFormData } from "@/components/TransactionDialog";
+import { TransactionFormValues } from "@/lib/schemas";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { AlertCircle } from "lucide-react";
@@ -317,6 +318,7 @@ export function TransactionsPage() {
   };
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [duplicatingTransaction, setDuplicatingTransaction] = useState<TransactionFormValues | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -387,15 +389,37 @@ export function TransactionsPage() {
     }
     setIsOpen(false);
     setEditingId(null);
+    setDuplicatingTransaction(null);
   };
 
   const handleEdit = (transaction: Transaction) => {
     setEditingId(transaction.id);
+    setDuplicatingTransaction(null);
+    setIsOpen(true);
+  };
+
+  const handleDuplicate = (transaction: Transaction) => {
+    setEditingId(null);
+
+    // Create duplicated data with TODAY'S DATE
+    const duplicatedData: TransactionFormValues = {
+      amount: transaction.amount,
+      description: transaction.description,
+      type: transaction.type,
+      category_id: transaction.category_id,
+      date: format(new Date(), "yyyy-MM-dd"), // Reset to today
+      context_id: transaction.context_id || null,
+      group_id: transaction.group_id || null,
+      paid_by_member_id: transaction.paid_by_member_id || null,
+    };
+
+    setDuplicatingTransaction(duplicatedData);
     setIsOpen(true);
   };
 
   const openNew = () => {
     setEditingId(null);
+    setDuplicatingTransaction(null);
     setIsOpen(true);
   };
 
@@ -644,6 +668,7 @@ export function TransactionsPage() {
             onOpenChange={setIsOpen}
             onSubmit={handleSubmit}
             editingTransaction={editingTransaction}
+            initialData={duplicatingTransaction || undefined}
           />
         </div>
       </div>
@@ -747,6 +772,7 @@ export function TransactionsPage() {
         groups={groups}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
+        onDuplicate={handleDuplicate}
         isLoading={transactions === undefined}
       />
 

@@ -748,6 +748,7 @@
   },
   "of_total": "% of total",
   "mtd_comparison_expl": "Comparing data up to day {{day}}",
+  "ytd_comparison_expl": "Comparing data up to {{month}}",
   "app_user": "App User",
   "validation": {
     "invalid_uuid": "Invalid UUID format",
@@ -996,6 +997,8 @@
     "graphs_section_title": "Graphs",
     "not_enough_data": "Not enough data to display graphs"
   },
+  "changelog_v1_0_6_0": "Refined Yearly Comparison charts and metrics",
+  "changelog_v1_0_6_1": "Improved Context Trend chart and added detailed Context Analytics",
   "changelog_v1_0_5_0": "Added Changelog page",
   "changelog_v1_0_5_1": "Added description column to recurring transactions",
   "changelog_v1_0_5_2": "Improved statistics period comparison",

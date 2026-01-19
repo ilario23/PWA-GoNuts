@@ -26,6 +26,7 @@ import { FadeIn } from "@/components/ui/fade-in";
 import { getIconComponent } from "@/lib/icons";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { UI_DEFAULTS, UNCATEGORIZED_CATEGORY } from "@/lib/constants";
+import { Copy } from "lucide-react"; // Import Copy icon
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { it, enUS } from "date-fns/locale";
 import { MobileTransactionRow } from "./MobileTransactionRow";
@@ -40,6 +41,7 @@ interface TransactionListProps {
   groups?: Group[] | GroupWithMembers[];
   onEdit?: (transaction: Transaction) => void;
   onDelete?: (id: string) => void;
+  onDuplicate?: (transaction: Transaction) => void;
   showActions?: boolean;
   isLoading?: boolean;
   /** Height of the container for virtualization (default: auto-detect) */
@@ -63,6 +65,7 @@ export function TransactionList({
   groups,
   onEdit,
   onDelete,
+  onDuplicate,
   showActions = true,
   isLoading = false,
   height,
@@ -349,6 +352,23 @@ export function TransactionList({
                 aria-label={t("actions")}
               >
                 <TooltipProvider delayDuration={300}>
+                  {onDuplicate && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onDuplicate(t_item)}
+                          aria-label={t("duplicate")}
+                        >
+                          <Copy className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t("duplicate")}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                   {onEdit && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -394,7 +414,7 @@ export function TransactionList({
         </TableRow>
       );
     },
-    [getCategory, getContext, onEdit, onDelete, showActions, t]
+    [getCategory, getContext, onEdit, onDelete, onDuplicate, showActions, t]
   );
 
   const renderContent = () => {
@@ -488,6 +508,7 @@ export function TransactionList({
               open={isDrawerOpen}
               onOpenChange={setIsDrawerOpen}
               onEdit={onEdit}
+              onDuplicate={onDuplicate}
             />
           </>
         );
@@ -547,6 +568,7 @@ export function TransactionList({
             open={isDrawerOpen}
             onOpenChange={setIsDrawerOpen}
             onEdit={onEdit}
+            onDuplicate={onDuplicate}
           />
         </>
       );

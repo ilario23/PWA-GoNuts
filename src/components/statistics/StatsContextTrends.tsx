@@ -33,20 +33,37 @@ export function StatsContextTrends({
 }: StatsContextTrendsProps) {
     const { t } = useTranslation();
 
+    const filteredContexts = useMemo(() => {
+        if (!contexts || !data) return [];
+
+        // Find all context IDs that have at least one non-zero value in data
+        const activeContextIds = new Set<string>();
+        data.forEach(point => {
+            contexts.forEach(ctx => {
+                const val = point[ctx.id];
+                if (typeof val === 'number' && val > 0) {
+                    activeContextIds.add(ctx.id);
+                }
+            });
+        });
+
+        return contexts.filter(ctx => activeContextIds.has(ctx.id));
+    }, [contexts, data]);
+
     const chartConfig = useMemo(() => {
         const config: ChartConfig = {};
-        if (!contexts) return config;
+        if (!filteredContexts) return config;
 
-        contexts.forEach((context, index) => {
+        filteredContexts.forEach((context, index) => {
             config[context.id] = {
                 label: context.name,
                 color: `hsl(var(--chart-${(index % 5) + 1}))`,
             };
         });
         return config;
-    }, [contexts]);
+    }, [filteredContexts]);
 
-    if (!contexts || contexts.length === 0) return null;
+    if (!filteredContexts || filteredContexts.length === 0) return null;
 
     return (
         <Card>
@@ -88,15 +105,15 @@ export function StatsContextTrends({
                                     content={
                                         <ChartTooltipContent
                                             className="w-[150px]"
-                                            nameKey="views"
                                             labelFormatter={(value) => value}
                                         />
                                     }
                                 />
                                 <ChartLegend content={<ChartLegendContent />} />
-                                {contexts.map((context) => (
+                                {filteredContexts.map((context) => (
                                     <Area
                                         key={context.id}
+                                        name={context.name}
                                         type="monotone"
                                         dataKey={context.id}
                                         stackId="1"

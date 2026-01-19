@@ -723,7 +723,8 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
     }
 
     // --- 11. Yearly Cumulative ---
-    const calculateYearlyCumulative = (txs: Transaction[]): MonthlyCumulativeData[] => {
+
+    const calculateYearlyCumulative = (txs: Transaction[], yearStr: string): MonthlyCumulativeData[] => {
         const monthlyTotals = new Map<string, number>();
         const months = [
             '01', '02', '03', '04', '05', '06',
@@ -745,9 +746,23 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
             monthlyTotals.set(m, (monthlyTotals.get(m) || 0) + getEffectiveAmount(t, groupShareMap));
         });
 
+        const today = new Date();
+        const isCurrentYear = yearStr === today.getFullYear().toString();
+        const currentMonthIdx = today.getMonth(); // 0-indexed
+
         let cumulative = 0;
         return months.map((m, i) => {
             cumulative += monthlyTotals.get(m) || 0;
+
+            // If current year and future month, return undefined/null to break the line
+            // We use a strictly greater check so we show the current month's point
+            if (isCurrentYear && i > currentMonthIdx) {
+                return {
+                    month: monthLabels[i],
+                    cumulative: undefined as unknown as number // Cast to satisfy type, or assume component handles it
+                };
+            }
+
             return {
                 month: monthLabels[i],
                 cumulative: Math.round(cumulative * 100) / 100
@@ -760,10 +775,17 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
 
     if (mode === "yearly") {
         if (yearlyTransactions) {
-            yearlyCumulativeExpenses = calculateYearlyCumulative(yearlyTransactions);
+            yearlyCumulativeExpenses = calculateYearlyCumulative(yearlyTransactions, currentYear);
         }
         if (event.data.payload.previousYearTransactions) {
-            previousYearCumulativeExpenses = calculateYearlyCumulative(event.data.payload.previousYearTransactions);
+            // Calculate previous year. We don't apply cutoff used for "current year" chart logic
+            // But if we want to show full previous year, we pass its year.
+            // Actually, we just need to pass the year string.
+            // Since we don't know the exact previous year string here easily without parsing,
+            // let's assume if we pass something that is NOT current year, it won't trigger cutoff.
+            // We can just pass "0" or parse the first transaction year if needed.
+            // Or simpler: currentYear is passed. For previous year, we definitely know it's NOT currentYear.
+            previousYearCumulativeExpenses = calculateYearlyCumulative(event.data.payload.previousYearTransactions, "0000"); // 0000 wont match current year
         }
     }
 
