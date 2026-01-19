@@ -507,7 +507,6 @@ export function TransactionList({
               group={getGroup(selectedTransaction?.group_id)}
               open={isDrawerOpen}
               onOpenChange={setIsDrawerOpen}
-              onEdit={onEdit}
               onDuplicate={onDuplicate}
             />
           </>
@@ -567,7 +566,6 @@ export function TransactionList({
             group={getGroup(selectedTransaction?.group_id)}
             open={isDrawerOpen}
             onOpenChange={setIsDrawerOpen}
-            onEdit={onEdit}
             onDuplicate={onDuplicate}
           />
         </>

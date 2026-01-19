@@ -38,7 +38,6 @@ interface TransactionDetailDrawerProps {
   group?: Group | GroupWithMembers;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onEdit?: (transaction: Transaction) => void;
   onDuplicate?: (transaction: Transaction) => void;
 }
 
@@ -50,7 +49,6 @@ export function TransactionDetailDrawer({
   open,
   onOpenChange,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onEdit,
   onDuplicate,
 }: TransactionDetailDrawerProps) {
   const { t, i18n } = useTranslation();
@@ -135,9 +133,30 @@ export function TransactionDetailDrawer({
                 )}
               </div>
             </div>
-            <DrawerTitle className="text-2xl font-bold truncate px-4">
-              {transaction.description}
-            </DrawerTitle>
+            <div className="flex items-center justify-center px-4">
+              <div className="relative flex items-center justify-center min-w-0 max-w-full">
+                <DrawerTitle className="text-2xl font-bold truncate">
+                  {transaction.description}
+                </DrawerTitle>
+                {onDuplicate && (
+                  <div className="absolute left-full top-[40%] -translate-y-1/2 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 rounded-full opacity-50 hover:opacity-100"
+                      onClick={() => {
+                        onDuplicate(transaction);
+                        onOpenChange(false);
+                      }}
+                      title={t("duplicate")}
+                    >
+                      <Copy className="h-4 w-4" />
+                      <span className="sr-only">{t("duplicate")}</span>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
             <DrawerDescription asChild>
               <div className="text-lg font-medium mt-1">
                 <span className={getTypeColor(transaction.type)}>
@@ -282,19 +301,6 @@ export function TransactionDetailDrawer({
                 )}
               </div>
 
-              {/* Actions - Duplicate Row */}
-              {onDuplicate && (
-                <div
-                  className="flex items-center justify-start text-primary cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-md transition-colors"
-                  onClick={() => {
-                    onDuplicate(transaction);
-                    onOpenChange(false);
-                  }}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  <span className="text-sm font-medium">{t("duplicate")}</span>
-                </div>
-              )}
             </div>
           </div>
         </div>

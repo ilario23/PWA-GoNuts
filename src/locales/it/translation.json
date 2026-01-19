@@ -997,6 +997,7 @@
   },
   "changelog_v1_0_6_0": "Migliorati grafici e metriche Confronto Annuale",
   "changelog_v1_0_6_1": "Migliorato grafico Trend Contesti e aggiunta Analisi Contesti dettagliata",
+  "changelog_v1_0_6_2": "Aggiunta funzionalità di duplicazione transazioni",
   "changelog_v1_0_5_0": "Aggiunta pagina Changelog",
   "changelog_v1_0_5_1": "Aggiunta colonna descrizione alle transazioni ricorrenti",
   "changelog_v1_0_5_2": "Migliorato confronto periodi nelle statistiche",
