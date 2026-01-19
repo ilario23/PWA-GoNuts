@@ -204,6 +204,7 @@ function OfflineAuthFallback() {
 }
 
 import { useSettings } from "@/hooks/useSettings";
+import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { useEffect } from "react";
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -257,6 +258,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const location = useLocation();
+  useVersionCheck();
 
   return (
     <AnimatePresence mode="wait">
