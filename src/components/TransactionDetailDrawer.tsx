@@ -133,9 +133,9 @@ export function TransactionDetailDrawer({
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-center px-4">
-              <div className="relative flex items-center justify-center min-w-0 max-w-full">
-                <DrawerTitle className="text-2xl font-bold truncate">
+            <div className="flex items-center justify-center px-4 w-full">
+              <div className="relative flex items-center justify-center min-w-0 w-full max-w-[calc(100%-6rem)]">
+                <DrawerTitle className="text-2xl font-bold text-center w-full break-all">
                   {transaction.description}
                 </DrawerTitle>
                 {onDuplicate && (
