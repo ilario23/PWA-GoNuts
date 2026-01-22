@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Transaction, Category, Context, Group } from "@/lib/db";
 import { getIconComponent } from "@/lib/icons";
-import { Tag, Users, AlertCircle } from "lucide-react";
+import { Tag, Users, AlertCircle, Edit, Copy, Trash2 } from "lucide-react";
 import { SyncStatusBadge } from "./SyncStatus";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { SwipeableItem } from "@/components/ui/SwipeableItem";
@@ -14,6 +14,7 @@ interface MobileTransactionRowProps {
   group?: Group;
   onEdit?: (transaction: Transaction) => void;
   onDelete?: (id: string) => void;
+  onDuplicate?: (transaction: Transaction) => void;
   onClick?: () => void;
   isVirtual?: boolean;
   style?: React.CSSProperties;
@@ -29,6 +30,7 @@ export function MobileTransactionRow({
   group,
   onEdit,
   onDelete,
+  onDuplicate,
   onClick,
   style,
   hideContext,
@@ -53,33 +55,52 @@ export function MobileTransactionRow({
 
   return (
     <SwipeableItem
-      onEdit={onEdit ? () => onEdit(transaction) : undefined}
       onDelete={onDelete ? () => onDelete(transaction.id) : undefined}
+      leftActions={
+        onEdit || onDuplicate
+          ? [
+            ...(onEdit
+              ? [
+                {
+                  key: "edit",
+                  label: t("edit"),
+                  icon: <Edit className="h-5 w-5" />,
+                  onClick: () => onEdit(transaction),
+                  color: "bg-blue-500",
+                },
+              ]
+              : []),
+            ...(onDuplicate
+              ? [
+                {
+                  key: "duplicate",
+                  label: t("duplicate"),
+                  icon: <Copy className="h-5 w-5" />,
+                  onClick: () => onDuplicate(transaction),
+                  color: "bg-indigo-500",
+                },
+              ]
+              : []),
+          ]
+          : undefined
+      }
+      rightActions={
+        onDelete
+          ? [
+            {
+              key: "delete",
+              label: t("delete"),
+              icon: <Trash2 className="h-5 w-5" />,
+              onClick: () => onDelete(transaction.id),
+              color: "bg-red-500",
+            },
+          ]
+          : undefined
+      }
       onClick={onClick}
       className={style ? "" : undefined}
       style={style}
     >
-      {/* 
-        Virtualization libraries often pass style for absolute positioning.
-        SwipeableItem renders a relative div.
-        If we need absolute positioning properties from 'style' to apply to the SwipeableItem container,
-        we might need to adjust SwipeableItem to accept style or wrap it.
-        
-        The 'style' prop coming from virtualizer usually contains: position: absolute, top, left, width, height, transform.
-        If we wrap it, the wrapper needs those styles.
-        MobileTransactionRow root div used to accept style.
-        SwipeableItem renders a wrapper div. Let's make sure SwipeableItem accepts style or we wrap SwipeableItem.
-        My SwipeableItem currently only accepts className.
-        
-        Wait, I should check SwipeableItem again. It renders a div. I should add style prop to it. 
-        I'll modify SwipeableItem to accept style prop just in case, or I wrap it here.
-        Actually, existing component had:
-        <div style={style} className="relative ..."> ... <motion.div ...>
-        
-        So the ROOT element needs the style.
-        SwipeableItem renders the root div.
-        I should update SwipeableItem to accept style.
-      */}
       <div
         className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         role={onClick ? "button" : undefined}

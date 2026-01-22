@@ -488,6 +488,7 @@ export function TransactionList({
                           group={getGroup(item.data.group_id)}
                           onEdit={onEdit}
                           onDelete={onDelete}
+                          onDuplicate={onDuplicate}
                           onClick={() => handleRowClick(item.data)}
                           isVirtual={true}
                           hideContext={hideContext}
@@ -507,7 +508,7 @@ export function TransactionList({
               group={getGroup(selectedTransaction?.group_id)}
               open={isDrawerOpen}
               onOpenChange={setIsDrawerOpen}
-              onDuplicate={onDuplicate}
+
             />
           </>
         );
@@ -549,6 +550,7 @@ export function TransactionList({
                     group={getGroup(item.data.group_id)}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onDuplicate={onDuplicate}
                     onClick={() => handleRowClick(item.data)}
                     isVirtual={false}
                     hideContext={hideContext}
@@ -566,7 +568,7 @@ export function TransactionList({
             group={getGroup(selectedTransaction?.group_id)}
             open={isDrawerOpen}
             onOpenChange={setIsDrawerOpen}
-            onDuplicate={onDuplicate}
+
           />
         </>
       );
