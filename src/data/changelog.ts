@@ -17,6 +17,7 @@ export const changelogData: ChangeLogEntry[] = [
             { type: "feat", description: "changelog_v1_0_7_0" },
             { type: "feat", description: "changelog_v1_0_7_1" },
             { type: "feat", description: "changelog_v1_0_7_2" },
+            { type: "fix", description: "changelog_v1_0_7_3" },
         ],
     },
     {

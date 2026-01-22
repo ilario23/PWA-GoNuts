@@ -1004,6 +1004,7 @@
   "changelog_v1_0_7_0": "Improved swipe actions: Swipe right for Edit/Duplicate, Left for Delete",
   "changelog_v1_0_7_1": "Visual improvements: Seamless corner integration for swipe actions",
   "changelog_v1_0_7_2": "Added total expenses display to the transaction list",
+  "changelog_v1_0_7_3": "Fixed dashboard graying out issue after adding a transaction",
   "changelog_v1_0_5_0": "Added Changelog page",
   "changelog_v1_0_5_1": "Added description column to recurring transactions",
   "changelog_v1_0_5_2": "Improved statistics period comparison",
