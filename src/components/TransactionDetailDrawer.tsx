@@ -25,7 +25,7 @@ import {
   Cloud,
   Calculator,
   X,
-  Copy,
+
 } from "lucide-react";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,7 @@ interface TransactionDetailDrawerProps {
   group?: Group | GroupWithMembers;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDuplicate?: (transaction: Transaction) => void;
+
 }
 
 export function TransactionDetailDrawer({
@@ -48,8 +48,7 @@ export function TransactionDetailDrawer({
   group,
   open,
   onOpenChange,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onDuplicate,
+
 }: TransactionDetailDrawerProps) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -133,28 +132,12 @@ export function TransactionDetailDrawer({
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-center px-4">
-              <div className="relative flex items-center justify-center min-w-0 max-w-full">
-                <DrawerTitle className="text-2xl font-bold truncate">
+            <div className="flex items-center justify-center px-4 w-full">
+              <div className="relative flex items-center justify-center min-w-0 w-full max-w-[calc(100%-6rem)]">
+                <DrawerTitle className="text-2xl font-bold text-center w-full break-all">
                   {transaction.description}
                 </DrawerTitle>
-                {onDuplicate && (
-                  <div className="absolute left-full top-[40%] -translate-y-1/2 ml-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0 rounded-full opacity-50 hover:opacity-100"
-                      onClick={() => {
-                        onDuplicate(transaction);
-                        onOpenChange(false);
-                      }}
-                      title={t("duplicate")}
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span className="sr-only">{t("duplicate")}</span>
-                    </Button>
-                  </div>
-                )}
+
               </div>
             </div>
             <DrawerDescription asChild>

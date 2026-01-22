@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useContexts } from "@/hooks/useContexts";
-import { useGroups } from "@/hooks/useGroups";
+import { useGroups, GroupWithMembers } from "@/hooks/useGroups";
 import { Transaction } from "@/lib/db";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { Button } from "@/components/ui/button";
@@ -572,6 +572,26 @@ export function TransactionsPage() {
           <Badge variant="secondary" className="px-2 py-0.5 h-6">
             {filteredTransactions.length}
           </Badge>
+          <div className="hidden md:inline-block text-sm font-medium text-muted-foreground ml-2">
+            {t("total")}:{" "}
+            <span className="text-red-500">
+              -€
+              {Math.abs(
+                filteredTransactions
+                  .filter((t) => t.type === "expense")
+                  .reduce((sum, t) => {
+                    if (!t.group_id) return sum + t.amount;
+                    const group = groups.find((g) => g.id === t.group_id);
+                    if (!group || !("myShare" in group)) return sum + t.amount;
+                    // Type assertion safe because we checked 'myShare' in group
+                    return (
+                      sum +
+                      (t.amount * (group as GroupWithMembers).myShare) / 100
+                    );
+                  }, 0)
+              ).toFixed(2)}
+            </span>
+          </div>
         </div>
         <div className="flex gap-2">
           {/* Mobile Filter Sheet */}
@@ -702,6 +722,32 @@ export function TransactionsPage() {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Mobile Total Row */}
+      <div className="md:hidden flex items-center justify-between bg-muted/30 px-3 py-2 rounded-md">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">{t("total_expenses") || "Total Expenses"}</span>
+          <Badge variant="secondary" className="px-1.5 py-0 h-5 text-[10px]">
+            {filteredTransactions.filter(t => t.type === 'expense').length}
+          </Badge>
+        </div>
+        <span className="text-sm font-bold text-red-500">
+          -€
+          {Math.abs(
+            filteredTransactions
+              .filter((t) => t.type === "expense")
+              .reduce((sum, t) => {
+                if (!t.group_id) return sum + t.amount;
+                const group = groups.find((g) => g.id === t.group_id);
+                if (!group || !("myShare" in group)) return sum + t.amount;
+                return (
+                  sum +
+                  (t.amount * (group as GroupWithMembers).myShare) / 100
+                );
+              }, 0)
+          ).toFixed(2)}
+        </span>
       </div>
 
       {/* Active Filters Summary */}

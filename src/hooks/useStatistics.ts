@@ -159,11 +159,19 @@ export function useStatistics(params?: UseStatisticsParams) {
     workerRef.current = new StatsWorker();
 
     // Listen for messages
-    workerRef.current.onmessage = (event: MessageEvent<StatisticsWorkerResponse>) => {
+    workerRef.current.onmessage = (event: MessageEvent<StatisticsWorkerResponse | { type: "STATS_ERROR"; error: string }>) => {
       if (event.data.type === "STATS_RESULT") {
         setWorkerResult(event.data.payload);
         setIsLoading(false);
+      } else if (event.data.type === "STATS_ERROR") {
+        console.error("Worker error:", event.data.error);
+        setIsLoading(false); // Stop loading even if error
       }
+    };
+
+    workerRef.current.onerror = (error) => {
+      console.error("Worker generic error:", error);
+      setIsLoading(false);
     };
 
     return () => {
@@ -265,7 +273,8 @@ export function useStatistics(params?: UseStatisticsParams) {
       workerRef.current &&
       (transactions || yearlyTransactions) &&
       categories &&
-      contexts
+      contexts &&
+      categoryBudgets
     ) {
       if (!isLoading) setIsLoading(true); // Set loading if not already matching
 
@@ -304,6 +313,7 @@ export function useStatistics(params?: UseStatisticsParams) {
     currentYear,
     userId,
     groupMemberships,
+    categoryBudgets,
   ]);
 
   const yearlyComparison = useMemo(() => {
