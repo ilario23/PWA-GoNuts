@@ -1,55 +1,37 @@
 # Testing Strategy
 
-We use **Vitest** (via `scripts: test` -> `jest` in package.json? *clarification: project uses Jest*) for unit and integration testing.
-
-> **Note**: The project is transitioning to modern tooling. Currently using `jest` and `react-testing-library`.
+## Overview
+We use **Vitest** (compatible with Jest API) for unit tests and **Playwright** (recommended) for E2E.
 
 ## Testing Philosophy
+Since our logic is strictly separated:
+1.  **UI Components**: Dumb. Render props.
+2.  **Hooks (`src/hooks`)**: Smart. Connect to DB.
+3.  **Lib (`src/lib`)**: Pure logic (Sync, DB, Utils).
 
-Since our logic is heavily moved into **Hooks** (`useTransactions`, `useSync`), we prioritize **Hook Testing**.
+**We prioritize testing (2) and (3).**
 
-### 1. Testing Hooks
-We use `@testing-library/react-hooks` (or `renderHook` from RTL) to test business logic independent of UI.
+## 1. Unit & Integration Tests (`src/lib`, `src/hooks`)
+Run with: `npm test`
 
-**Key Mocks**:
-*   `dexie`: Must be mocked to avoid actual IndexedDB calls in Node environment. Use `fake-indexeddb` or manual mocks.
-*   `supabase`: Must be mocked to prevent network calls.
+These tests run in a Node.js-like environment (JSDOM).
+*   **Mocks Needed**: `dexie` (indexedDB), `supabase-js`.
+*   **Goal**: Verify that `addTransaction` writes to DB with `pendingSync: 1`.
 
-**Example Pattern**:
-```typescript
-jest.mock('../../lib/db'); // Mock the DB
+## 2. Component Tests
+Run with: `npm test`
 
-it('adds a transaction', async () => {
-  const { result } = renderHook(() => useTransactions());
-  
-  await act(async () => {
-    await result.current.addTransaction({ amount: 100, ... });
-  });
+*   **Tools**: `@testing-library/react`.
+*   **Goal**: Verify that clicking "Save" calls the `onSave` prop. (Don't test the saving logic itself here).
 
-  expect(db.transactions.add).toHaveBeenCalledWith(
-    expect.objectContaining({ amount: 100, pendingSync: 1 })
-  );
-});
-```
+## 3. End-to-End (E2E) Tests
+Run with: `npx playwright test` (if configured)
 
-### 2. Testing Utilities
-Pure functions in `src/lib/*.ts` (like `processRecurringTransactions` or validation logic) are unit tested.
-
-### 3. Component Tests
-We test high-level pages to ensure they render without crashing, but we avoid testing complex logic inside components (logic should be in hooks).
-
-## Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Coverage report
-npm run test:coverage
-```
+*   **Goal**: Full User Flows.
+    1.  Load App (Offline).
+    2.  Add Transaction.
+    3.  Verify it appears in Dashboard.
+    4.  Reload Page (verify persistence).
 
 ## Continuous Integration
-Tests are run on every Pull Request via GitHub Actions. Deployment to production is blocked if tests fail.
+Tests are run automatically on GitHub Actions.
