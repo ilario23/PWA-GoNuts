@@ -304,6 +304,7 @@
   body {
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
+    min-height: 100lvh;
   }
 
   body {
@@ -351,6 +352,7 @@
   #root {
     min-height: 100vh;
     min-height: 100dvh;
+    min-height: 100lvh;
     /* Dynamic viewport height for mobile browsers */
   }
 }
