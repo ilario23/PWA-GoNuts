@@ -111,7 +111,7 @@ export function CategorySelector({
       }),
     }).catch(() => { });
     // #region agent log
-    console.info("[gonuts-debug]", {
+    console.log("[gonuts-debug]", {
       sessionId: "6a339b",
       runId: "pre-fix",
       hypothesisId: "H1-H3",
@@ -420,7 +420,7 @@ export function CategorySelector({
             }),
           }).catch(() => { });
           // #region agent log
-          console.info("[gonuts-debug]", {
+          console.log("[gonuts-debug]", {
             sessionId: "6a339b",
             runId: "pre-fix",
             hypothesisId: isMobile ? "H2-H6" : "H1",

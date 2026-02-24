@@ -208,7 +208,7 @@ const Sidebar = React.forwardRef<
                 }).catch(() => { })
                 // #endregion
                 // #region agent log
-                console.info("[gonuts-debug]", payload)
+                console.log("[gonuts-debug]", payload)
                 // #endregion
             })
             return () => window.cancelAnimationFrame(rafId)
