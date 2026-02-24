@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -59,6 +59,14 @@ function AppHeader() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
   const { theme } = useTheme();
+  const [viewportDebug, setViewportDebug] = useState<{
+    inner: string;
+    vv: string;
+    offsetTop: number | null;
+    pageTop: number | null;
+    mode: string;
+    path: string;
+  } | null>(null);
 
   // Apply accent color when settings or theme changes
   useEffect(() => {
@@ -71,6 +79,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [settings?.accentColor, theme]);
 
+  useEffect(() => {
+    const isEnabled =
+      window.location.search.includes("debugViewport=1") ||
+      /iPhone OS 26_/i.test(navigator.userAgent);
+    if (!isEnabled) {
+      setViewportDebug(null);
+      return;
+    }
+    const update = () => {
+      const mode =
+        window.matchMedia("(display-mode: standalone)").matches
+          ? "standalone"
+          : "browser";
+      const payload = {
+        inner: `${window.innerWidth}x${window.innerHeight}`,
+        vv: `${Math.round(window.visualViewport?.width ?? 0)}x${Math.round(window.visualViewport?.height ?? 0)}`,
+        offsetTop: window.visualViewport?.offsetTop ?? null,
+        pageTop: window.visualViewport?.pageTop ?? null,
+        mode,
+        path: window.location.pathname,
+      };
+      setViewportDebug(payload);
+      // #region agent log
+      console.info("[gonuts-debug]", {
+        sessionId: "6a339b",
+        runId: "pre-fix",
+        hypothesisId: "H5-H6-H7",
+        location: "AppShell.tsx:viewport-debug",
+        message: "Viewport debug update",
+        data: payload,
+        timestamp: Date.now(),
+      });
+      // #endregion
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("scroll", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("scroll", update);
+    };
+  }, []);
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -79,6 +132,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-6xl space-y-6 min-w-0">{children}</div>
         </main>
+        {viewportDebug && (
+          <div className="fixed right-2 bottom-2 z-[9999] rounded-md bg-black/80 text-white text-[10px] leading-tight px-2 py-1 pointer-events-none">
+            <div>{viewportDebug.mode} {viewportDebug.path}</div>
+            <div>inner {viewportDebug.inner} vv {viewportDebug.vv}</div>
+            <div>offTop {String(viewportDebug.offsetTop)} pageTop {String(viewportDebug.pageTop)}</div>
+          </div>
+        )}
       </SidebarInset>
     </SidebarProvider>
   );
