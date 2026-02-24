@@ -6,44 +6,40 @@ This document describes the component organization and architecture of the PWA a
 
 ```
 src/components/
-├── ui/                     # Base UI components (shadcn/ui)
+├── ui/                     # Base UI components (shadcn/ui - Radix Primitives)
 │   ├── button.tsx
 │   ├── card.tsx
 │   ├── chart.tsx
 │   ├── dialog.tsx
-│   ├── flip-card.tsx
+│   ├── drawer.tsx          # Mobile Drawer
+│   ├── sheet.tsx           # Sidebar Sheet
 │   └── ...
-├── dashboard/              # Dashboard page components
+├── dashboard/              # Dashboard feature components
 │   ├── DashboardChartCard.tsx
 │   ├── DashboardStatCard.tsx
 │   └── DashboardSummaryCards.tsx
-├── categories/             # Categories page components
+├── categories/             # Categories feature components
 │   ├── CategoryFormDialog.tsx
-│   ├── CategoryMobileList.tsx
-│   ├── CategoryDesktopTable.tsx
-│   ├── CategoryBudgetDialog.tsx
+│   ├── CategoryList.tsx    # Unified list view
 │   └── CategoryMigrationDialog.tsx
 ├── recurring/              # Recurring transactions components
 │   ├── RecurringTransactionFormDialog.tsx
-│   └── RecurringTransactionDesktopTable.tsx
-├── statistics/             # Statistics page components
+│   └── RecurringTransactionList.tsx
+├── statistics/             # Statistics feature components
 │   ├── StatsSummaryCards.tsx
-│   ├── StatsBurnRateCard.tsx
-│   ├── StatsContextAnalytics.tsx
+│   ├── StatsCharts.tsx
 │   └── StatsPeriodComparison.tsx
-├── import/                 # Bank import components
+├── import/                 # Bank import feature
 │   ├── ImportWizard.tsx
-│   ├── ImportPreview.tsx
-│   ├── ImportCsvMapping.tsx
-│   └── ImportReconciliation.tsx
-├── members/                # Group member management
-│   ├── MemberList.tsx
-│   └── MemberActionButtons.tsx
-└── [shared components]     # Top-level shared components
-    ├── TransactionList.tsx
+│   └── ImportPreview.tsx
+├── auth/                   # Authentication components
+│   ├── SessionExpiredModal.tsx
+│   └── AuthPage.tsx (in pages/)
+└── [shared]                # App-level shared components
+    ├── AppShell.tsx        # Main layout wrapper
+    ├── app-sidebar.tsx     # Application Sidebar composition
     ├── TransactionDialog.tsx
-    ├── CategorySelector.tsx
-    ├── SafeLogoutDialog.tsx
+    ├── UserAvatar.tsx
     └── ...
 ```
 
@@ -53,120 +49,70 @@ src/components/
 
 | Component | Purpose |
 |-----------|---------|
-| `DashboardChartCard` | Renders flip card content: chart view, recent transactions, or budget |
-| `DashboardStatCard` | Renders mobile stat flip cards (expenses, income, balance, budget) |
-| `DashboardSummaryCards` | Desktop sidebar summary cards |
+| `DashboardChartCard` | Renders the main chart/transactions view (Desktop) or flip card (Mobile). |
+| `DashboardStatCard` | Renders mobile stat flip cards (expenses, income, balance, budget). |
+| `DashboardSummaryCards` | Renders desktop summary cards (top row). |
+| `TransactionDialog` | Shared dialog for adding/editing transactions. |
 
 ### Categories (`src/pages/Categories.tsx`)
 
 | Component | Purpose |
 |-----------|---------|
-| `CategoryFormDialog` | Create/edit category form with all accordions |
-| `CategoryMobileList` | Mobile view with recursive category rendering |
-| `CategoryDesktopTable` | Desktop table with hierarchical rows |
-| `CategoryBudgetDialog` | Set or remove category budgets |
-| `CategoryMigrationDialog` | Migrate transactions before category deletion |
+| `CategoryFormDialog` | Create/edit category form. |
+| `CategoryList` | Renders the list of categories (grouped by type). |
+| `CategoryMigrationDialog` | Handles data migration when deleting a category. |
 
 ### Recurring Transactions (`src/pages/RecurringTransactions.tsx`)
 
 | Component | Purpose |
 |-----------|---------|
-| `RecurringTransactionFormDialog` | Create/edit recurring transaction form |
-| `RecurringTransactionDesktopTable` | Desktop table with next occurrence display |
+| `RecurringTransactionFormDialog` | Create/edit recurring transaction templates. |
+| `RecurringTransactionList` | Lists active and inactive recurring rules. |
 
-### Statistics (`src/pages/Statistics.tsx`)
-
-| Component | Purpose |
-|-----------|---------|
-| `StatsSummaryCards` | Income/expense/investment/balance cards with flip support |
-| `StatsBurnRateCard` | Daily burn rate indicator with projections |
-| `StatsContextAnalytics` | Context-based expense breakdown |
-| `StatsPeriodComparison` | Monthly/yearly comparison charts |
-
-### Import (`src/pages/Import.tsx`)
+### Layout & Navigation (`src/App.tsx`)
 
 | Component | Purpose |
 |-----------|---------|
-| `ImportWizard` | Main controller for the multi-step import flow |
-| `ImportPreview` | Displays summary cards of the loaded file |
-| `ImportCsvMapping` | Interface for manual column mapping (mobile-first) |
-| `ImportReconciliation` | Category and context matching for new transactions |
-
-### Manage Members (`src/pages/ManageMembers.tsx`)
-
-| Component | Purpose |
-|-----------|---------|
-| `MemberList` | List of group members with profile resolution |
-| `MemberActionButtons` | Actions for sharing, editing, or removing members |
+| `AppShell` | Provides the sidebar layout context (`SidebarProvider`). |
+| `AppSidebar` | Composes `ui/sidebar` with app-specific navigation and user profile. |
+| `ThemeToggle` | Toggles between Light/Dark/System modes. |
 
 ## Component Design Patterns
 
-### Props Interface Convention
+### 1. Primitives vs. Composition
+*   **`src/components/ui`**: Contains **ONLY** generic, reusable primitives (Buttons, Inputs, Sheets). These should rarely be modified and strictly follow shadcn/ui patterns.
+*   **`src/components/[feature]`**: Contains the business logic and composition of primitives.
 
-Each extracted component follows a consistent props interface pattern:
+### 2. Props Interface Convention
+Components generally follow a strict typed interface:
 
 ```typescript
 interface ComponentNameProps {
-  // Required data props
-  data: DataType;
+  // Data props (typed from db.ts)
+  transaction?: Transaction;
   
-  // Callbacks
-  onAction?: (params: ParamsType) => void;
+  // Action callbacks
+  onSave: (data: FormData) => Promise<void>;
   
-  // Optional configuration
-  isLoading?: boolean;
-  className?: string;
+  // Display state
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 ```
 
-### Common Patterns Used
-
-1. **Translation Hook**: All components use `useTranslation()` internally
-2. **Memoization**: Heavy calculations are wrapped in `useMemo`
-3. **Responsive Design**: Components handle mobile/desktop variants
-4. **Type Safety**: Full TypeScript with strict typing
-
-## Extending Components
-
-When adding new features to a page:
-
-1. **Small additions**: Add directly to the page component
-2. **Reusable UI blocks**: Create in the page's component directory
-3. **Shared across pages**: Create at `src/components/` root level
-
-### Creating a New Page Component
-
-```tsx
-// src/components/[page-name]/[ComponentName].tsx
-import { useTranslation } from "react-i18next";
-
-interface ComponentNameProps {
-  // Define props
-}
-
-export function ComponentName({ ...props }: ComponentNameProps) {
-  const { t } = useTranslation();
-  
-  return (
-    // JSX
-  );
-}
-```
+### 3. Hooks Integration
+Components **DO NOT** usually fetch their own data. Data is fetched in the **Page** (via `useLiveQuery` hooks) and passed down as props.
+*   *Exception*: Complex distinct widgets (like a specific "Recent Activity" standalone widget) might use a hook internally, but passing data from up top is preferred for connection sharing.
 
 ## Import Conventions
 
-Page components import their sub-components using absolute paths:
+Use the `@/` alias for all imports:
 
 ```typescript
-import { DashboardChartCard } from "@/components/dashboard/DashboardChartCard";
-import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
+// Good
+import { Button } from "@/components/ui/button";
+import { Transaction } from "@/lib/db";
+
+// Bad
+import { Button } from "../../components/ui/button";
 ```
-
-## Type Considerations
-
-When extracting components that use hooks with extended types:
-
-- `Group` from `db.ts` = Basic database type
-- `GroupWithMembers` from `useGroups.ts` = Extended with `members` array
-
-Always check which type your hook returns before defining component props.
