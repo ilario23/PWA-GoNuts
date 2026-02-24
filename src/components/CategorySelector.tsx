@@ -423,7 +423,7 @@ export function CategorySelector({
   };
 
   const Content = (
-    <div className="flex flex-col h-full bg-background w-full">
+    <div className="flex flex-col min-h-0 bg-background w-full">
       <div className="flex items-center px-3 py-2 border-b gap-2">
         <Search className="h-4 w-4 text-muted-foreground shrink-0" />
         <Input
@@ -437,7 +437,7 @@ export function CategorySelector({
 
       <div
         ref={listContainerRef}
-        className="flex-1 overflow-y-auto p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] w-full"
+        className="flex-1 min-h-0 overflow-y-auto p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] w-full"
         data-vaul-no-drag
         onScroll={(event) => {
           const now = Date.now();
@@ -607,7 +607,7 @@ export function CategorySelector({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </DrawerTrigger>
-        <DrawerContent className="h-[85dvh] max-h-[85lvh] flex flex-col fixed bottom-0 left-0 right-0 z-50">
+        <DrawerContent className="h-[85dvh] max-h-[85lvh] flex flex-col overflow-hidden fixed bottom-0 left-0 right-0 z-50">
           <DrawerHeader className="border-b px-4 py-3 shrink-0 text-left">
             <DrawerTitle>{t("select_category")}</DrawerTitle>
             <DrawerDescription className="sr-only">
