@@ -66,6 +66,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pageTop: number | null;
     mode: string;
     path: string;
+    dpr: number;
+    bodyH: number;
+    docH: number;
+    rootH: number | null;
   } | null>(null);
 
   // Apply accent color when settings or theme changes
@@ -82,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const isEnabled =
       window.location.search.includes("debugViewport=1") ||
-      /iPhone OS 26_/i.test(navigator.userAgent);
+      /iPhone/i.test(navigator.userAgent);
     if (!isEnabled) {
       setViewportDebug(null);
       return;
@@ -99,10 +103,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         pageTop: window.visualViewport?.pageTop ?? null,
         mode,
         path: window.location.pathname,
+        dpr: window.devicePixelRatio,
+        bodyH: document.body.clientHeight,
+        docH: document.documentElement.clientHeight,
+        rootH: document.getElementById("root")?.clientHeight ?? null,
       };
       setViewportDebug(payload);
       // #region agent log
-      console.info("[gonuts-debug]", {
+      console.log("[gonuts-debug]", {
         sessionId: "6a339b",
         runId: "pre-fix",
         hypothesisId: "H5-H6-H7",
@@ -133,10 +141,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto max-w-6xl space-y-6 min-w-0">{children}</div>
         </main>
         {viewportDebug && (
-          <div className="fixed right-2 bottom-2 z-[9999] rounded-md bg-black/80 text-white text-[10px] leading-tight px-2 py-1 pointer-events-none">
+          <div className="fixed left-2 top-2 z-[9999] rounded-md bg-black/85 text-white text-[10px] leading-tight px-2 py-1 pointer-events-none max-w-[80vw]">
             <div>{viewportDebug.mode} {viewportDebug.path}</div>
             <div>inner {viewportDebug.inner} vv {viewportDebug.vv}</div>
             <div>offTop {String(viewportDebug.offsetTop)} pageTop {String(viewportDebug.pageTop)}</div>
+            <div>dpr {String(viewportDebug.dpr)} body {String(viewportDebug.bodyH)} doc {String(viewportDebug.docH)} root {String(viewportDebug.rootH)}</div>
           </div>
         )}
       </SidebarInset>

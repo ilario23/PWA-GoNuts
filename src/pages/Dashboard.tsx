@@ -357,7 +357,7 @@ export function Dashboard() {
     }).catch(() => { });
     // #endregion
     // #region agent log
-    console.info("[gonuts-debug]", payload);
+    console.log("[gonuts-debug]", payload);
     // #endregion
   }, []);
 
