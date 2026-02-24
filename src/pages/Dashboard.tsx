@@ -363,7 +363,7 @@ export function Dashboard() {
 
 
   return (
-    <div ref={dashboardRootRef} className="flex flex-col md:block h-[calc(100dvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
+    <div ref={dashboardRootRef} className="flex flex-col md:block h-[calc(100dvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] min-h-[calc(100lvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
       <h1 className="text-2xl font-bold shrink-0">{t("dashboard")}</h1>
 
       {/* Mobile Summary Stats - Smart FlipCard Carousel */}
