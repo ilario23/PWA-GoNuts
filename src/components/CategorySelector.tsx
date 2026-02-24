@@ -67,6 +67,13 @@ export function CategorySelector({
   const [isMobile, setIsMobile] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [expandedRoots, setExpandedRoots] = React.useState<Set<string>>(new Set());
+  const [listDebug, setListDebug] = React.useState<{
+    scrollTop: number;
+    maxScroll: number;
+    clientHeight: number;
+    scrollHeight: number;
+    hiddenBottomPx: number;
+  } | null>(null);
   const listContainerRef = React.useRef<HTMLDivElement | null>(null);
   const lastScrollLogTsRef = React.useRef(0);
   const lastWheelLogTsRef = React.useRef(0);
@@ -122,6 +129,33 @@ export function CategorySelector({
     // #endregion
     // #endregion
   }, [open, isMobile]);
+
+  const updateListDebug = React.useCallback((target: HTMLDivElement) => {
+    const maxScroll = Math.max(0, target.scrollHeight - target.clientHeight);
+    const listRect = target.getBoundingClientRect();
+    const rowNodes = Array.from(target.querySelectorAll("div.cursor-pointer")) as HTMLDivElement[];
+    let maxBottom = -Infinity;
+    rowNodes.forEach((node) => {
+      const rect = node.getBoundingClientRect();
+      if (rect.bottom > maxBottom) maxBottom = rect.bottom;
+    });
+    const hiddenBottomPx = Number.isFinite(maxBottom)
+      ? Math.max(0, Math.round((maxBottom - listRect.bottom) * 10) / 10)
+      : 0;
+    setListDebug({
+      scrollTop: Math.round(target.scrollTop * 10) / 10,
+      maxScroll: Math.round(maxScroll * 10) / 10,
+      clientHeight: target.clientHeight,
+      scrollHeight: target.scrollHeight,
+      hiddenBottomPx,
+    });
+  }, []);
+
+  React.useEffect(() => {
+    if (!open || !isMobile || !listContainerRef.current) return;
+    const node = listContainerRef.current;
+    window.requestAnimationFrame(() => updateListDebug(node));
+  }, [open, isMobile, updateListDebug, expandedRoots, searchTerm]);
 
   React.useEffect(() => {
     if (!open || !isMobile || !window.visualViewport) return;
@@ -434,6 +468,9 @@ export function CategorySelector({
             },
             timestamp: Date.now(),
           });
+          if (isMobile) {
+            updateListDebug(target);
+          }
           // #endregion
           // #endregion
         }}
@@ -502,6 +539,13 @@ export function CategorySelector({
           {rootCategories.map(root => renderCategoryNode(root))}
         </div>
       </div>
+      {isMobile && open && listDebug && (
+        <div className="absolute right-2 bottom-2 z-[1] rounded bg-black/80 text-white text-[10px] px-2 py-1 pointer-events-none">
+          <div>scroll {listDebug.scrollTop}/{listDebug.maxScroll}</div>
+          <div>h {listDebug.clientHeight}/{listDebug.scrollHeight}</div>
+          <div>hiddenBottom {listDebug.hiddenBottomPx}</div>
+        </div>
+      )}
     </div>
   );
 
