@@ -995,6 +995,7 @@
     "graphs_section_title": "Grafici",
     "not_enough_data": "Dati insufficienti per visualizzare i grafici"
   },
+  "changelog_v1_0_8_0": "Risolti viewport iOS e scroll nel drawer categorie.",
   "changelog_v1_0_7_0": "Migliorate azioni swipe: Scorri a destra per Modifica/Duplica, sinistra per Elimina",
   "changelog_v1_0_7_1": "Aggiunta visualizzazione del totale delle spese nella lista transazioni",
   "changelog_v1_0_7_2": "Risolto comportamento inaspettato dopo l'aggiunta di una transazione",
