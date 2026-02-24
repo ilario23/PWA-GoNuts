@@ -101,7 +101,6 @@ export function TransactionDialog({
     const [showCalculator, setShowCalculator] = useState(false);
     const amountInputRef = useRef<HTMLInputElement>(null);
     const calculatorContainerRef = useRef<HTMLDivElement>(null);
-    const lastWindowScrollLogTsRef = useRef(0);
 
     const [showLargeValueConfirm, setShowLargeValueConfirm] = useState(false);
     const [pendingData, setPendingData] = useState<TransactionFormValues | null>(null);
@@ -338,76 +337,6 @@ export function TransactionDialog({
             setActiveSection("main");
         }
     }, [showMoreOptions, activeSection]);
-
-    useEffect(() => {
-        if (!open) return;
-        const dialogEl = document.querySelector("[role='dialog']");
-        const rect = dialogEl?.getBoundingClientRect();
-        // #region agent log
-        fetch("http://127.0.0.1:7808/ingest/822865b9-4dcd-4609-8cfb-00eae54365bf", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Debug-Session-Id": "6a339b",
-            },
-            body: JSON.stringify({
-                sessionId: "6a339b",
-                runId: "pre-fix",
-                hypothesisId: "H3-H4",
-                location: "TransactionDialog.tsx:dialog-open-effect",
-                message: "Transaction dialog opened",
-                data: {
-                    windowInnerHeight: window.innerHeight,
-                    windowInnerWidth: window.innerWidth,
-                    visualViewportHeight: window.visualViewport?.height ?? null,
-                    visualViewportOffsetTop: window.visualViewport?.offsetTop ?? null,
-                    windowScrollY: window.scrollY,
-                    bodyOverflow: document.body.style.overflow || "(empty)",
-                    bodyPosition: document.body.style.position || "(empty)",
-                    bodyPaddingRight: document.body.style.paddingRight || "(empty)",
-                    dialogTop: rect?.top ?? null,
-                    dialogHeight: rect?.height ?? null,
-                    dialogBottom: rect?.bottom ?? null,
-                    dialogOverflowsViewport: rect ? rect.height > window.innerHeight : null,
-                },
-                timestamp: Date.now(),
-            }),
-        }).catch(() => { });
-        // #endregion
-    }, [open]);
-
-    useEffect(() => {
-        if (!open) return;
-        const onWindowScroll = () => {
-            const now = Date.now();
-            if (now - lastWindowScrollLogTsRef.current < 700) return;
-            lastWindowScrollLogTsRef.current = now;
-            // #region agent log
-            fetch("http://127.0.0.1:7808/ingest/822865b9-4dcd-4609-8cfb-00eae54365bf", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Debug-Session-Id": "6a339b",
-                },
-                body: JSON.stringify({
-                    sessionId: "6a339b",
-                    runId: "pre-fix",
-                    hypothesisId: "H3-H4",
-                    location: "TransactionDialog.tsx:window-scroll-listener",
-                    message: "Window scrolled while transaction dialog open",
-                    data: {
-                        scrollY: window.scrollY,
-                        bodyOverflow: document.body.style.overflow || "(empty)",
-                        visualViewportHeight: window.visualViewport?.height ?? null,
-                    },
-                    timestamp: Date.now(),
-                }),
-            }).catch(() => { });
-            // #endregion
-        };
-        window.addEventListener("scroll", onWindowScroll, { passive: true });
-        return () => window.removeEventListener("scroll", onWindowScroll);
-    }, [open]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

@@ -67,19 +67,6 @@ export function CategorySelector({
   const [isMobile, setIsMobile] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [expandedRoots, setExpandedRoots] = React.useState<Set<string>>(new Set());
-  const [listDebug, setListDebug] = React.useState<{
-    scrollTop: number;
-    maxScroll: number;
-    clientHeight: number;
-    scrollHeight: number;
-    hiddenBottomPx: number;
-    listOverflowVisiblePx: number;
-    contentOverflowVisiblePx: number;
-  } | null>(null);
-  const listContainerRef = React.useRef<HTMLDivElement | null>(null);
-  const lastScrollLogTsRef = React.useRef(0);
-  const lastWheelLogTsRef = React.useRef(0);
-  const lastViewportLogTsRef = React.useRef(0);
 
   React.useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -87,129 +74,6 @@ export function CategorySelector({
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-
-  React.useEffect(() => {
-    if (!open) return;
-    // #region agent log
-    fetch("http://127.0.0.1:7808/ingest/822865b9-4dcd-4609-8cfb-00eae54365bf", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "6a339b",
-      },
-      body: JSON.stringify({
-        sessionId: "6a339b",
-        runId: "pre-fix",
-        hypothesisId: "H1-H3",
-        location: "CategorySelector.tsx:open-effect",
-        message: "Category selector opened",
-        data: {
-          isMobile,
-          userAgent: navigator.userAgent,
-          windowInnerHeight: window.innerHeight,
-          windowInnerWidth: window.innerWidth,
-          visualViewportHeight: window.visualViewport?.height ?? null,
-          visualViewportOffsetTop: window.visualViewport?.offsetTop ?? null,
-          scrollY: window.scrollY,
-          bodyOverflow: document.body.style.overflow || "(empty)",
-          bodyPosition: document.body.style.position || "(empty)",
-          bodyPaddingRight: document.body.style.paddingRight || "(empty)",
-          activeElementTag: document.activeElement?.tagName ?? null,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => { });
-    // #region agent log
-    console.log("[gonuts-debug]", {
-      sessionId: "6a339b",
-      runId: "pre-fix",
-      hypothesisId: "H1-H3",
-      location: "CategorySelector.tsx:open-effect",
-      message: "Category selector opened",
-      timestamp: Date.now(),
-    });
-    // #endregion
-    // #endregion
-  }, [open, isMobile]);
-
-  const updateListDebug = React.useCallback((target: HTMLDivElement) => {
-    const maxScroll = Math.max(0, target.scrollHeight - target.clientHeight);
-    const listRect = target.getBoundingClientRect();
-    const rowNodes = Array.from(target.querySelectorAll("div.cursor-pointer")) as HTMLDivElement[];
-    let maxBottom = -Infinity;
-    rowNodes.forEach((node) => {
-      const rect = node.getBoundingClientRect();
-      if (rect.bottom > maxBottom) maxBottom = rect.bottom;
-    });
-    const hiddenBottomPx = Number.isFinite(maxBottom)
-      ? Math.max(0, Math.round((maxBottom - listRect.bottom) * 10) / 10)
-      : 0;
-    const drawerEl =
-      (target.closest("[data-vaul-drawer]") as HTMLElement | null) ||
-      (target.closest("[role='dialog']") as HTMLElement | null);
-    const visibleBottom = drawerEl?.getBoundingClientRect().bottom ?? window.innerHeight;
-    const listOverflowVisiblePx = Math.max(
-      0,
-      Math.round((listRect.bottom - visibleBottom) * 10) / 10
-    );
-    const contentOverflowVisiblePx = Number.isFinite(maxBottom)
-      ? Math.max(0, Math.round((maxBottom - visibleBottom) * 10) / 10)
-      : 0;
-    setListDebug({
-      scrollTop: Math.round(target.scrollTop * 10) / 10,
-      maxScroll: Math.round(maxScroll * 10) / 10,
-      clientHeight: target.clientHeight,
-      scrollHeight: target.scrollHeight,
-      hiddenBottomPx,
-      listOverflowVisiblePx,
-      contentOverflowVisiblePx,
-    });
-  }, []);
-
-  React.useEffect(() => {
-    if (!open || !isMobile || !listContainerRef.current) return;
-    const node = listContainerRef.current;
-    window.requestAnimationFrame(() => updateListDebug(node));
-  }, [open, isMobile, updateListDebug, expandedRoots, searchTerm]);
-
-  React.useEffect(() => {
-    if (!open || !isMobile || !window.visualViewport) return;
-    const handleVisualViewportChange = () => {
-      const now = Date.now();
-      if (now - lastViewportLogTsRef.current < 700) return;
-      lastViewportLogTsRef.current = now;
-      // #region agent log
-      fetch("http://127.0.0.1:7808/ingest/822865b9-4dcd-4609-8cfb-00eae54365bf", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "6a339b",
-        },
-        body: JSON.stringify({
-          sessionId: "6a339b",
-          runId: "pre-fix",
-          hypothesisId: "H2",
-          location: "CategorySelector.tsx:visualViewport-listener",
-          message: "Visual viewport changed while category selector open",
-          data: {
-            visualViewportHeight: window.visualViewport?.height ?? null,
-            visualViewportOffsetTop: window.visualViewport?.offsetTop ?? null,
-            visualViewportPageTop: window.visualViewport?.pageTop ?? null,
-            windowInnerHeight: window.innerHeight,
-            scrollY: window.scrollY,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => { });
-      // #endregion
-    };
-    window.visualViewport.addEventListener("resize", handleVisualViewportChange);
-    window.visualViewport.addEventListener("scroll", handleVisualViewportChange);
-    return () => {
-      window.visualViewport?.removeEventListener("resize", handleVisualViewportChange);
-      window.visualViewport?.removeEventListener("scroll", handleVisualViewportChange);
-    };
-  }, [open, isMobile]);
 
   const filteredCategories = React.useMemo(() => {
     // 1. Strict Group Filter
@@ -436,92 +300,8 @@ export function CategorySelector({
       </div>
 
       <div
-        ref={listContainerRef}
         className="flex-1 min-h-0 overflow-y-auto p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] w-full"
         data-vaul-no-drag
-        onScroll={(event) => {
-          const now = Date.now();
-          if (now - lastScrollLogTsRef.current < 700) return;
-          lastScrollLogTsRef.current = now;
-          const target = event.currentTarget;
-          // #region agent log
-          fetch("http://127.0.0.1:7808/ingest/822865b9-4dcd-4609-8cfb-00eae54365bf", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "6a339b",
-            },
-            body: JSON.stringify({
-              sessionId: "6a339b",
-              runId: "pre-fix",
-              hypothesisId: isMobile ? "H2" : "H1",
-              location: "CategorySelector.tsx:list-onScroll",
-              message: "Category list scrolled",
-              data: {
-                isMobile,
-                scrollTop: target.scrollTop,
-                scrollHeight: target.scrollHeight,
-                clientHeight: target.clientHeight,
-                deltaScrollable: target.scrollHeight - target.clientHeight,
-                bodyOverflow: document.body.style.overflow || "(empty)",
-              },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => { });
-          // #region agent log
-          console.log("[gonuts-debug]", {
-            sessionId: "6a339b",
-            runId: "pre-fix",
-            hypothesisId: isMobile ? "H2-H6" : "H1",
-            location: "CategorySelector.tsx:list-onScroll",
-            message: "Category list scrolled",
-            data: {
-              isMobile,
-              scrollTop: target.scrollTop,
-              scrollHeight: target.scrollHeight,
-              clientHeight: target.clientHeight,
-              listBottom: target.getBoundingClientRect().bottom,
-              viewportHeight: window.innerHeight,
-            },
-            timestamp: Date.now(),
-          });
-          if (isMobile) {
-            updateListDebug(target);
-          }
-          // #endregion
-          // #endregion
-        }}
-        onWheel={(event) => {
-          if (isMobile) return;
-          const now = Date.now();
-          if (now - lastWheelLogTsRef.current < 700) return;
-          lastWheelLogTsRef.current = now;
-          const target = event.currentTarget;
-          // #region agent log
-          fetch("http://127.0.0.1:7808/ingest/822865b9-4dcd-4609-8cfb-00eae54365bf", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "6a339b",
-            },
-            body: JSON.stringify({
-              sessionId: "6a339b",
-              runId: "pre-fix",
-              hypothesisId: "H1",
-              location: "CategorySelector.tsx:list-onWheel",
-              message: "Mouse wheel on category list",
-              data: {
-                deltaY: event.deltaY,
-                scrollTop: target.scrollTop,
-                scrollHeight: target.scrollHeight,
-                clientHeight: target.clientHeight,
-                bodyOverflow: document.body.style.overflow || "(empty)",
-              },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => { });
-          // #endregion
-        }}
       >
         {showSkipOption && !isSearching && (
           <div className="mb-1 pb-1 border-b border-border/40">
@@ -556,15 +336,6 @@ export function CategorySelector({
           {rootCategories.map(root => renderCategoryNode(root))}
         </div>
       </div>
-      {isMobile && open && listDebug && (
-        <div className="absolute right-2 bottom-2 z-[1] rounded bg-black/80 text-white text-[10px] px-2 py-1 pointer-events-none">
-          <div>scroll {listDebug.scrollTop}/{listDebug.maxScroll}</div>
-          <div>h {listDebug.clientHeight}/{listDebug.scrollHeight}</div>
-          <div>hiddenBottom {listDebug.hiddenBottomPx}</div>
-          <div>listOver {listDebug.listOverflowVisiblePx}</div>
-          <div>contentOver {listDebug.contentOverflowVisiblePx}</div>
-        </div>
-      )}
     </div>
   );
 

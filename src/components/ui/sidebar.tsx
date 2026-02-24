@@ -168,51 +168,6 @@ const Sidebar = React.forwardRef<
         ref
     ) => {
         const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
-        const mobileSheetContentRef = React.useRef<HTMLDivElement | null>(null)
-
-        React.useEffect(() => {
-            if (!isMobile || !openMobile) return
-            const rafId = window.requestAnimationFrame(() => {
-                const rect = mobileSheetContentRef.current?.getBoundingClientRect()
-                const payload = {
-                    sessionId: "6a339b",
-                    runId: "pre-fix",
-                    hypothesisId: "H5-H6",
-                    location: "sidebar.tsx:mobile-sheet-open",
-                    message: "Mobile sidebar sheet opened",
-                    data: {
-                        pathname: window.location.pathname,
-                        windowInnerHeight: window.innerHeight,
-                        windowInnerWidth: window.innerWidth,
-                        visualViewportHeight: window.visualViewport?.height ?? null,
-                        visualViewportOffsetTop: window.visualViewport?.offsetTop ?? null,
-                        visualViewportPageTop: window.visualViewport?.pageTop ?? null,
-                        safeInsetTop: getComputedStyle(document.documentElement).getPropertyValue("--safe-area-inset-top"),
-                        safeInsetBottom: getComputedStyle(document.documentElement).getPropertyValue("--safe-area-inset-bottom"),
-                        sheetTop: rect?.top ?? null,
-                        sheetBottom: rect?.bottom ?? null,
-                        sheetHeight: rect?.height ?? null,
-                        bodyClientHeight: document.body.clientHeight,
-                        docClientHeight: document.documentElement.clientHeight,
-                    },
-                    timestamp: Date.now(),
-                }
-                // #region agent log
-                fetch("http://127.0.0.1:7808/ingest/822865b9-4dcd-4609-8cfb-00eae54365bf", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-Debug-Session-Id": "6a339b",
-                    },
-                    body: JSON.stringify(payload),
-                }).catch(() => { })
-                // #endregion
-                // #region agent log
-                console.log("[gonuts-debug]", payload)
-                // #endregion
-            })
-            return () => window.cancelAnimationFrame(rafId)
-        }, [isMobile, openMobile])
 
         if (collapsible === "none") {
             return (
@@ -233,7 +188,6 @@ const Sidebar = React.forwardRef<
             return (
                 <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
                     <SheetContent
-                        ref={mobileSheetContentRef}
                         data-sidebar="sidebar"
                         data-mobile="true"
                         onOpenAutoFocus={(e) => e.preventDefault()}

@@ -9,7 +9,7 @@ import {
   TransactionDialog,
   TransactionFormData,
 } from "@/components/TransactionDialog";
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useCategories } from "@/hooks/useCategories";
 import { useGroups } from "@/hooks/useGroups";
@@ -37,7 +37,6 @@ export function Dashboard() {
   const { t } = useTranslation();
   const now = new Date();
   const currentMonth = format(now, "yyyy-MM");
-  const dashboardRootRef = useRef<HTMLDivElement | null>(null);
 
   // Chart config - memoized since it depends on translation
   const chartConfig = useMemo(
@@ -322,48 +321,8 @@ export function Dashboard() {
     onDelete: handleDelete,
   };
 
-  useEffect(() => {
-    const isMobileViewport = window.innerWidth < 768;
-    if (!isMobileViewport) return;
-    const rect = dashboardRootRef.current?.getBoundingClientRect();
-    const payload = {
-      sessionId: "6a339b",
-      runId: "pre-fix",
-      hypothesisId: "H5",
-      location: "Dashboard.tsx:layout-effect",
-      message: "Dashboard layout metrics",
-      data: {
-        pathname: window.location.pathname,
-        windowInnerHeight: window.innerHeight,
-        windowInnerWidth: window.innerWidth,
-        visualViewportHeight: window.visualViewport?.height ?? null,
-        visualViewportOffsetTop: window.visualViewport?.offsetTop ?? null,
-        rootTop: rect?.top ?? null,
-        rootBottom: rect?.bottom ?? null,
-        rootHeight: rect?.height ?? null,
-        bodyClientHeight: document.body.clientHeight,
-        docClientHeight: document.documentElement.clientHeight,
-      },
-      timestamp: Date.now(),
-    };
-    // #region agent log
-    fetch("http://127.0.0.1:7808/ingest/822865b9-4dcd-4609-8cfb-00eae54365bf", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "6a339b",
-      },
-      body: JSON.stringify(payload),
-    }).catch(() => { });
-    // #endregion
-    // #region agent log
-    console.log("[gonuts-debug]", payload);
-    // #endregion
-  }, []);
-
-
   return (
-    <div ref={dashboardRootRef} className="flex flex-col md:block h-[calc(100dvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] min-h-[calc(100lvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
+    <div className="flex flex-col md:block h-[calc(100dvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] min-h-[calc(100lvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
       <h1 className="text-2xl font-bold shrink-0">{t("dashboard")}</h1>
 
       {/* Mobile Summary Stats - Smart FlipCard Carousel */}
