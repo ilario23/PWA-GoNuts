@@ -998,6 +998,7 @@
     "graphs_section_title": "Graphs",
     "not_enough_data": "Not enough data to display graphs"
   },
+  "changelog_v1_0_8_0": "Fixed iOS viewport and category drawer scrolling.",
   "changelog_v1_0_7_0": "Improved swipe actions: Swipe right for Edit/Duplicate, Left for Delete",
   "changelog_v1_0_7_1": "Added total expenses display to the transaction list",
   "changelog_v1_0_7_2": "Fixed strange behavior in dashboard after adding a quick transaction",
