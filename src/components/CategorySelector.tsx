@@ -73,6 +73,8 @@ export function CategorySelector({
     clientHeight: number;
     scrollHeight: number;
     hiddenBottomPx: number;
+    listOverflowVisiblePx: number;
+    contentOverflowVisiblePx: number;
   } | null>(null);
   const listContainerRef = React.useRef<HTMLDivElement | null>(null);
   const lastScrollLogTsRef = React.useRef(0);
@@ -142,12 +144,25 @@ export function CategorySelector({
     const hiddenBottomPx = Number.isFinite(maxBottom)
       ? Math.max(0, Math.round((maxBottom - listRect.bottom) * 10) / 10)
       : 0;
+    const drawerEl =
+      (target.closest("[data-vaul-drawer]") as HTMLElement | null) ||
+      (target.closest("[role='dialog']") as HTMLElement | null);
+    const visibleBottom = drawerEl?.getBoundingClientRect().bottom ?? window.innerHeight;
+    const listOverflowVisiblePx = Math.max(
+      0,
+      Math.round((listRect.bottom - visibleBottom) * 10) / 10
+    );
+    const contentOverflowVisiblePx = Number.isFinite(maxBottom)
+      ? Math.max(0, Math.round((maxBottom - visibleBottom) * 10) / 10)
+      : 0;
     setListDebug({
       scrollTop: Math.round(target.scrollTop * 10) / 10,
       maxScroll: Math.round(maxScroll * 10) / 10,
       clientHeight: target.clientHeight,
       scrollHeight: target.scrollHeight,
       hiddenBottomPx,
+      listOverflowVisiblePx,
+      contentOverflowVisiblePx,
     });
   }, []);
 
@@ -465,6 +480,8 @@ export function CategorySelector({
               scrollTop: target.scrollTop,
               scrollHeight: target.scrollHeight,
               clientHeight: target.clientHeight,
+              listBottom: target.getBoundingClientRect().bottom,
+              viewportHeight: window.innerHeight,
             },
             timestamp: Date.now(),
           });
@@ -544,6 +561,8 @@ export function CategorySelector({
           <div>scroll {listDebug.scrollTop}/{listDebug.maxScroll}</div>
           <div>h {listDebug.clientHeight}/{listDebug.scrollHeight}</div>
           <div>hiddenBottom {listDebug.hiddenBottomPx}</div>
+          <div>listOver {listDebug.listOverflowVisiblePx}</div>
+          <div>contentOver {listDebug.contentOverflowVisiblePx}</div>
         </div>
       )}
     </div>
