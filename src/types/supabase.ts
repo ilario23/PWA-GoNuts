@@ -409,6 +409,9 @@ export interface Database {
                     group_id: string | null
                     id: string
                     paid_by_member_id: string | null
+                    recurrence_key: string | null
+                    recurrence_occurrence_date: string | null
+                    recurring_transaction_id: string | null
                     sync_token: number | null
                     type: "income" | "expense" | "investment"
                     updated_at: string | null
@@ -425,6 +428,9 @@ export interface Database {
                     group_id?: string | null
                     id?: string
                     paid_by_member_id?: string | null
+                    recurrence_key?: string | null
+                    recurrence_occurrence_date?: string | null
+                    recurring_transaction_id?: string | null
                     sync_token?: number | null
                     type: "income" | "expense" | "investment"
                     updated_at?: string | null
@@ -441,6 +447,9 @@ export interface Database {
                     group_id?: string | null
                     id?: string
                     paid_by_member_id?: string | null
+                    recurrence_key?: string | null
+                    recurrence_occurrence_date?: string | null
+                    recurring_transaction_id?: string | null
                     sync_token?: number | null
                     type?: "income" | "expense" | "investment"
                     updated_at?: string | null
@@ -480,6 +489,13 @@ export interface Database {
                         columns: ["user_id"]
                         isOneToOne: false
                         referencedRelation: "users"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "transactions_recurring_transaction_id_fkey"
+                        columns: ["recurring_transaction_id"]
+                        isOneToOne: false
+                        referencedRelation: "recurring_transactions"
                         referencedColumns: ["id"]
                     }
                 ]

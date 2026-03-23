@@ -1,6 +1,5 @@
-import { db } from "./db";
+import { db, RecurringTransaction } from "./db";
 import { syncManager } from "./sync";
-import { v4 as uuidv4 } from "uuid";
 import {
     addDays,
     addWeeks,
@@ -10,57 +9,86 @@ import {
     parseISO,
     format,
 } from "date-fns";
+import {
+    recurringOccurrenceKey,
+    recurringOccurrenceTransactionId,
+} from "./recurringOccurrence";
+
+export interface ProcessRecurringResult {
+    /** New transaction rows inserted this run */
+    generatedCount: number;
+    /** Sum of amounts for newly generated expense occurrences */
+    expenseTotal: number;
+}
+
+function getNextDate(
+    date: Date,
+    frequency: RecurringTransaction["frequency"]
+): Date {
+    switch (frequency) {
+        case "daily":
+            return addDays(date, 1);
+        case "weekly":
+            return addWeeks(date, 1);
+        case "monthly":
+            return addMonths(date, 1);
+        case "yearly":
+            return addYears(date, 1);
+        default:
+            return addMonths(date, 1);
+    }
+}
+
+/**
+ * Parses last_generated / start_date as a calendar date (YYYY-MM-DD or ISO).
+ */
+function parseRecurringAnchor(value: string): Date {
+    const d = parseISO(value.length <= 10 ? `${value}T12:00:00` : value);
+    return d;
+}
 
 /**
  * Processes all active recurring transactions and generates new transactions
- * if they are due.
- *
- * @returns The number of new transactions generated.
+ * if they are due. Uses deterministic transaction IDs and recurrence_key so
+ * multiple devices converge to a single row per occurrence.
  */
-export async function processRecurringTransactions(): Promise<number> {
+export async function processRecurringTransactions(): Promise<ProcessRecurringResult> {
     const all = await db.recurring_transactions.toArray();
-    const active = all.filter((rt) => !rt.deleted_at);
+    const active = all.filter((rt) => rt.active === 1 && !rt.deleted_at);
     const now = new Date();
     let generatedCount = 0;
+    let expenseTotal = 0;
     let changesMade = false;
 
     for (const rt of active) {
-        if (!rt.active || rt.deleted_at) continue;
-
         let nextDate = rt.last_generated
-            ? parseISO(rt.last_generated)
-            : parseISO(rt.start_date);
+            ? parseRecurringAnchor(rt.last_generated)
+            : parseRecurringAnchor(rt.start_date);
 
-        // If never generated, start from start_date. If generated, calculate next.
         if (rt.last_generated) {
-            switch (rt.frequency) {
-                case "daily":
-                    nextDate = addDays(nextDate, 1);
-                    break;
-                case "weekly":
-                    nextDate = addWeeks(nextDate, 1);
-                    break;
-                case "monthly":
-                    nextDate = addMonths(nextDate, 1);
-                    break;
-                case "yearly":
-                    nextDate = addYears(nextDate, 1);
-                    break;
-            }
+            nextDate = getNextDate(nextDate, rt.frequency);
         }
 
-        // Generate all missed transactions up to today
         while (
             isBefore(nextDate, now) ||
             nextDate.toDateString() === now.toDateString()
         ) {
-            // Check end_date
             if (rt.end_date && isBefore(parseISO(rt.end_date), nextDate)) break;
 
-            // Create transaction
-            const transactionId = uuidv4();
-            // Use format to get local date string YYYY-MM-DD
             const dateStr = format(nextDate, "yyyy-MM-dd");
+            const transactionId = recurringOccurrenceTransactionId(rt.id, dateStr);
+            const recurrenceKey = recurringOccurrenceKey(rt.id, dateStr);
+
+            const existing = await db.transactions.get(transactionId);
+            if (existing) {
+                await db.recurring_transactions.update(rt.id, {
+                    last_generated: dateStr,
+                    pendingSync: 1,
+                });
+                changesMade = true;
+                nextDate = getNextDate(nextDate, rt.frequency);
+                continue;
+            }
 
             await db.transactions.add({
                 id: transactionId,
@@ -73,35 +101,26 @@ export async function processRecurringTransactions(): Promise<number> {
                 amount: rt.amount,
                 date: dateStr,
                 year_month: dateStr.substring(0, 7),
-                description: rt.description || `Recurring: ${rt.frequency}`,
+                description:
+                    rt.description || `Recurring: ${rt.frequency}`,
                 pendingSync: 1,
                 deleted_at: null,
+                recurring_transaction_id: rt.id,
+                recurrence_occurrence_date: dateStr,
+                recurrence_key: recurrenceKey,
             });
 
-            // Update last_generated with the date string we just generated for
             await db.recurring_transactions.update(rt.id, {
                 last_generated: dateStr,
                 pendingSync: 1,
             });
 
             generatedCount++;
-            changesMade = true;
-
-            // Calculate next date for loop
-            switch (rt.frequency) {
-                case "daily":
-                    nextDate = addDays(nextDate, 1);
-                    break;
-                case "weekly":
-                    nextDate = addWeeks(nextDate, 1);
-                    break;
-                case "monthly":
-                    nextDate = addMonths(nextDate, 1);
-                    break;
-                case "yearly":
-                    nextDate = addYears(nextDate, 1);
-                    break;
+            if (rt.type === "expense") {
+                expenseTotal += rt.amount;
             }
+            changesMade = true;
+            nextDate = getNextDate(nextDate, rt.frequency);
         }
     }
 
@@ -109,5 +128,5 @@ export async function processRecurringTransactions(): Promise<number> {
         syncManager.schedulePush();
     }
 
-    return generatedCount;
+    return { generatedCount, expenseTotal };
 }

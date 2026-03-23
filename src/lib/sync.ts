@@ -514,6 +514,38 @@ export class SyncManager {
     items: LocalTableMap[T][],
     userId: string
   ): Promise<void> {
+    if (tableName === "transactions") {
+      const txns = items as unknown as Transaction[];
+      const withKey = txns.filter((t) => t.recurrence_key);
+      const withoutKey = txns.filter((t) => !t.recurrence_key);
+      if (withKey.length > 0) {
+        await this.pushGenericBatchWithRetry(
+          "transactions",
+          withKey as unknown as LocalTableMap["transactions"][],
+          userId,
+          { onConflict: "recurrence_key", transactionIdRemap: true }
+        );
+      }
+      if (withoutKey.length > 0) {
+        await this.pushGenericBatchWithRetry(
+          "transactions",
+          withoutKey as unknown as LocalTableMap["transactions"][],
+          userId,
+          { onConflict: "id" }
+        );
+      }
+      return;
+    }
+
+    await this.pushGenericBatchWithRetry(tableName, items, userId);
+  }
+
+  private async pushGenericBatchWithRetry<T extends TableName>(
+    tableName: T,
+    items: LocalTableMap[T][],
+    userId: string,
+    options?: { onConflict?: string; transactionIdRemap?: boolean }
+  ): Promise<void> {
     const itemsToPush = items.map((item) =>
       this.prepareItemForPush(item, tableName, userId)
     );
@@ -523,11 +555,17 @@ export class SyncManager {
     for (let attempt = 0; attempt < SYNC_CONFIG.maxRetries; attempt++) {
       try {
         // Use .select() to get the updated server data immediately (including new sync_token)
-        const { data, error } = await supabase
-          .from(tableName)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .upsert(itemsToPush as any)
-          .select();
+        const upsertQuery =
+          options?.onConflict != null
+            ? supabase
+                .from(tableName)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .upsert(itemsToPush as any, { onConflict: options.onConflict })
+            : supabase
+                .from(tableName)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .upsert(itemsToPush as any);
+        const { data, error } = await upsertQuery.select();
 
         if (error) {
           throw new Error(error.message);
@@ -539,16 +577,34 @@ export class SyncManager {
             for (const serverItem of data) {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const item = serverItem as any;
-              // Prepare item for local storage (handles type conversions etc.)
               const localUpdate = this.prepareItemForLocal(item, tableName);
 
-              // Update local DB ensuring pendingSync is 0
-              await db.table(tableName).update(item.id, {
-                ...localUpdate,
-                pendingSync: 0,
-              });
+              if (
+                tableName === "transactions" &&
+                options?.transactionIdRemap
+              ) {
+                const s = item as Tables<"transactions">;
+                const localTxn = (items as unknown as Transaction[]).find(
+                  (t) =>
+                    t.recurrence_key &&
+                    s.recurrence_key &&
+                    t.recurrence_key === s.recurrence_key
+                );
+                if (localTxn && localTxn.id !== item.id) {
+                  await db.transactions.delete(localTxn.id);
+                  this.errorMap.delete(`transactions:${localTxn.id}`);
+                }
+                await db.transactions.put({
+                  ...(localUpdate as unknown as Transaction),
+                  pendingSync: 0,
+                });
+              } else {
+                await db.table(tableName).update(item.id, {
+                  ...localUpdate,
+                  pendingSync: 0,
+                });
+              }
 
-              // Clear any previous errors for this item
               this.errorMap.delete(`${tableName}:${item.id}`);
             }
           });
@@ -779,17 +835,16 @@ export class SyncManager {
       await this.showGroupTransactionToast(newGroupTransactions, "new");
       const modifiedGroupTransactions: Tables<"transactions">[] = []; // Track modified separately if needed
       await this.showGroupTransactionToast(modifiedGroupTransactions, "modified");
+    }
 
-      // Process recurring transactions
-      const addedCount = await processRecurringTransactions();
-      if (addedCount > 0) {
-        toast.success(
-          i18n.t("recurring_expenses_added", {
-            count: addedCount,
-            defaultValue: "{{count}} recurring expenses added",
-          })
-        );
-      }
+    const { generatedCount } = await processRecurringTransactions();
+    if (generatedCount > 0) {
+      toast.success(
+        i18n.t("recurring_expenses_added", {
+          count: generatedCount,
+          defaultValue: "{{count}} recurring expenses added",
+        })
+      );
     }
   }
 
@@ -908,17 +963,17 @@ export class SyncManager {
       // Show toast notification for new and modified group transactions
       await this.showGroupTransactionToast(newGroupTransactions, "new");
       await this.showGroupTransactionToast(modifiedGroupTransactions, "modified");
+    }
 
-      // Process recurring transactions
-      const addedCount = await processRecurringTransactions();
-      if (addedCount > 0) {
-        toast.success(
-          i18n.t("recurring_expenses_added", {
-            count: addedCount,
-            defaultValue: "{{count}} recurring expenses added",
-          })
-        );
-      }
+    const { generatedCount: recurringAdded } =
+      await processRecurringTransactions();
+    if (recurringAdded > 0) {
+      toast.success(
+        i18n.t("recurring_expenses_added", {
+          count: recurringAdded,
+          defaultValue: "{{count}} recurring expenses added",
+        })
+      );
     }
   }
 

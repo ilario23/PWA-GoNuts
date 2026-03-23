@@ -49,20 +49,21 @@ This document details the exact sequence of events for critical application proc
 ---
 
 ## 3. Recurring Transactions Logic
-**Goal**: Automatically create transactions from templates (e.g., "Netflix Subscription").
+**Goal**: Automatically create transactions from templates (e.g., "Netflix Subscription") without duplicates across devices.
 
-**File**: `src/hooks/useAutoGenerate.ts` & `src/lib/recurring.ts`
+**File**: `src/lib/recurring.ts` (core), `src/hooks/useAutoGenerate.ts` (boot + notification), `src/lib/recurringOccurrence.ts` (deterministic IDs)
 
-1.  **Trigger**: Runs on App Mount (inside `ProtectedRoute`) and after every Sync.
+1.  **Trigger**: Runs on App Mount (via `useAutoGenerate`) and once after each full pull in `sync.ts` (not per table).
 2.  **Query**: Fetches active `recurring_transactions` from Dexie.
 3.  **Evaluation**: For each template:
-    *   Calculates `next_due_date` based on `last_generated` (or `start_date` if never generated) + formula (`frequency`).
+    *   Calculates `next_due_date` based on `last_generated` (or `start_date` if never generated) + `frequency`.
     *   *Check*: Is `next_due_date <= TODAY`?
 4.  **Generation**:
-    *   If due, creates a **NEW** Transaction record in Dexie.
-    *   Updates the Template's `last_generated` date to the new transaction date.
-    *   *Loop*: Repeats if multiple periods were missed (e.g., app wasn't opened for 3 months -> generates 3 entries).
-5.  **Sync**: Since these are new Dexie writes, they get `pendingSync: 1`. The next Sync cycle will push them to the server.
+    *   If due, builds `recurrence_key` = `templateId|YYYY-MM-DD` and a **deterministic** transaction `id` (UUID v5) so every device creates the same primary key.
+    *   If a transaction with that `id` already exists locally (e.g. synced from another device), skips insert and only advances `last_generated`.
+    *   Otherwise inserts the transaction with `recurring_transaction_id`, `recurrence_occurrence_date`, and `recurrence_key`.
+    *   *Loop*: Repeats for all missed periods.
+5.  **Sync**: New/changed rows get `pendingSync: 1`. Push uses `upsert` on `recurrence_key` for recurring rows (and remaps local PK if the server canonical row differs). Remote enforces a partial unique index on `recurrence_key` for active rows.
 
 ---
 
