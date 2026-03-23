@@ -8,6 +8,7 @@ import {
   validate,
 } from "../lib/validation";
 import { useTranslation } from "react-i18next";
+import { buildSettlementDescription } from "@/lib/settlements";
 
 /**
  * Hook for managing transactions with optional filtering.
@@ -127,11 +128,53 @@ export function useTransactions(
     syncManager.schedulePush();
   };
 
+  const recordGroupSettlement = async ({
+    userId,
+    groupId,
+    paidByMemberId,
+    note,
+  }: {
+    userId: string;
+    groupId: string;
+    paidByMemberId: string;
+    note: string;
+  }) => {
+    const expenseCategory = await db.categories
+      .filter(
+        (c) =>
+          !c.deleted_at &&
+          c.active === 1 &&
+          c.type === "expense" &&
+          (c.group_id === groupId || c.user_id === userId)
+      )
+      .first();
+
+    if (!expenseCategory) {
+      throw new Error(
+        "No expense category available to record a settlement."
+      );
+    }
+
+    const now = new Date();
+    await addTransaction({
+      user_id: userId,
+      group_id: groupId,
+      paid_by_member_id: paidByMemberId,
+      category_id: expenseCategory.id,
+      type: "expense",
+      amount: 0.01,
+      date: now.toISOString().slice(0, 10),
+      year_month: now.toISOString().slice(0, 7),
+      description: buildSettlementDescription(note),
+    });
+  };
+
   return {
     transactions,
     addTransaction,
     updateTransaction,
     deleteTransaction,
     restoreTransaction,
+    recordGroupSettlement,
   };
 }

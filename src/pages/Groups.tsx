@@ -5,6 +5,7 @@ import {
   useGroups,
   GroupWithMembers,
 } from "@/hooks/useGroups";
+import { useTransactions } from "@/hooks/useTransactions";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +56,7 @@ export function GroupsPage() {
     deleteGroup,
     getGroupBalance,
   } = useGroups();
+  const { recordGroupSettlement } = useTransactions();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<GroupWithMembers | null>(
@@ -122,6 +124,28 @@ export function GroupsPage() {
     setViewingBalance(group);
     const data = await getGroupBalance(group.id);
     setBalanceData(data);
+  };
+
+  const handleRecordSettlement = async (note: string) => {
+    if (!user || !viewingBalance || !balanceData) return;
+    const currentMember = (balanceData.members as { id: string; user_id?: string | null }[])
+      .find((member) => member.user_id === user.id);
+
+    if (!currentMember) {
+      toast.error(t("unable_to_record_settlement"));
+      return;
+    }
+
+    await recordGroupSettlement({
+      userId: user.id,
+      groupId: viewingBalance.id,
+      paidByMemberId: currentMember.id,
+      note,
+    });
+
+    const refreshed = await getGroupBalance(viewingBalance.id);
+    setBalanceData(refreshed);
+    toast.success(t("settlement_recorded_reset"));
   };
 
   const copyUserId = async () => {
@@ -341,6 +365,7 @@ export function GroupsPage() {
           }
         }}
         currentUserId={user?.id || ""}
+        onRecordSettlement={handleRecordSettlement}
       />
     </div >
   );

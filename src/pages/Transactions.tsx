@@ -39,6 +39,7 @@ import { Switch } from "@/components/ui/switch";
 import { AlertCircle } from "lucide-react";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { Category, Group, Context } from "@/lib/db";
+import { isSettlementTransaction } from "@/lib/settlements";
 
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -54,6 +55,7 @@ interface FilterState {
   groupFilter: string; // 'all', 'personal', 'group', or specific group id
   contextFilter: string; // 'all', 'none' (no context), or specific context id
   needsReview: boolean;
+  onlySettlements: boolean;
 }
 
 interface FilterContentProps {
@@ -335,6 +337,7 @@ export function TransactionsPage() {
     groupFilter: "all", // 'all', 'personal', 'group', or specific group id
     contextFilter: (searchParams.get("contextId") || "all"), // 'all', 'none' (no context), or specific context id
     needsReview: false,
+    onlySettlements: false,
   });
 
   const editingTransaction = useMemo(() => {
@@ -435,6 +438,7 @@ export function TransactionsPage() {
       groupFilter: "all",
       contextFilter: "all",
       needsReview: false,
+      onlySettlements: false,
     });
   };
 
@@ -525,6 +529,11 @@ export function TransactionsPage() {
 
         // Needs Review (uncategorized transactions)
         if (filters.needsReview && transaction.category_id !== UNCATEGORIZED_CATEGORY.ID) return false;
+
+        // Settlement records only
+        if (filters.onlySettlements && !isSettlementTransaction(transaction)) {
+          return false;
+        }
 
         return true;
       }) || []
@@ -761,7 +770,8 @@ export function TransactionsPage() {
         filters.groupFilter !== "all" ||
         filters.groupFilter !== "all" ||
         filters.contextFilter !== "all" ||
-        filters.needsReview) && (
+        filters.needsReview ||
+        filters.onlySettlements) && (
           <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
             <span>{t("active_filters")}:</span>
             {filters.text && (
@@ -798,6 +808,11 @@ export function TransactionsPage() {
                 {t("needs_review") || "Needs Review"}
               </span>
             )}
+            {filters.onlySettlements && (
+              <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-md flex items-center gap-1">
+                {t("group_settlement_reset")}
+              </span>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -809,6 +824,21 @@ export function TransactionsPage() {
             </Button>
           </div>
         )}
+
+      <div className="flex items-center gap-2">
+        <Button
+          variant={filters.onlySettlements ? "default" : "outline"}
+          size="sm"
+          onClick={() =>
+            setFilters((prev) => ({
+              ...prev,
+              onlySettlements: !prev.onlySettlements,
+            }))
+          }
+        >
+          {t("only_settlements")}
+        </Button>
+      </div>
 
       {/* Mobile View: Card Stack */}
       <TransactionList
