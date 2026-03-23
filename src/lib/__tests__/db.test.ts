@@ -28,6 +28,13 @@ describe("db", () => {
   });
 
   it("should have correct version", () => {
-    expect(db.verno).toBe(1);
+    expect(db.verno).toBe(2);
+  });
+
+  it("should index recurrence_key on transactions", () => {
+    const table = db.transactions;
+    expect(table.schema.indexes.some((i) => i.name === "recurrence_key")).toBe(
+      true
+    );
   });
 });

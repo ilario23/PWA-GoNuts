@@ -88,6 +88,12 @@ export interface Transaction {
   year_month: string;
   /** User-provided description */
   description: string;
+  /** Source recurring template when generated from recurrence */
+  recurring_transaction_id?: string | null;
+  /** Occurrence calendar date (YYYY-MM-DD), mirrors remote `date` granularity */
+  recurrence_occurrence_date?: string | null;
+  /** Idempotency key: `${recurring_transaction_id}|YYYY-MM-DD` */
+  recurrence_key?: string | null;
   /** Soft delete timestamp (ISO 8601) */
   deleted_at?: string | null;
   /** 1 if changes pending sync, 0 otherwise (number for IndexedDB indexing) */
@@ -316,13 +322,28 @@ export class AppDatabase extends Dexie {
 
   constructor() {
     super("ExpenseTrackerDB");
-    // Version 1: Initial (and final) schema
     this.version(1).stores({
       groups: "id, created_by, pendingSync, deleted_at",
       group_members:
         "id, group_id, user_id, guest_name, is_guest, pendingSync, removed_at",
       transactions:
         "id, user_id, group_id, paid_by_member_id, recurring_transaction_id, category_id, context_id, type, date, year_month, pendingSync, deleted_at, [group_id+year_month], [type+year_month], [category_id+year_month]",
+      categories: "id, user_id, group_id, name, type, pendingSync, deleted_at",
+      contexts: "id, user_id, pendingSync, deleted_at",
+      recurring_transactions:
+        "id, user_id, group_id, paid_by_member_id, category_id, context_id, type, frequency, pendingSync, deleted_at",
+      user_settings: "user_id",
+      category_budgets:
+        "id, user_id, category_id, period, pendingSync, deleted_at",
+      profiles: "id, pendingSync",
+      import_rules: "id, user_id, match_type, pendingSync, deleted_at",
+    });
+    this.version(2).stores({
+      groups: "id, created_by, pendingSync, deleted_at",
+      group_members:
+        "id, group_id, user_id, guest_name, is_guest, pendingSync, removed_at",
+      transactions:
+        "id, user_id, group_id, paid_by_member_id, recurring_transaction_id, recurrence_key, category_id, context_id, type, date, year_month, pendingSync, deleted_at, [group_id+year_month], [type+year_month], [category_id+year_month]",
       categories: "id, user_id, group_id, name, type, pendingSync, deleted_at",
       contexts: "id, user_id, pendingSync, deleted_at",
       recurring_transactions:
