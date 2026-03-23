@@ -33,6 +33,10 @@ import { MobileTransactionRow } from "./MobileTransactionRow";
 import { TransactionDetailDrawer } from "./TransactionDetailDrawer";
 import { GroupWithMembers } from "@/hooks/useGroups";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  extractSettlementNote,
+  isSettlementTransaction,
+} from "@/lib/settlements";
 
 interface TransactionListProps {
   transactions: Transaction[] | undefined;
@@ -212,6 +216,10 @@ export function TransactionList({
       const context = getContext(t_item.context_id);
       const group = getGroup(t_item.group_id);
       const IconComp = category?.icon ? getIconComponent(category.icon) : null;
+      const isSettlement = isSettlementTransaction(t_item);
+      const settlementNote = isSettlement
+        ? extractSettlementNote(t_item.description)
+        : "";
 
       // Group Details Logic for Tooltip
       let payerName = "";
@@ -252,6 +260,11 @@ export function TransactionList({
           <TableCell>
             <div className="flex items-center gap-2 max-w-[200px] xl:max-w-[300px]">
               <span className="truncate">{t_item.description}</span>
+              {isSettlement && (
+                <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-2 py-0.5 text-[10px] font-medium">
+                  {t("group_settlement_reset")}
+                </span>
+              )}
               {t_item.category_id === UNCATEGORIZED_CATEGORY.ID && (
                 <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" aria-hidden="true" />
               )}
@@ -275,7 +288,9 @@ export function TransactionList({
             <div className="flex items-center gap-2">
               {IconComp && <IconComp className="h-4 w-4 shrink-0" aria-hidden="true" />}
               <span className={`truncate max-w-[140px] ${!category && t_item.category_id === UNCATEGORIZED_CATEGORY.ID ? "text-amber-500 font-medium" : ""}`}>
-                {category?.name || (t_item.category_id === UNCATEGORIZED_CATEGORY.ID ? (t("needs_review") || "Needs Review") : "-")}
+                {isSettlement
+                  ? settlementNote || t("group_settlement_reset")
+                  : category?.name || (t_item.category_id === UNCATEGORIZED_CATEGORY.ID ? (t("needs_review") || "Needs Review") : "-")}
               </span>
             </div>
           </TableCell>
@@ -332,13 +347,19 @@ export function TransactionList({
           </TableCell>
           <TableCell className="capitalize w-[100px]">{t(t_item.type)}</TableCell>
           <TableCell className={`text-right w-[120px] ${getTypeTextColor(t_item.type)}`}>
-            {t_item.type === "expense"
-              ? "-"
-              : t_item.type === "investment"
-                ? ""
-                : "+"}
-            €{getPersonalAmount(t_item).toFixed(2)}
-            {t_item.group_id && (
+            {isSettlement ? (
+              t("settlement_history_amount_placeholder")
+            ) : (
+              <>
+                {t_item.type === "expense"
+                  ? "-"
+                  : t_item.type === "investment"
+                    ? ""
+                    : "+"}
+                €{getPersonalAmount(t_item).toFixed(2)}
+              </>
+            )}
+            {t_item.group_id && !isSettlement && (
               <div className="text-[10px] text-muted-foreground">
                 {t("your_share")}
               </div>

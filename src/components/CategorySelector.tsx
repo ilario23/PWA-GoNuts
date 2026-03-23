@@ -341,7 +341,7 @@ export function CategorySelector({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={setOpen}>
+      <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
         <DrawerTrigger asChild>
           <Button
             variant="outline"

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GroupWithMembers } from "@/hooks/useGroups";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,6 +28,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { UserAvatar } from "@/components/UserAvatar";
 import {
     ArrowUpRight,
@@ -58,11 +61,17 @@ interface GroupBalanceDrawerProps {
         totalExpenses: number;
         balances: Record<string, BalanceData>;
         members: unknown[];
+        latestSettlement?: {
+            id: string;
+            date: string;
+            note: string;
+        } | null;
     } | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     currentUserId: string;
     onMarkPaid?: (settlement: Settlement) => void;
+    onRecordSettlement?: (note: string) => Promise<void> | void;
 }
 
 function calculateSettlement(
@@ -106,9 +115,13 @@ export function GroupBalanceDrawer({
     onOpenChange,
     currentUserId,
     onMarkPaid,
+    onRecordSettlement,
 }: GroupBalanceDrawerProps) {
     const { t } = useTranslation();
     const isMobile = useIsMobile();
+    const [isSettlementDialogOpen, setIsSettlementDialogOpen] = useState(false);
+    const [settlementNote, setSettlementNote] = useState("");
+    const [isSavingSettlement, setIsSavingSettlement] = useState(false);
 
     if (!group || !balanceData) return null;
 
@@ -154,6 +167,57 @@ export function GroupBalanceDrawer({
         (s) => s.from === currentUserId || s.to === currentUserId
     );
 
+    const handleSaveSettlement = async () => {
+        const note = settlementNote.trim();
+        if (!note || !onRecordSettlement) return;
+        setIsSavingSettlement(true);
+        try {
+            await onRecordSettlement(note);
+            setSettlementNote("");
+            setIsSettlementDialogOpen(false);
+        } finally {
+            setIsSavingSettlement(false);
+        }
+    };
+
+    const SettlementDialog = (
+        <Dialog open={isSettlementDialogOpen} onOpenChange={setIsSettlementDialogOpen}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{t("record_settlement_reset")}</DialogTitle>
+                    <DialogDescription>
+                        {t("record_settlement_reset_description")}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2">
+                    <Label htmlFor="settlement-note">{t("settlement_note_label")}</Label>
+                    <Input
+                        id="settlement-note"
+                        value={settlementNote}
+                        onChange={(e) => setSettlementNote(e.target.value)}
+                        placeholder={t("settlement_note_placeholder")}
+                        maxLength={200}
+                    />
+                </div>
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsSettlementDialogOpen(false)}
+                        disabled={isSavingSettlement}
+                    >
+                        {t("cancel")}
+                    </Button>
+                    <Button
+                        onClick={handleSaveSettlement}
+                        disabled={!settlementNote.trim() || isSavingSettlement || !onRecordSettlement}
+                    >
+                        {isSavingSettlement ? t("saving") : t("confirm")}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+
     const MainContent = (
         <div
             className="flex-1 overflow-y-auto p-4 space-y-4"
@@ -196,6 +260,20 @@ export function GroupBalanceDrawer({
                             </p>
                         </div>
                     </div>
+
+                    {balanceData.latestSettlement && (
+                        <div className="rounded-md border bg-background/70 p-3">
+                            <p className="text-xs text-muted-foreground mb-1">
+                                {t("latest_settlement_reset")}
+                            </p>
+                            <p className="text-sm font-medium">
+                                {balanceData.latestSettlement.note || t("no_note")}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {t("date")}: {balanceData.latestSettlement.date}
+                            </p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -336,59 +414,79 @@ export function GroupBalanceDrawer({
 
     if (isMobile) {
         return (
-            <Drawer open={open} onOpenChange={onOpenChange}>
-                <DrawerContent className="h-[85vh] font-sans">
-                    <DrawerHeader className="border-b">
-                        <DrawerTitle>{t("group_balance")}</DrawerTitle>
-                        <DrawerDescription className="sr-only">
-                            {t("balance_breakdown_for")} {group.name}
-                        </DrawerDescription>
-                    </DrawerHeader>
+            <>
+                <Drawer open={open} onOpenChange={onOpenChange}>
+                    <DrawerContent className="h-[85vh] font-sans">
+                        <DrawerHeader className="border-b">
+                            <DrawerTitle>{t("group_balance")}</DrawerTitle>
+                            <DrawerDescription className="sr-only">
+                                {t("balance_breakdown_for")} {group.name}
+                            </DrawerDescription>
+                        </DrawerHeader>
 
-                    {MainContent}
+                        {MainContent}
 
-                    <DrawerFooter className="border-t pt-3 pb-3">
-                        <div className="flex gap-2">
-                            <Button variant="outline" className="flex-1" disabled>
-                                <Share2 className="h-4 w-4 mr-2" />
-                                {t("share_plan")}
-                            </Button>
-                            <DrawerClose asChild>
-                                <Button variant="default" className="flex-1">
-                                    {t("close")}
+                        <DrawerFooter className="border-t pt-3 pb-3">
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="secondary"
+                                    className="flex-1"
+                                    onClick={() => setIsSettlementDialogOpen(true)}
+                                >
+                                    {t("record_settlement_reset")}
                                 </Button>
-                            </DrawerClose>
-                        </div>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
+                                <Button variant="outline" className="flex-1" disabled>
+                                    <Share2 className="h-4 w-4 mr-2" />
+                                    {t("share_plan")}
+                                </Button>
+                                <DrawerClose asChild>
+                                    <Button variant="default" className="flex-1">
+                                        {t("close")}
+                                    </Button>
+                                </DrawerClose>
+                            </div>
+                        </DrawerFooter>
+                    </DrawerContent>
+                </Drawer>
+                {SettlementDialog}
+            </>
         );
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-6">
-                <DialogHeader>
-                    <DialogTitle>{t("group_balance")}</DialogTitle>
-                    <DialogDescription>
-                        {t("balance_breakdown_for")} {group.name}
-                    </DialogDescription>
-                </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-6">
+                    <DialogHeader>
+                        <DialogTitle>{t("group_balance")}</DialogTitle>
+                        <DialogDescription>
+                            {t("balance_breakdown_for")} {group.name}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                {MainContent}
+                    {MainContent}
 
-                <DialogFooter className="pt-2">
-                    <div className="flex flex-col sm:flex-row gap-2 w-full">
-                        <Button variant="outline" className="flex-1" disabled>
-                            <Share2 className="h-4 w-4 mr-2" />
-                            {t("share_plan")}
-                        </Button>
-                        <Button variant="default" className="flex-1" onClick={() => onOpenChange(false)}>
-                            {t("close")}
-                        </Button>
-                    </div>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    <DialogFooter className="pt-2">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                            <Button
+                                variant="secondary"
+                                className="flex-1"
+                                onClick={() => setIsSettlementDialogOpen(true)}
+                            >
+                                {t("record_settlement_reset")}
+                            </Button>
+                            <Button variant="outline" className="flex-1" disabled>
+                                <Share2 className="h-4 w-4 mr-2" />
+                                {t("share_plan")}
+                            </Button>
+                            <Button variant="default" className="flex-1" onClick={() => onOpenChange(false)}>
+                                {t("close")}
+                            </Button>
+                        </div>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {SettlementDialog}
+        </>
     );
 }

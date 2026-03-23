@@ -6,6 +6,10 @@ import { SyncStatusBadge } from "./SyncStatus";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { SwipeableItem } from "@/components/ui/SwipeableItem";
 import { createElement } from "react";
+import {
+  extractSettlementNote,
+  isSettlementTransaction,
+} from "@/lib/settlements";
 
 interface MobileTransactionRowProps {
   transaction: Transaction;
@@ -39,6 +43,10 @@ export function MobileTransactionRow({
 }: MobileTransactionRowProps) {
   const { t } = useTranslation();
   const IconComp = category?.icon ? getIconComponent(category.icon) : null;
+  const isSettlement = isSettlementTransaction(transaction);
+  const settlementNote = isSettlement
+    ? extractSettlementNote(transaction.description)
+    : "";
 
   const getTypeTextColor = (type: string) => {
     switch (type) {
@@ -129,13 +137,20 @@ export function MobileTransactionRow({
         <div className="flex-1 min-w-0 flex flex-col justify-center">
           <div className="font-medium text-sm truncate flex items-center gap-1">
             {transaction.description || t("transaction")}
+            {isSettlement && (
+              <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-1.5 py-0.5 text-[9px] font-medium">
+                {t("group_settlement_reset")}
+              </span>
+            )}
             {transaction.category_id === UNCATEGORIZED_CATEGORY.ID && (
               <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" aria-hidden="true" />
             )}
           </div>
           <div className="flex flex-col gap-1 text-xs text-muted-foreground">
             <span className={`truncate ${!category && transaction.category_id === UNCATEGORIZED_CATEGORY.ID ? "text-amber-500" : ""}`}>
-              {category?.name || (transaction.category_id === UNCATEGORIZED_CATEGORY.ID ? (t("needs_review") || "Needs Review") : "-")}
+              {isSettlement
+                ? settlementNote || t("group_settlement_reset")
+                : category?.name || (transaction.category_id === UNCATEGORIZED_CATEGORY.ID ? (t("needs_review") || "Needs Review") : "-")}
             </span>
             {(group || (context && !hideContext)) && (
               <div className="flex items-center gap-1 flex-wrap">
@@ -163,14 +178,20 @@ export function MobileTransactionRow({
               transaction.type
             )}`}
           >
-            {transaction.type === "expense"
-              ? "-"
-              : transaction.type === "investment"
-                ? ""
-                : "+"}
-            €{(personalAmount ?? transaction.amount).toFixed(2)}
+            {isSettlement
+              ? t("settlement_history_amount_placeholder")
+              : (
+                <>
+                  {transaction.type === "expense"
+                    ? "-"
+                    : transaction.type === "investment"
+                      ? ""
+                      : "+"}
+                  €{(personalAmount ?? transaction.amount).toFixed(2)}
+                </>
+              )}
           </div>
-          {isGroupShare && (
+          {isGroupShare && !isSettlement && (
             <div className="text-[10px] text-muted-foreground">
               {t("your_share")}
             </div>

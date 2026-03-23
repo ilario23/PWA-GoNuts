@@ -10,6 +10,10 @@ import {
   validate,
 } from "../lib/validation";
 import { useTranslation } from "react-i18next";
+import {
+  extractSettlementNote,
+  isSettlementTransaction,
+} from "../lib/settlements";
 
 /**
  * Represents a single settlement transaction between two users.
@@ -415,8 +419,19 @@ export function useGroups() {
       .filter((t) => t.group_id === groupId && !t.deleted_at)
       .toArray();
 
-    const totalExpenses = transactions
-      .filter((t) => t.type === "expense")
+    const settlementMarkers = transactions
+      .filter((t) => isSettlementTransaction(t))
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    const latestSettlement = settlementMarkers[0];
+    const expensesSinceSettlement = transactions.filter((t) => {
+      if (t.type !== "expense") return false;
+      if (isSettlementTransaction(t)) return false;
+      if (!latestSettlement) return true;
+      return t.date > latestSettlement.date;
+    });
+
+    const totalExpenses = expensesSinceSettlement
       .reduce((sum, t) => sum + t.amount, 0);
 
     const balances: Record<
@@ -447,9 +462,8 @@ export function useGroups() {
 
       // Calculate what they have paid
       // Logic update: check paid_by_member_id only
-      const hasPaid = transactions
+      const hasPaid = expensesSinceSettlement
         .filter((t) => {
-          if (t.type !== "expense") return false;
           return t.paid_by_member_id === member.id;
         })
         .reduce((sum, t) => sum + t.amount, 0);
@@ -490,6 +504,13 @@ export function useGroups() {
     return {
       totalExpenses,
       balances,
+      latestSettlement: latestSettlement
+        ? {
+            id: latestSettlement.id,
+            date: latestSettlement.date,
+            note: extractSettlementNote(latestSettlement.description),
+          }
+        : null,
       members: members.map(m => ({
         ...m,
         displayName: m.is_guest ? m.guest_name : (m.user_id ? "User" : "Unknown") // Simplified, expanded later or computed above
