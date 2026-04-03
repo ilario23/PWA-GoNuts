@@ -31,14 +31,16 @@ import { toast } from "sonner";
 import i18n from "@/i18n";
 import { UNCATEGORIZED_CATEGORY } from "./constants";
 
+// recurring_transactions must come before transactions so generated rows can
+// reference recurring_transaction_id (FK) on the server during push.
 const TABLES = [
   "profiles",
   "groups",
   "group_members",
   "contexts",
   "categories",
-  "transactions",
   "recurring_transactions",
+  "transactions",
   "category_budgets",
 ] as const;
 
