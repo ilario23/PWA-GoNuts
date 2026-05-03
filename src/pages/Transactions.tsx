@@ -613,19 +613,22 @@ export function TransactionsPage() {
               </SheetTrigger>
               <SheetContent
                 side="left"
+                className="flex flex-col overflow-hidden gap-0"
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
-                <SheetHeader>
+                <SheetHeader className="shrink-0 pb-4 text-left">
                   <SheetTitle>{t("filters")}</SheetTitle>
                 </SheetHeader>
-                <FilterContent
-                  filters={filters}
-                  setFilters={setFilters}
-                  availableCategories={availableCategories}
-                  groups={groups}
-                  contexts={contexts}
-                  onReset={handleResetFilters}
-                />
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain -mx-2 px-2">
+                  <FilterContent
+                    filters={filters}
+                    setFilters={setFilters}
+                    availableCategories={availableCategories}
+                    groups={groups}
+                    contexts={contexts}
+                    onReset={handleResetFilters}
+                  />
+                </div>
               </SheetContent>
             </Sheet>
           </div>
@@ -670,7 +673,10 @@ export function TransactionsPage() {
                   {t("filters") || "Filters"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
+              <PopoverContent
+                className="w-80 max-h-[var(--radix-popover-content-available-height,85dvh)] overflow-y-auto overscroll-contain p-0"
+                align="end"
+              >
                 <FilterContent
                   filters={filters}
                   setFilters={setFilters}
