@@ -31,14 +31,16 @@ import { toast } from "sonner";
 import i18n from "@/i18n";
 import { UNCATEGORIZED_CATEGORY } from "./constants";
 
+// recurring_transactions must come before transactions so generated rows can
+// reference recurring_transaction_id (FK) on the server during push.
 const TABLES = [
   "profiles",
   "groups",
   "group_members",
   "contexts",
   "categories",
-  "transactions",
   "recurring_transactions",
+  "transactions",
   "category_budgets",
 ] as const;
 
@@ -516,8 +518,12 @@ export class SyncManager {
   ): Promise<void> {
     if (tableName === "transactions") {
       const txns = items as unknown as Transaction[];
-      const withKey = txns.filter((t) => t.recurrence_key);
-      const withoutKey = txns.filter((t) => !t.recurrence_key);
+      // Recurring upserts use ON CONFLICT (recurrence_key). The DB trigger clears
+      // recurrence_key when deleted_at is set, so the incoming row no longer hits
+      // that conflict target while id still exists → duplicate pkey. Soft deletes
+      // must use ON CONFLICT (id) instead.
+      const withKey = txns.filter((t) => t.recurrence_key && !t.deleted_at);
+      const withoutKey = txns.filter((t) => !t.recurrence_key || !!t.deleted_at);
       if (withKey.length > 0) {
         await this.pushGenericBatchWithRetry(
           "transactions",
