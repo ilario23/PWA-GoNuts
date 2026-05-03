@@ -1009,6 +1009,11 @@
     "graphs_section_title": "Graphs",
     "not_enough_data": "Not enough data to display graphs"
   },
+  "changelog_v1_0_9_0": "Group settlements: record who paid whom from the group balance drawer and see the latest settlement on group cards.",
+  "changelog_v1_0_9_1": "Transactions list highlights settlement transfers and adds a filter to show only settlement records.",
+  "changelog_v1_0_10_0": "Recurring transactions use deterministic IDs and a recurrence key so auto-generated occurrences sync reliably across devices without duplicates.",
+  "changelog_v1_0_10_1": "Fixed duplicate recurring occurrences when syncing with Supabase using idempotent upserts on the recurrence key.",
+  "changelog_v1_0_10_2": "Transaction filter sheet and popover scroll correctly on small screens; clearer layout in the transaction dialog and category picker.",
   "changelog_v1_0_8_0": "Fixed iOS viewport and category drawer scrolling.",
   "changelog_v1_0_7_0": "Improved swipe actions: Swipe right for Edit/Duplicate, Left for Delete",
   "changelog_v1_0_7_1": "Added total expenses display to the transaction list",

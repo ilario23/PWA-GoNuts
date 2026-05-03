@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.10] - 2026-05-03
+
+### Added
+- **Recurring sync**: Deterministic occurrence IDs and a `recurrence_key` so auto-generated transactions line up across devices and stay idempotent during sync.
+
+### Changed
+- **Sync pipeline**: `recurring_transactions` is pushed before `transactions` so generated rows respect foreign keys; clearer handling of rows with and without recurrence metadata.
+- **Transaction UI**: Category selector and transaction dialog structure and formatting aligned for readability.
+
+### Fixed
+- **Duplicate recurring rows**: Server-side idempotent upsert on `recurrence_key` plus client sync fixes to stop duplicate occurrences when syncing with Supabase.
+- **Filters on small screens**: Transaction filter sheet and desktop filter popover scroll inside the available height instead of overflowing the viewport.
+
 ## [0.7.0] - 2025-12-25
 
 ### Added
