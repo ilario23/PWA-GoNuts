@@ -20,6 +20,7 @@ import {
   Category,
   Context,
   RecurringTransaction,
+  SettlementPayment,
   CategoryBudget,
   Profile,
   Setting,
@@ -41,6 +42,7 @@ const TABLES = [
   "categories",
   "recurring_transactions",
   "transactions",
+  "settlement_payments",
   "category_budgets",
 ] as const;
 
@@ -53,6 +55,7 @@ type LocalTableMap = {
   categories: Category;
   contexts: Context;
   recurring_transactions: RecurringTransaction;
+  settlement_payments: SettlementPayment;
   category_budgets: CategoryBudget;
   profiles: Profile;
 };
@@ -677,7 +680,11 @@ export class SyncManager {
     const itemWithUserId = pushItem as Record<string, unknown>;
 
     // Add user_id only if the table uses it (not groups)
-    if (tableName !== "groups" && tableName !== "group_members") {
+    if (
+      tableName !== "groups" &&
+      tableName !== "group_members" &&
+      tableName !== "settlement_payments"
+    ) {
       itemWithUserId.user_id = userId;
     }
 
@@ -1214,6 +1221,7 @@ export class SyncManager {
         include_investments_in_expense_totals: false,
         include_group_expenses: false,
         last_sync_token: maxToken,
+        legacy_settlement_migrated_at: null,
         updated_at: new Date().toISOString(),
       });
     }
@@ -1272,6 +1280,7 @@ export class SyncManager {
         monthly_budget: data.monthly_budget,
         cached_month: data.cached_month || undefined,
         last_sync_token: localSettings?.last_sync_token || 0, // Preserve local sync token
+        legacy_settlement_migrated_at: data.legacy_settlement_migrated_at || null,
         updated_at: data.updated_at || undefined,
       };
 

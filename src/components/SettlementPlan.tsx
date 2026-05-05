@@ -6,6 +6,7 @@ import { CheckCircle2, Share2, ArrowRight, ArrowDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SettlementTransaction } from "@/hooks/useGroups";
 import { toast } from "sonner";
+import { generateSettlementShareText } from "@/lib/settlements";
 
 interface SettlementPlanProps {
   settlements: SettlementTransaction[];
@@ -39,8 +40,14 @@ export function SettlementPlan({
   );
 
   const handleShare = async () => {
-    // Generate shareable text
-    const text = generateShareText();
+    const text = generateSettlementShareText({
+      groupName,
+      totalExpenses,
+      settlements,
+      balances,
+      currentUserId,
+      t,
+    });
 
     // Try native share API first (mobile)
     if (navigator.share) {
@@ -67,33 +74,6 @@ export function SettlementPlan({
       console.error("Copy failed:", err);
       toast.error(t("export_error"));
     }
-  };
-
-  const generateShareText = () => {
-    const lines = [
-      `${t("settlement_plan")} - ${groupName}`,
-      `${t("total_expenses")}: €${totalExpenses.toFixed(2)}`,
-      "",
-      t("payments_needed") + ":",
-    ];
-
-    settlements.forEach((settlement, index) => {
-      const fromName = balances[settlement.from]?.displayName || "Unknown";
-      const toName = balances[settlement.to]?.displayName || "Unknown";
-
-      const fromLabel = settlement.from === currentUserId ? t("you") : fromName;
-      const toLabel = settlement.to === currentUserId ? t("you") : toName;
-      lines.push(
-        `${index + 1}. ${fromLabel} → €${settlement.amount.toFixed(
-          2
-        )} → ${toLabel}`
-      );
-    });
-
-    lines.push("");
-    lines.push(`${t("generated_by")} ${t("app_title")}`);
-
-    return lines.join("\n");
   };
 
   const handleMarkPaid = (settlement: SettlementTransaction) => {

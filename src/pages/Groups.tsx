@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   useGroups,
+  calculateSettlement,
   GroupWithMembers,
 } from "@/hooks/useGroups";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -56,7 +57,8 @@ export function GroupsPage() {
     deleteGroup,
     getGroupBalance,
   } = useGroups();
-  const { recordGroupSettlement } = useTransactions();
+  const { recordGroupSettlement, recordPairSettlement, undoSettlementPayment } =
+    useTransactions();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<GroupWithMembers | null>(
@@ -128,24 +130,82 @@ export function GroupsPage() {
 
   const handleRecordSettlement = async (note: string) => {
     if (!user || !viewingBalance || !balanceData) return;
-    const currentMember = (balanceData.members as { id: string; user_id?: string | null }[])
-      .find((member) => member.user_id === user.id);
+    const settlements = calculateSettlement(
+      Object.fromEntries(
+        Object.values(balanceData.balances).map((balance) => [
+          balance.memberId,
+          {
+            userId: balance.memberId,
+            share: balance.share,
+            shouldPay: balance.shouldPay,
+            hasPaid: balance.hasPaid,
+            balance: balance.balance,
+          },
+        ])
+      )
+    );
 
-    if (!currentMember) {
-      toast.error(t("unable_to_record_settlement"));
+    if (settlements.length === 0) {
+      toast.info(t("no_payments_needed"));
       return;
     }
 
     await recordGroupSettlement({
       userId: user.id,
       groupId: viewingBalance.id,
-      paidByMemberId: currentMember.id,
       note,
+      settlements: settlements.map((settlement) => ({
+        fromMemberId: settlement.from,
+        toMemberId: settlement.to,
+        amount: settlement.amount,
+      })),
     });
 
     const refreshed = await getGroupBalance(viewingBalance.id);
     setBalanceData(refreshed);
     toast.success(t("settlement_recorded_reset"));
+  };
+
+  const handleMarkPaid = async ({
+    from,
+    to,
+    amount,
+    note,
+  }: {
+    from: string;
+    to: string;
+    amount: number;
+    note?: string;
+  }) => {
+    if (!user || !viewingBalance || !balanceData) return;
+    const fromBalance = balanceData.balances[from];
+    const toBalance = balanceData.balances[to];
+
+    if (!fromBalance || !toBalance) {
+      toast.error(t("unable_to_record_settlement"));
+      return;
+    }
+
+    await recordPairSettlement({
+      userId: user.id,
+      groupId: viewingBalance.id,
+      fromMemberId: fromBalance.memberId,
+      toMemberId: toBalance.memberId,
+      amount,
+      note,
+    });
+
+    const refreshed = await getGroupBalance(viewingBalance.id);
+    setBalanceData(refreshed);
+    toast.success(t("payment_marked_paid_success"));
+  };
+
+  const handleUndoSettlement = async (settlementPaymentId: string) => {
+    if (!viewingBalance) return;
+    await undoSettlementPayment(settlementPaymentId);
+    const refreshed = await getGroupBalance(viewingBalance.id);
+    setBalanceData(refreshed);
+    toast.success(t("settlement_undo_success"));
   };
 
   const copyUserId = async () => {
@@ -365,6 +425,8 @@ export function GroupsPage() {
           }
         }}
         currentUserId={user?.id || ""}
+        onMarkPaid={handleMarkPaid}
+        onUndoSettlement={handleUndoSettlement}
         onRecordSettlement={handleRecordSettlement}
       />
     </div >

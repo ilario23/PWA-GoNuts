@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { GroupWithMembers } from "@/hooks/useGroups";
+import { GroupWithMembers, SettlementHistoryEntry } from "@/hooks/useGroups";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
     Drawer,
@@ -9,7 +9,6 @@ import {
     DrawerTitle,
     DrawerDescription,
     DrawerFooter,
-    DrawerClose,
 } from "@/components/ui/drawer";
 import {
     Dialog,
@@ -31,6 +30,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserAvatar } from "@/components/UserAvatar";
+import { SettlementHistory } from "@/components/groups/SettlementHistory";
+import { generateSettlementShareText } from "@/lib/settlements";
+import { toast } from "sonner";
 import {
     ArrowUpRight,
     ArrowDownRight,
@@ -38,13 +40,17 @@ import {
     ListOrdered,
     Users,
     Share2,
+    History,
 } from "lucide-react";
 
 type BalanceData = {
     userId: string;
+    memberId: string;
     share: number;
     shouldPay: number;
     hasPaid: number;
+    settlementSent?: number;
+    settlementReceived?: number;
     balance: number;
     displayName?: string;
 };
@@ -61,6 +67,7 @@ interface GroupBalanceDrawerProps {
         totalExpenses: number;
         balances: Record<string, BalanceData>;
         members: unknown[];
+        settlementHistory?: SettlementHistoryEntry[];
         latestSettlement?: {
             id: string;
             date: string;
@@ -70,7 +77,8 @@ interface GroupBalanceDrawerProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     currentUserId: string;
-    onMarkPaid?: (settlement: Settlement) => void;
+    onMarkPaid?: (settlement: Settlement & { note?: string }) => Promise<void> | void;
+    onUndoSettlement?: (settlementPaymentId: string) => Promise<void> | void;
     onRecordSettlement?: (note: string) => Promise<void> | void;
 }
 
@@ -115,6 +123,7 @@ export function GroupBalanceDrawer({
     onOpenChange,
     currentUserId,
     onMarkPaid,
+    onUndoSettlement,
     onRecordSettlement,
 }: GroupBalanceDrawerProps) {
     const { t } = useTranslation();
@@ -122,6 +131,12 @@ export function GroupBalanceDrawer({
     const [isSettlementDialogOpen, setIsSettlementDialogOpen] = useState(false);
     const [settlementNote, setSettlementNote] = useState("");
     const [isSavingSettlement, setIsSavingSettlement] = useState(false);
+    const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(
+        null
+    );
+    const [paymentAmount, setPaymentAmount] = useState("");
+    const [paymentNote, setPaymentNote] = useState("");
+    const [isSavingPairPayment, setIsSavingPairPayment] = useState(false);
 
     if (!group || !balanceData) return null;
 
@@ -166,6 +181,7 @@ export function GroupBalanceDrawer({
     const mySettlements = settlements.filter(
         (s) => s.from === currentUserId || s.to === currentUserId
     );
+    const settlementHistory = balanceData.settlementHistory || [];
 
     const handleSaveSettlement = async () => {
         const note = settlementNote.trim();
@@ -177,6 +193,70 @@ export function GroupBalanceDrawer({
             setIsSettlementDialogOpen(false);
         } finally {
             setIsSavingSettlement(false);
+        }
+    };
+
+    const handleOpenMarkPaid = (settlement: Settlement) => {
+        setSelectedSettlement(settlement);
+        setPaymentAmount(settlement.amount.toFixed(2));
+        setPaymentNote("");
+    };
+
+    const handleConfirmMarkPaid = async () => {
+        if (!selectedSettlement || !onMarkPaid) return;
+        const parsedAmount = Number(paymentAmount);
+        if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+            toast.error(t("invalid_amount"));
+            return;
+        }
+
+        setIsSavingPairPayment(true);
+        try {
+            await onMarkPaid({
+                ...selectedSettlement,
+                amount: parsedAmount,
+                note: paymentNote.trim() || undefined,
+            });
+            setSelectedSettlement(null);
+            setPaymentAmount("");
+            setPaymentNote("");
+        } finally {
+            setIsSavingPairPayment(false);
+        }
+    };
+
+    const handleSharePlan = async () => {
+        if (settlements.length === 0) return;
+        const text = generateSettlementShareText({
+            groupName: group.name,
+            totalExpenses: balanceData.totalExpenses,
+            settlements,
+            balances: balanceData.balances,
+            currentUserId,
+            t,
+        });
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `${t("settlement_plan")} - ${group.name}`,
+                    text,
+                });
+                toast.success(t("plan_shared"));
+                return;
+            } catch (error) {
+                if ((error as Error).name !== "AbortError") {
+                    console.error("Share failed:", error);
+                }
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(text);
+            toast.success(t("plan_copied"));
+        } catch (error) {
+            console.error("Copy failed:", error);
+            toast.error(t("export_error"));
         }
     };
 
@@ -212,6 +292,71 @@ export function GroupBalanceDrawer({
                         disabled={!settlementNote.trim() || isSavingSettlement || !onRecordSettlement}
                     >
                         {isSavingSettlement ? t("saving") : t("confirm")}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+
+    const MarkPaidDialog = (
+        <Dialog
+            open={!!selectedSettlement}
+            onOpenChange={(open) => !open && setSelectedSettlement(null)}
+        >
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{t("mark_as_paid")}</DialogTitle>
+                    <DialogDescription>
+                        {selectedSettlement && (
+                            <>
+                                {(balanceData.balances[selectedSettlement.from]?.displayName || t("you"))}
+                                {" → "}
+                                {(balanceData.balances[selectedSettlement.to]?.displayName || t("you"))}
+                            </>
+                        )}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3">
+                    <div className="space-y-2">
+                        <Label htmlFor="pair-settlement-amount">{t("amount")}</Label>
+                        <Input
+                            id="pair-settlement-amount"
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            value={paymentAmount}
+                            onChange={(e) => setPaymentAmount(e.target.value)}
+                        />
+                        {selectedSettlement && Number(paymentAmount) > selectedSettlement.amount * 10 && (
+                            <p className="text-xs text-amber-600">
+                                {t("settlement_amount_high_warning")}
+                            </p>
+                        )}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="pair-settlement-note">{t("settlement_note_label")}</Label>
+                        <Input
+                            id="pair-settlement-note"
+                            value={paymentNote}
+                            onChange={(e) => setPaymentNote(e.target.value)}
+                            placeholder={t("settlement_note_placeholder")}
+                            maxLength={200}
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        onClick={() => setSelectedSettlement(null)}
+                        disabled={isSavingPairPayment}
+                    >
+                        {t("cancel")}
+                    </Button>
+                    <Button
+                        onClick={handleConfirmMarkPaid}
+                        disabled={isSavingPairPayment || !onMarkPaid}
+                    >
+                        {isSavingPairPayment ? t("saving") : t("confirm")}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -329,7 +474,7 @@ export function GroupBalanceDrawer({
                                                     size="sm"
                                                     variant="outline"
                                                     className="w-full"
-                                                    onClick={() => onMarkPaid?.(settlement)}
+                                                    onClick={() => handleOpenMarkPaid(settlement)}
                                                 >
                                                     <CheckCircle2 className="h-4 w-4 mr-2" />
                                                     {t("mark_as_paid")}
@@ -408,6 +553,24 @@ export function GroupBalanceDrawer({
                         ))}
                     </AccordionContent>
                 </AccordionItem>
+
+                {settlementHistory.length > 0 && (
+                    <AccordionItem value="history" className="border-b-0 border-t">
+                        <AccordionTrigger className="py-3 hover:no-underline text-sm font-medium">
+                            <span className="flex items-center gap-2">
+                                <History className="h-4 w-4" />
+                                {t("settlement_history")}
+                                <Badge className="ml-2">{settlementHistory.length}</Badge>
+                            </span>
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-2 pt-2 px-1">
+                            <SettlementHistory
+                                entries={settlementHistory}
+                                onUndoSettlement={onUndoSettlement}
+                            />
+                        </AccordionContent>
+                    </AccordionItem>
+                )}
             </Accordion>
         </div>
     );
@@ -427,28 +590,29 @@ export function GroupBalanceDrawer({
                         {MainContent}
 
                         <DrawerFooter className="border-t pt-3 pb-3">
-                            <div className="flex gap-2">
+                            <div className="flex w-full min-w-0 flex-col gap-2">
                                 <Button
                                     variant="secondary"
-                                    className="flex-1"
+                                    className="h-auto min-h-10 w-full whitespace-normal py-2.5 text-center leading-snug"
                                     onClick={() => setIsSettlementDialogOpen(true)}
                                 >
                                     {t("record_settlement_reset")}
                                 </Button>
-                                <Button variant="outline" className="flex-1" disabled>
-                                    <Share2 className="h-4 w-4 mr-2" />
+                                <Button
+                                    variant="outline"
+                                    className="h-auto min-h-10 w-full whitespace-normal py-2.5 text-center leading-snug"
+                                    onClick={handleSharePlan}
+                                    disabled={settlements.length === 0}
+                                >
+                                    <Share2 className="h-4 w-4 mr-2 shrink-0" />
                                     {t("share_plan")}
                                 </Button>
-                                <DrawerClose asChild>
-                                    <Button variant="default" className="flex-1">
-                                        {t("close")}
-                                    </Button>
-                                </DrawerClose>
                             </div>
                         </DrawerFooter>
                     </DrawerContent>
                 </Drawer>
                 {SettlementDialog}
+                {MarkPaidDialog}
             </>
         );
     }
@@ -456,7 +620,7 @@ export function GroupBalanceDrawer({
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-6">
+                <DialogContent className="max-w-md max-h-[85vh] flex flex-col overflow-x-hidden p-6">
                     <DialogHeader>
                         <DialogTitle>{t("group_balance")}</DialogTitle>
                         <DialogDescription>
@@ -466,27 +630,30 @@ export function GroupBalanceDrawer({
 
                     {MainContent}
 
-                    <DialogFooter className="pt-2">
-                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                    <DialogFooter className="flex-col gap-2 pt-2 sm:flex-col sm:items-stretch sm:space-x-0">
+                        <div className="flex w-full min-w-0 flex-col gap-2">
                             <Button
                                 variant="secondary"
-                                className="flex-1"
+                                className="h-auto min-h-10 w-full whitespace-normal py-2.5 text-center leading-snug"
                                 onClick={() => setIsSettlementDialogOpen(true)}
                             >
                                 {t("record_settlement_reset")}
                             </Button>
-                            <Button variant="outline" className="flex-1" disabled>
-                                <Share2 className="h-4 w-4 mr-2" />
+                            <Button
+                                variant="outline"
+                                className="h-auto min-h-10 w-full whitespace-normal py-2.5 text-center leading-snug"
+                                onClick={handleSharePlan}
+                                disabled={settlements.length === 0}
+                            >
+                                <Share2 className="h-4 w-4 mr-2 shrink-0" />
                                 {t("share_plan")}
-                            </Button>
-                            <Button variant="default" className="flex-1" onClick={() => onOpenChange(false)}>
-                                {t("close")}
                             </Button>
                         </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
             {SettlementDialog}
+            {MarkPaidDialog}
         </>
     );
 }

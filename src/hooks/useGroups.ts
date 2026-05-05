@@ -1,5 +1,13 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, Group, GroupMember, Profile } from "../lib/db";
+import {
+  db,
+  Group,
+  GroupMember,
+  Profile,
+  SettlementPayment,
+  Setting,
+  Transaction,
+} from "../lib/db";
 import { syncManager } from "../lib/sync";
 import { useAuth } from "./useAuth";
 import { v4 as uuidv4 } from "uuid";
@@ -25,6 +33,38 @@ export interface SettlementTransaction {
   to: string;
   /** Amount to be transferred */
   amount: number;
+}
+
+type BalanceSnapshotEntry = {
+  userId: string;
+  memberId: string;
+  share: number;
+  shouldPay: number;
+  hasPaid: number;
+  settlementSent: number;
+  settlementReceived: number;
+  balance: number;
+  displayName: string;
+  avatarUrl?: string;
+  isGuest: boolean;
+};
+
+export interface SettlementHistoryEntry {
+  id: string;
+  groupId: string;
+  from: string;
+  to: string;
+  fromMemberId: string;
+  toMemberId: string;
+  fromDisplayName: string;
+  toDisplayName: string;
+  fromUserId?: string | null;
+  toUserId?: string | null;
+  amount: number;
+  date: string;
+  note: string;
+  createdBy: string;
+  canUndo: boolean;
 }
 
 /**
@@ -129,6 +169,92 @@ export function calculateSettlement(
   }
 
   return settlements;
+}
+
+function resolveMemberDisplayName(
+  member: GroupMember,
+  profileMap: Map<string, Profile>,
+  currentUserId?: string
+): { displayName: string; avatarUrl?: string } {
+  const profile = member.user_id ? profileMap.get(member.user_id) : undefined;
+  let displayName = "Unknown User";
+
+  if (member.is_guest && member.guest_name) {
+    displayName = member.guest_name;
+  } else if (profile?.full_name) {
+    displayName = profile.full_name;
+  } else if (profile?.email) {
+    displayName = profile.email.split("@")[0];
+  } else if (member.user_id === currentUserId) {
+    displayName = "You";
+  } else if (member.user_id) {
+    displayName = `User ${member.user_id.slice(0, 4)}`;
+  }
+
+  return {
+    displayName,
+    avatarUrl: profile?.avatar_url || undefined,
+  };
+}
+
+function buildBalanceSnapshot(params: {
+  members: GroupMember[];
+  expenses: Array<Pick<Transaction, "amount" | "paid_by_member_id">>;
+  settlementPayments: SettlementPayment[];
+  profileMap: Map<string, Profile>;
+  currentUserId?: string;
+}) {
+  const { members, expenses, settlementPayments, profileMap, currentUserId } =
+    params;
+  const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
+  const balances: Record<string, BalanceSnapshotEntry> = {};
+  const memberKeyById = new Map<string, string>();
+  const memberById = new Map(members.map((member) => [member.id, member]));
+
+  for (const member of members) {
+    const key = member.user_id || member.id;
+    memberKeyById.set(member.id, key);
+  }
+
+  for (const member of members) {
+    const key = memberKeyById.get(member.id) || member.id;
+    const shouldPay = (totalExpenses * member.share) / 100;
+    const hasPaid = expenses
+      .filter((t) => t.paid_by_member_id === member.id)
+      .reduce((sum, t) => sum + t.amount, 0);
+    const settlementSent = settlementPayments
+      .filter((payment) => payment.from_member_id === member.id)
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    const settlementReceived = settlementPayments
+      .filter((payment) => payment.to_member_id === member.id)
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    const { displayName, avatarUrl } = resolveMemberDisplayName(
+      member,
+      profileMap,
+      currentUserId
+    );
+
+    balances[key] = {
+      userId: key,
+      memberId: member.id,
+      share: member.share,
+      shouldPay,
+      hasPaid,
+      settlementSent,
+      settlementReceived,
+      balance: hasPaid - shouldPay + settlementSent - settlementReceived,
+      displayName,
+      avatarUrl,
+      isGuest: !!member.is_guest,
+    };
+  }
+
+  return {
+    totalExpenses,
+    balances,
+    memberKeyById,
+    memberById,
+  };
 }
 
 /**
@@ -409,112 +535,237 @@ export function useGroups() {
     syncManager.schedulePush();
   };
 
-  // Calculate group balances
-  const getGroupBalance = async (groupId: string) => {
-    const members = await db.group_members
-      .filter((m) => m.group_id === groupId && !m.removed_at)
+  const upsertLocalMigrationFlag = async () => {
+    if (!user) return;
+    const nowIso = new Date().toISOString();
+    const existingSettings = await db.user_settings.get(user.id);
+    if (existingSettings) {
+      await db.user_settings.update(user.id, {
+        legacy_settlement_migrated_at: nowIso,
+        updated_at: nowIso,
+      });
+      return;
+    }
+
+    const defaults: Setting = {
+      user_id: user.id,
+      currency: "EUR",
+      language: "en",
+      theme: "light",
+      accentColor: "slate",
+      start_of_week: "monday",
+      default_view: "list",
+      include_investments_in_expense_totals: false,
+      include_group_expenses: false,
+      legacy_settlement_migrated_at: nowIso,
+      updated_at: nowIso,
+    };
+    await db.user_settings.add(defaults);
+  };
+
+  const migrateLegacySettlementMarkersIfNeeded = async () => {
+    if (!user) return;
+    const settings = await db.user_settings.get(user.id);
+    if (settings?.legacy_settlement_migrated_at) return;
+
+    const legacyMarkers = await db.transactions
+      .filter((t) => !!t.group_id && !t.deleted_at && isSettlementTransaction(t))
       .toArray();
 
-    const transactions = await db.transactions
-      .filter((t) => t.group_id === groupId && !t.deleted_at)
-      .toArray();
-
-    const settlementMarkers = transactions
-      .filter((t) => isSettlementTransaction(t))
-      .sort((a, b) => b.date.localeCompare(a.date));
-
-    const latestSettlement = settlementMarkers[0];
-    const expensesSinceSettlement = transactions.filter((t) => {
-      if (t.type !== "expense") return false;
-      if (isSettlementTransaction(t)) return false;
-      if (!latestSettlement) return true;
-      return t.date > latestSettlement.date;
-    });
-
-    const totalExpenses = expensesSinceSettlement
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const balances: Record<
-      string,
-      {
-        userId: string; // This might be memberId for guests in a future refactor, but for now we need a unique key. 
-        // CAUTION: For guests user_id is null. We should use member.id as key for balances if possible, 
-        // but the UI currently expects userId.
-        // Let's rely on member.id as the key in the record, but we need to check how it's consumed.
-        // The consumption in GroupDetail uses member.user_id. This will break for guests.
-        // We need to return a key that is unique.
-        share: number;
-        shouldPay: number;
-        hasPaid: number;
-        balance: number;
-        displayName: string;
-        avatarUrl?: string;
-        isGuest: boolean;
-      }
-    > = {};
+    if (legacyMarkers.length === 0) {
+      await upsertLocalMigrationFlag();
+      return;
+    }
 
     const allProfiles = await db.profiles.toArray();
     const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
+    const sortedMarkers = [...legacyMarkers].sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
 
-    // Calculate what each member should pay based on share
-    for (const member of members) {
-      const shouldPay = (totalExpenses * member.share) / 100;
+    for (const marker of sortedMarkers) {
+      const groupId = marker.group_id;
+      if (!groupId) continue;
 
-      // Calculate what they have paid
-      // Logic update: check paid_by_member_id only
-      const hasPaid = expensesSinceSettlement
-        .filter((t) => {
-          return t.paid_by_member_id === member.id;
-        })
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const profile = member.user_id ? profileMap.get(member.user_id) : undefined;
-      let displayName = "Unknown User";
-
-      if (member.is_guest && member.guest_name) {
-        displayName = member.guest_name;
-      } else if (profile?.full_name) {
-        displayName = profile.full_name;
-      } else if (profile?.email) {
-        displayName = profile.email.split("@")[0];
-      } else if (member.user_id === user?.id) {
-        displayName = "You";
-      } else if (member.user_id) {
-        displayName = `User ${member.user_id.slice(0, 4)}`;
+      const members = await db.group_members
+        .filter((m) => m.group_id === groupId && !m.removed_at)
+        .toArray();
+      if (members.length < 2) {
+        await db.transactions.update(marker.id, {
+          deleted_at: new Date().toISOString(),
+          pendingSync: 1,
+        });
+        continue;
       }
 
-      // We use member.user_id as key if exists, else member.id (prefixed? no, just member.id)
-      // Ideally we should switch to using member.id everywhere as the primary key for members 
-      // but that refactor is large. 
-      // For now, if guest, use member.id. If user, use user.id (to match existing usages).
-      const key = member.user_id || member.id;
+      const expensesBeforeMarker = await db.transactions
+        .filter(
+          (t) =>
+            t.group_id === groupId &&
+            !t.deleted_at &&
+            t.type === "expense" &&
+            !isSettlementTransaction(t) &&
+            t.date <= marker.date
+        )
+        .toArray();
 
-      balances[key] = {
-        userId: key,
-        share: member.share,
-        shouldPay,
-        hasPaid,
-        balance: hasPaid - shouldPay, // Fixed: Positive = owed money (Creditor), Negative = owes money (Debtor)
-        displayName,
-        avatarUrl: profile?.avatar_url || undefined,
-        isGuest: !!member.is_guest,
-      };
+      const settlementPaymentsBeforeMarker = await db.settlement_payments
+        .filter(
+          (payment) =>
+            payment.group_id === groupId &&
+            !payment.deleted_at &&
+            payment.date <= marker.date
+        )
+        .toArray();
+
+      const snapshot = buildBalanceSnapshot({
+        members,
+        expenses: expensesBeforeMarker,
+        settlementPayments: settlementPaymentsBeforeMarker,
+        profileMap,
+        currentUserId: user.id,
+      });
+
+      const settlements = calculateSettlement(
+        Object.fromEntries(
+          Object.values(snapshot.balances).map((balance) => [
+            balance.memberId,
+            {
+              userId: balance.memberId,
+              share: balance.share,
+              shouldPay: balance.shouldPay,
+              hasPaid: balance.hasPaid,
+              balance: balance.balance,
+            },
+          ])
+        )
+      );
+
+      for (const settlement of settlements) {
+        if (settlement.amount <= 0) continue;
+        await db.settlement_payments.add({
+          id: uuidv4(),
+          group_id: groupId,
+          from_member_id: settlement.from,
+          to_member_id: settlement.to,
+          amount: settlement.amount,
+          date: marker.date,
+          note: extractSettlementNote(marker.description) || null,
+          created_by: marker.user_id,
+          deleted_at: null,
+          pendingSync: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      await db.transactions.update(marker.id, {
+        deleted_at: new Date().toISOString(),
+        pendingSync: 1,
+      });
     }
 
+    await upsertLocalMigrationFlag();
+    syncManager.schedulePush();
+  };
+
+  // Calculate group balances
+  const getGroupBalance = async (groupId: string) => {
+    await migrateLegacySettlementMarkersIfNeeded();
+
+    const members = await db.group_members
+      .filter((m) => m.group_id === groupId && !m.removed_at)
+      .toArray();
+    const expenses = await db.transactions
+      .filter(
+        (t) =>
+          t.group_id === groupId &&
+          !t.deleted_at &&
+          t.type === "expense" &&
+          !isSettlementTransaction(t)
+      )
+      .toArray();
+    const settlementPayments = await db.settlement_payments
+      .filter((payment) => payment.group_id === groupId && !payment.deleted_at)
+      .toArray();
+    const allProfiles = await db.profiles.toArray();
+    const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
+
+    const snapshot = buildBalanceSnapshot({
+      members,
+      expenses,
+      settlementPayments,
+      profileMap,
+      currentUserId: user?.id,
+    });
+
+    const sortedSettlements = [...settlementPayments].sort((a, b) => {
+      const dateCmp = b.date.localeCompare(a.date);
+      if (dateCmp !== 0) return dateCmp;
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    });
+    const latestSettlement = sortedSettlements[0] || null;
+
+    const settlementHistory: SettlementHistoryEntry[] = sortedSettlements.map(
+      (payment) => {
+        const fromKey =
+          snapshot.memberKeyById.get(payment.from_member_id) ||
+          payment.from_member_id;
+        const toKey =
+          snapshot.memberKeyById.get(payment.to_member_id) || payment.to_member_id;
+        const fromMember = snapshot.memberById.get(payment.from_member_id);
+        const toMember = snapshot.memberById.get(payment.to_member_id);
+        const fromName =
+          snapshot.balances[fromKey]?.displayName ||
+          fromMember?.guest_name ||
+          "Unknown";
+        const toName =
+          snapshot.balances[toKey]?.displayName || toMember?.guest_name || "Unknown";
+        const canUndo = !!user &&
+          (payment.created_by === user.id || fromMember?.user_id === user.id);
+
+        return {
+          id: payment.id,
+          groupId: payment.group_id,
+          from: fromKey,
+          to: toKey,
+          fromMemberId: payment.from_member_id,
+          toMemberId: payment.to_member_id,
+          fromDisplayName: fromName,
+          toDisplayName: toName,
+          fromUserId: fromMember?.user_id,
+          toUserId: toMember?.user_id,
+          amount: payment.amount,
+          date: payment.date,
+          note: payment.note || "",
+          createdBy: payment.created_by,
+          canUndo,
+        };
+      }
+    );
+
     return {
-      totalExpenses,
-      balances,
+      totalExpenses: snapshot.totalExpenses,
+      balances: snapshot.balances,
       latestSettlement: latestSettlement
         ? {
             id: latestSettlement.id,
             date: latestSettlement.date,
-            note: extractSettlementNote(latestSettlement.description),
+            note: latestSettlement.note || "",
           }
         : null,
-      members: members.map(m => ({
-        ...m,
-        displayName: m.is_guest ? m.guest_name : (m.user_id ? "User" : "Unknown") // Simplified, expanded later or computed above
-      })),
+      settlementHistory,
+      members: members.map((member) => {
+        const { displayName } = resolveMemberDisplayName(
+          member,
+          profileMap,
+          user?.id
+        );
+        return {
+          ...member,
+          displayName,
+        };
+      }),
     };
   };
 
