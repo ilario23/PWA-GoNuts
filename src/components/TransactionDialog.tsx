@@ -1,4 +1,4 @@
-import {useState, useEffect, useRef} from 'react';
+import {useState, useEffect, useRef, useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
 import {useAuth} from '@/contexts/AuthProvider';
 import {useGroups} from '@/hooks/useGroups';
@@ -57,6 +57,7 @@ import {useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {transactionSchema, TransactionFormValues} from '@/lib/schemas';
 import {useRecentCategoryUsage} from '@/hooks/useRecentCategoryUsage';
+import {useSettings} from '@/hooks/useSettings';
 
 // Re-export this for backward compatibility if needed, though RHF generic handles it
 export type TransactionFormData = TransactionFormValues;
@@ -94,6 +95,7 @@ export function TransactionDialog({
   const {user} = useAuth();
   const {groups} = useGroups();
   const {contexts} = useContexts();
+  const {settings} = useSettings();
 
   const [activeSection, setActiveSection] = useState('main');
 
@@ -154,7 +156,7 @@ export function TransactionDialog({
       } else if (initialData) {
         // Pre-fill from initialData (e.g. for duplication) without setting editing mode
         form.reset({
-          amount: initialData.amount ?? ('' as any),
+          amount: initialData.amount ?? ('' as unknown as number),
           description: initialData.description ?? '',
           type: initialData.type ?? defaultType,
           category_id: initialData.category_id ?? '',
@@ -204,6 +206,21 @@ export function TransactionDialog({
   const watchedType = form.watch('type');
   const watchedCategoryId = form.watch('category_id');
   const watchedAmount = form.watch('amount');
+  const previousTypeRef = useRef(watchedType);
+
+  const getDefaultPaidByMemberId = useCallback(
+    (groupId: string | null): string | null => {
+      if (!groupId || !groups || groups.length === 0) return null;
+      const group = groups.find((g) => g.id === groupId);
+      if (!group || group.members.length === 0) return null;
+
+      const myMember = user?.id
+        ? group.members.find((m) => m.user_id === user.id)
+        : null;
+      return myMember?.id || group.members[0].id;
+    },
+    [groups, user?.id],
+  );
 
   // Attempt to set default paid_by_member_id if group is selected but not set yet
   useEffect(() => {
@@ -216,22 +233,27 @@ export function TransactionDialog({
       user?.id &&
       groups
     ) {
-      const group = groups.find((g) => g.id === watchedGroupId);
-      const myMember = group?.members.find((m) => m.user_id === user.id);
-      if (myMember) {
-        form.setValue('paid_by_member_id', myMember.id);
+      const defaultMemberId = getDefaultPaidByMemberId(watchedGroupId);
+      if (defaultMemberId) {
+        form.setValue('paid_by_member_id', defaultMemberId);
       }
     }
-  }, [open, editingTransaction, watchedGroupId, groups, user?.id, form]);
+  }, [
+    open,
+    editingTransaction,
+    watchedGroupId,
+    groups,
+    user?.id,
+    form,
+    getDefaultPaidByMemberId,
+  ]);
 
   // Reset category when type changes (only when creating new transaction)
   useEffect(() => {
-    if (!editingTransaction && watchedCategoryId) {
-      // Check if current category is valid for new type?
-      // The original logic simply reset it.
-      // form.setValue("category_id", "");
-      // Actually, keep it simple: if type changes, we might want to clear category if it doesn't match type
-      // But let's stick to original behavior:
+    const hasTypeChanged = previousTypeRef.current !== watchedType;
+    previousTypeRef.current = watchedType;
+
+    if (!editingTransaction && hasTypeChanged && form.getValues('category_id')) {
       form.setValue('category_id', '');
     }
   }, [watchedType, editingTransaction, form]);
@@ -392,7 +414,7 @@ export function TransactionDialog({
           <DialogTitle>
             {editingTransaction ? t('edit_transaction') : t('add_transaction')}
           </DialogTitle>
-          <DialogDescription className='sr-only'>
+          <DialogDescription className='text-sm text-muted-foreground'>
             {editingTransaction
               ? t('edit_transaction_description')
               : t('add_transaction_description')}
@@ -465,6 +487,11 @@ export function TransactionDialog({
                       <Label className='text-sm font-medium'>
                         {t('amount')}
                       </Label>
+                      <span className='text-xs text-muted-foreground'>
+                        {t('amount_currency_hint', {
+                          currency: settings?.currency || 'EUR',
+                        })}
+                      </span>
                       {calcState.prevValue !== null &&
                         calcState.operation &&
                         (() => {
@@ -597,6 +624,16 @@ export function TransactionDialog({
                         variant={showCalculator ? 'secondary' : 'outline'}
                         size='icon'
                         className='shrink-0'
+                        aria-label={
+                          showCalculator
+                            ? t('close_calculator')
+                            : t('open_calculator')
+                        }
+                        title={
+                          showCalculator
+                            ? t('close_calculator')
+                            : t('open_calculator')
+                        }
                         onClick={() => {
                           const newState = !showCalculator;
                           setShowCalculator(newState);
@@ -685,6 +722,7 @@ export function TransactionDialog({
                           <Input
                             {...field}
                             value={field.value || ''}
+                            placeholder={t('transaction_description_placeholder')}
                             data-testid='description-input'
                           />
                         </FormControl>
@@ -774,9 +812,9 @@ export function TransactionDialog({
                             } else if (groupName) {
                               return groupName;
                             } else if (contextName) {
-                              return `${t('personal_expense')} • ${contextName}`;
+                              return `${t('personal_transaction_label')} • ${contextName}`;
                             } else {
-                              return t('transaction_options_label');
+                              return t('transaction_group_context_label');
                             }
                           })()}
                         </>
@@ -797,9 +835,20 @@ export function TransactionDialog({
                               <Select
                                 value={field.value || 'none'}
                                 onValueChange={(value) => {
+                                  const previousGroupId =
+                                    form.getValues('group_id') || null;
                                   const newVal =
                                     value === 'none' ? null : value;
                                   field.onChange(newVal);
+                                  if (previousGroupId !== newVal) {
+                                    form.setValue('category_id', '');
+                                  }
+                                  if (!editingTransaction) {
+                                    form.setValue(
+                                      'paid_by_member_id',
+                                      getDefaultPaidByMemberId(newVal),
+                                    );
+                                  }
                                 }}
                               >
                                 <FormControl>
@@ -811,7 +860,7 @@ export function TransactionDialog({
                                 </FormControl>
                                 <SelectContent>
                                   <SelectItem value='none'>
-                                    {t('personal_expense')}
+                                    {t('personal_transaction_label')}
                                   </SelectItem>
                                   {groups.map((group) => (
                                     <SelectItem key={group.id} value={group.id}>
@@ -894,7 +943,7 @@ export function TransactionDialog({
                               </FormControl>
                               <SelectContent>
                                 <SelectItem value='none'>
-                                  {t('no_contexts')}
+                                  {t('no_context')}
                                 </SelectItem>
                                 {contexts
                                   .filter(
@@ -924,7 +973,7 @@ export function TransactionDialog({
               autoFocus
               data-testid='save-transaction-button'
             >
-              {t('save')}
+              {editingTransaction ? t('save_changes') : t('add_transaction')}
             </Button>
           </form>
         </Form>
