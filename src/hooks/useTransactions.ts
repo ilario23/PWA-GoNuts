@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, Transaction } from "../lib/db";
+import { db, SettlementPayment, Transaction } from "../lib/db";
 import { syncManager } from "../lib/sync";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -8,7 +8,14 @@ import {
   validate,
 } from "../lib/validation";
 import { useTranslation } from "react-i18next";
-import { buildSettlementDescription } from "@/lib/settlements";
+type PairSettlementInput = {
+  groupId: string;
+  fromMemberId: string;
+  toMemberId: string;
+  amount: number;
+  note?: string;
+  date?: string;
+};
 
 /**
  * Hook for managing transactions with optional filtering.
@@ -128,45 +135,87 @@ export function useTransactions(
     syncManager.schedulePush();
   };
 
-  const recordGroupSettlement = async ({
+  const recordPairSettlement = async ({
     userId,
     groupId,
-    paidByMemberId,
+    fromMemberId,
+    toMemberId,
+    amount,
     note,
-  }: {
-    userId: string;
-    groupId: string;
-    paidByMemberId: string;
-    note: string;
-  }) => {
-    const expenseCategory = await db.categories
-      .filter(
-        (c) =>
-          !c.deleted_at &&
-          c.active === 1 &&
-          c.type === "expense" &&
-          (c.group_id === groupId || c.user_id === userId)
-      )
-      .first();
-
-    if (!expenseCategory) {
-      throw new Error(
-        "No expense category available to record a settlement."
-      );
+    date,
+  }: PairSettlementInput & { userId: string }) => {
+    if (fromMemberId === toMemberId) {
+      throw new Error("Settlement payer and receiver cannot be the same.");
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Settlement amount must be greater than zero.");
     }
 
     const now = new Date();
-    await addTransaction({
-      user_id: userId,
+    const payment: SettlementPayment = {
+      id: uuidv4(),
       group_id: groupId,
-      paid_by_member_id: paidByMemberId,
-      category_id: expenseCategory.id,
-      type: "expense",
-      amount: 0.01,
-      date: now.toISOString().slice(0, 10),
-      year_month: now.toISOString().slice(0, 7),
-      description: buildSettlementDescription(note),
+      from_member_id: fromMemberId,
+      to_member_id: toMemberId,
+      amount,
+      date: date ?? now.toISOString().slice(0, 10),
+      note: note?.trim() || null,
+      created_by: userId,
+      deleted_at: null,
+      pendingSync: 1,
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    };
+
+    await db.settlement_payments.add(payment);
+    syncManager.schedulePush();
+    return payment.id;
+  };
+
+  const recordGroupSettlement = async ({
+    userId,
+    groupId,
+    note,
+    settlements,
+    date,
+  }: {
+    userId: string;
+    groupId: string;
+    note: string;
+    settlements: Array<{
+      fromMemberId: string;
+      toMemberId: string;
+      amount: number;
+    }>;
+    date?: string;
+  }) => {
+    if (settlements.length === 0) return [];
+
+    const createdIds: string[] = [];
+    for (const settlement of settlements) {
+      if (settlement.amount <= 0) continue;
+      const id = await recordPairSettlement({
+        userId,
+        groupId,
+        fromMemberId: settlement.fromMemberId,
+        toMemberId: settlement.toMemberId,
+        amount: settlement.amount,
+        note,
+        date,
+      });
+      createdIds.push(id);
+    }
+
+    return createdIds;
+  };
+
+  const undoSettlementPayment = async (settlementPaymentId: string) => {
+    await db.settlement_payments.update(settlementPaymentId, {
+      deleted_at: new Date().toISOString(),
+      pendingSync: 1,
+      updated_at: new Date().toISOString(),
     });
+    syncManager.schedulePush();
   };
 
   return {
@@ -175,6 +224,8 @@ export function useTransactions(
     updateTransaction,
     deleteTransaction,
     restoreTransaction,
+    recordPairSettlement,
     recordGroupSettlement,
+    undoSettlementPayment,
   };
 }

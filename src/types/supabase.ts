@@ -397,6 +397,80 @@ export interface Database {
                     }
                 ]
             }
+            settlement_payments: {
+                Row: {
+                    amount: number
+                    created_at: string | null
+                    created_by: string
+                    date: string
+                    deleted_at: string | null
+                    from_member_id: string
+                    group_id: string
+                    id: string
+                    note: string | null
+                    sync_token: number | null
+                    to_member_id: string
+                    updated_at: string | null
+                }
+                Insert: {
+                    amount: number
+                    created_at?: string | null
+                    created_by: string
+                    date?: string
+                    deleted_at?: string | null
+                    from_member_id: string
+                    group_id: string
+                    id?: string
+                    note?: string | null
+                    sync_token?: number | null
+                    to_member_id: string
+                    updated_at?: string | null
+                }
+                Update: {
+                    amount?: number
+                    created_at?: string | null
+                    created_by?: string
+                    date?: string
+                    deleted_at?: string | null
+                    from_member_id?: string
+                    group_id?: string
+                    id?: string
+                    note?: string | null
+                    sync_token?: number | null
+                    to_member_id?: string
+                    updated_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "settlement_payments_created_by_fkey"
+                        columns: ["created_by"]
+                        isOneToOne: false
+                        referencedRelation: "users"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "settlement_payments_from_member_id_fkey"
+                        columns: ["from_member_id"]
+                        isOneToOne: false
+                        referencedRelation: "group_members"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "settlement_payments_group_id_fkey"
+                        columns: ["group_id"]
+                        isOneToOne: false
+                        referencedRelation: "groups"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "settlement_payments_to_member_id_fkey"
+                        columns: ["to_member_id"]
+                        isOneToOne: false
+                        referencedRelation: "group_members"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
             transactions: {
                 Row: {
                     amount: number
@@ -510,6 +584,7 @@ export interface Database {
                     include_investments_in_expense_totals: boolean | null
                     language: string | null
                     last_sync_token: number | null
+                    legacy_settlement_migrated_at: string | null
                     monthly_budget: number | null
                     start_of_week: string | null
                     theme: string | null
@@ -525,6 +600,7 @@ export interface Database {
                     include_investments_in_expense_totals?: boolean | null
                     language?: string | null
                     last_sync_token?: number | null
+                    legacy_settlement_migrated_at?: string | null
                     monthly_budget?: number | null
                     start_of_week?: string | null
                     theme?: string | null
@@ -540,6 +616,7 @@ export interface Database {
                     include_investments_in_expense_totals?: boolean | null
                     language?: string | null
                     last_sync_token?: number | null
+                    legacy_settlement_migrated_at?: string | null
                     monthly_budget?: number | null
                     start_of_week?: string | null
                     theme?: string | null

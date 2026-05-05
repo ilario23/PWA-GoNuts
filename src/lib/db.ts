@@ -197,6 +197,38 @@ export interface RecurringTransaction {
 }
 
 /**
+ * Settlement payment between two group members.
+ */
+export interface SettlementPayment {
+  /** UUID primary key */
+  id: string;
+  /** Reference to parent group */
+  group_id: string;
+  /** Debtor member (payer) */
+  from_member_id: string;
+  /** Creditor member (receiver) */
+  to_member_id: string;
+  /** Settled amount */
+  amount: number;
+  /** Settlement date (YYYY-MM-DD) */
+  date: string;
+  /** Optional note */
+  note?: string | null;
+  /** User who created this entry */
+  created_by: string;
+  /** Soft delete timestamp (ISO 8601) */
+  deleted_at?: string | null;
+  /** 1 if changes pending sync, 0 otherwise */
+  pendingSync?: number;
+  /** Server-assigned sync token */
+  sync_token?: number;
+  /** Last modification timestamp (ISO 8601) */
+  updated_at?: string;
+  /** Creation timestamp (ISO 8601) */
+  created_at?: string;
+}
+
+/**
  * User preferences and application settings.
  */
 export interface Setting {
@@ -224,6 +256,8 @@ export interface Setting {
   cached_month?: number;
   /** Last sync token for delta synchronization */
   last_sync_token?: number;
+  /** Tracks one-shot migration from legacy marker transactions */
+  legacy_settlement_migrated_at?: string | null;
   /** Last settings update timestamp (ISO 8601) */
   updated_at?: string;
 }
@@ -315,6 +349,7 @@ export class AppDatabase extends Dexie {
   categories!: Table<Category>;
   contexts!: Table<Context>;
   recurring_transactions!: Table<RecurringTransaction>;
+  settlement_payments!: Table<SettlementPayment>;
   user_settings!: Table<Setting>;
   category_budgets!: Table<CategoryBudget>;
   profiles!: Table<Profile>;
@@ -332,6 +367,8 @@ export class AppDatabase extends Dexie {
       contexts: "id, user_id, pendingSync, deleted_at",
       recurring_transactions:
         "id, user_id, group_id, paid_by_member_id, category_id, context_id, type, frequency, pendingSync, deleted_at",
+      settlement_payments:
+        "id, group_id, from_member_id, to_member_id, created_by, date, pendingSync, deleted_at",
       user_settings: "user_id",
       category_budgets:
         "id, user_id, category_id, period, pendingSync, deleted_at",
@@ -348,6 +385,26 @@ export class AppDatabase extends Dexie {
       contexts: "id, user_id, pendingSync, deleted_at",
       recurring_transactions:
         "id, user_id, group_id, paid_by_member_id, category_id, context_id, type, frequency, pendingSync, deleted_at",
+      settlement_payments:
+        "id, group_id, from_member_id, to_member_id, created_by, date, pendingSync, deleted_at",
+      user_settings: "user_id",
+      category_budgets:
+        "id, user_id, category_id, period, pendingSync, deleted_at",
+      profiles: "id, pendingSync",
+      import_rules: "id, user_id, match_type, pendingSync, deleted_at",
+    });
+    this.version(3).stores({
+      groups: "id, created_by, pendingSync, deleted_at",
+      group_members:
+        "id, group_id, user_id, guest_name, is_guest, pendingSync, removed_at",
+      transactions:
+        "id, user_id, group_id, paid_by_member_id, recurring_transaction_id, recurrence_key, category_id, context_id, type, date, year_month, pendingSync, deleted_at, [group_id+year_month], [type+year_month], [category_id+year_month]",
+      categories: "id, user_id, group_id, name, type, pendingSync, deleted_at",
+      contexts: "id, user_id, pendingSync, deleted_at",
+      recurring_transactions:
+        "id, user_id, group_id, paid_by_member_id, category_id, context_id, type, frequency, pendingSync, deleted_at",
+      settlement_payments:
+        "id, group_id, from_member_id, to_member_id, created_by, date, pendingSync, deleted_at",
       user_settings: "user_id",
       category_budgets:
         "id, user_id, category_id, period, pendingSync, deleted_at",
@@ -369,6 +426,7 @@ export class AppDatabase extends Dexie {
       this.categories.clear(),
       this.contexts.clear(),
       this.recurring_transactions.clear(),
+      this.settlement_payments.clear(),
       this.user_settings.clear(),
       this.category_budgets.clear(),
       this.profiles.clear(),
