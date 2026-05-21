@@ -76,6 +76,7 @@ export function GroupsPage() {
     ReturnType<typeof getGroupBalance>
   > | null>(null);
   const [copiedUserId, setCopiedUserId] = useState(false);
+  const [groupBalanceMap, setGroupBalanceMap] = useState<Record<string, number>>({});
 
   const [searchQuery, setSearchQuery] = useState("");
   // Derive managingGroup from groups list to ensure reactivity
@@ -94,6 +95,23 @@ export function GroupsPage() {
 
     refreshBalance();
   }, [viewingBalance, groups, getGroupBalance]);
+
+  // Load per-group balance for the card list
+  useEffect(() => {
+    if (!groups || !user) return;
+    let cancelled = false;
+    const loadAll = async () => {
+      const results: Record<string, number> = {};
+      for (const group of groups) {
+        const data = await getGroupBalance(group.id);
+        const myBal = data.balances[user.id];
+        results[group.id] = myBal?.balance ?? 0;
+      }
+      if (!cancelled) setGroupBalanceMap(results);
+    };
+    loadAll();
+    return () => { cancelled = true; };
+  }, [groups, user, getGroupBalance]);
 
 
   const handleFormSubmit = async (data: GroupFormValues) => {
@@ -272,12 +290,12 @@ export function GroupsPage() {
               setEditingGroup(null);
               setIsCreateDialogOpen(true);
             }}
-            size="icon"
-            className="md:w-auto md:px-4 md:h-10"
+            size="sm"
+            className="gap-1.5 bg-[hsl(var(--gonuts-orange))] hover:bg-[hsl(var(--gonuts-orange))]/90 text-white"
             data-testid="create-group-button"
           >
-            <Plus className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">{t("add_group")}</span>
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("add_group")}</span>
           </Button>
         </div>
       </div>
@@ -316,7 +334,7 @@ export function GroupsPage() {
         ) : (
           <>
             {/* Mobile Grid View */}
-            <div className="md:hidden grid gap-4 grid-cols-1">
+            <div className="md:hidden grid gap-3 grid-cols-1 sm:grid-cols-2">
               {filteredGroups.map((group) => (
                 <GroupCard
                   key={group.id}
@@ -327,6 +345,7 @@ export function GroupsPage() {
                   onBalance={handleViewBalance}
                   onMembers={openManageMembers}
                   onStatistics={handleViewStatistics}
+                  myBalance={groupBalanceMap[group.id]}
                 />
               ))}
             </div>

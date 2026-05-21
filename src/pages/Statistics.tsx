@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import {
   PieChart,
   Pie,
+  Label,
   Bar,
   XAxis,
   YAxis,
@@ -50,6 +51,8 @@ import {
   ArrowUp,
   ArrowDown,
   TrendingUp,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
 import { it, enUS } from "date-fns/locale";
@@ -240,10 +243,6 @@ export function StatisticsPage() {
     { value: "12", label: t("december") },
   ];
 
-  const handleMonthChange = (monthValue: string) => {
-    setSelectedMonth(`${selectedYear}-${monthValue}`);
-  };
-
   const handleYearChange = (year: string) => {
     setSelectedYear(year);
     if (activeTab === "monthly") {
@@ -289,9 +288,9 @@ export function StatisticsPage() {
         )}
       </div>
 
-      {/* Period selector: pill segmented + date selects */}
+      {/* Period selector */}
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Monthly / Yearly pill segmented */}
+        {/* Monthly / Yearly pill */}
         <div className="inline-flex rounded-full bg-muted p-1 gap-1">
           {(["monthly", "yearly"] as const).map((tab) => (
             <button
@@ -308,41 +307,55 @@ export function StatisticsPage() {
           ))}
         </div>
 
-        {/* Date selectors */}
+        {/* Period navigator */}
         {activeTab === "monthly" ? (
-          <>
-            <Select value={selectedMonth.split("-")[1]} onValueChange={handleMonthChange}>
-              <SelectTrigger className="w-[130px] h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((month) => (
-                  <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedYear} onValueChange={handleYearChange}>
-              <SelectTrigger className="w-[100px] h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((year) => (
-                  <SelectItem key={year} value={year}>{year}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                const [y, m] = selectedMonth.split("-").map(Number);
+                const d = new Date(y, m - 2, 1);
+                setSelectedMonth(format(d, "yyyy-MM"));
+                setSelectedYear(format(d, "yyyy"));
+              }}
+              className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-card text-sm font-semibold min-w-[110px] justify-center">
+              {format(new Date(`${selectedMonth}-01`), "MMM yyyy", { locale: dateLocale })}
+            </div>
+            <button
+              onClick={() => {
+                const [y, m] = selectedMonth.split("-").map(Number);
+                const d = new Date(y, m, 1);
+                setSelectedMonth(format(d, "yyyy-MM"));
+                setSelectedYear(format(d, "yyyy"));
+              }}
+              className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+              disabled={selectedMonth >= format(now, "yyyy-MM")}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         ) : (
-          <Select value={selectedYear} onValueChange={handleYearChange}>
-            <SelectTrigger className="w-[100px] h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((year) => (
-                <SelectItem key={year} value={year}>{year}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => handleYearChange(String(parseInt(selectedYear) - 1))}
+              className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="inline-flex items-center px-3 py-1.5 rounded-full border bg-card text-sm font-semibold min-w-[80px] justify-center num">
+              {selectedYear}
+            </div>
+            <button
+              onClick={() => handleYearChange(String(parseInt(selectedYear) + 1))}
+              className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+              disabled={selectedYear >= format(now, "yyyy")}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -410,9 +423,41 @@ export function StatisticsPage() {
                               data={pieData}
                               dataKey="value"
                               nameKey="name"
-                              innerRadius={60}
-                              strokeWidth={5}
-                            />
+                              innerRadius={70}
+                              strokeWidth={4}
+                            >
+                              <Label
+                                content={({ viewBox }) => {
+                                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                    const { cx, cy } = viewBox as { cx: number; cy: number };
+                                    return (
+                                      <g>
+                                        <text
+                                          x={cx}
+                                          y={cy - 8}
+                                          textAnchor="middle"
+                                          dominantBaseline="middle"
+                                          className="fill-foreground"
+                                          style={{ fontSize: 20, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}
+                                        >
+                                          €{Math.round(currentStats.expense).toLocaleString()}
+                                        </text>
+                                        <text
+                                          x={cx}
+                                          y={cy + 14}
+                                          textAnchor="middle"
+                                          dominantBaseline="middle"
+                                          className="fill-muted-foreground"
+                                          style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase" }}
+                                        >
+                                          {t("spent")}
+                                        </text>
+                                      </g>
+                                    );
+                                  }
+                                }}
+                              />
+                            </Pie>
                             <ChartLegend
                               content={
                                 <ChartLegendContent className="flex-wrap gap-2" />
