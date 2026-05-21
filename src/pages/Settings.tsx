@@ -23,14 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { SyncIndicator } from "@/components/SyncStatus";
 import { ContentLoader } from "@/components/ui/content-loader";
 import { Input } from "@/components/ui/input";
@@ -44,13 +37,15 @@ import {
   Download,
   Monitor,
   X,
-  Palette,
-  Database,
-  Wrench,
   Check,
   Compass,
   BookOpen,
   History,
+  Languages,
+  PiggyBank,
+  ArrowLeftRight,
+  ChevronRight,
+  FileSpreadsheet,
 } from "lucide-react";
 import { HelpSystemWrapper } from "@/components/help/HelpSystem";
 import { useTranslation } from "react-i18next";
@@ -64,7 +59,55 @@ import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { exportTransactionsToCSV } from "@/lib/exportUtils";
-import { FileSpreadsheet } from "lucide-react";
+
+function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <p className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1 pb-1 pt-4", className)}>
+      {children}
+    </p>
+  );
+}
+
+function SettingsRow({
+  icon: Icon,
+  color,
+  label,
+  value,
+  action,
+  onClick,
+  first = false,
+}: {
+  icon: React.ElementType;
+  color: string;
+  label: string;
+  value?: React.ReactNode;
+  action?: React.ReactNode;
+  onClick?: () => void;
+  first?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 px-4 py-3.5",
+        !first && "border-t border-border/60",
+        onClick && "cursor-pointer hover:bg-muted/40 transition-colors"
+      )}
+      onClick={onClick}
+    >
+      <span
+        className="rounded-[10px] p-2 shrink-0"
+        style={{ backgroundColor: color, color: "#fff" }}
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <span className="flex-1 font-semibold text-sm">{label}</span>
+      {value !== undefined && (
+        <span className="text-sm text-muted-foreground">{value}</span>
+      )}
+      {action !== undefined ? action : <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
+    </div>
+  );
+}
 
 export function SettingsPage() {
   const { settings, updateSettings } = useSettings();
@@ -273,471 +316,247 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="space-y-4 pb-10 overflow-x-hidden">
-      {/* Header */}
-      <div className="space-y-1">
-        <h2 className="text-2xl font-bold tracking-tight">{t("settings")}</h2>
-        <p className="text-sm text-muted-foreground">{t("settings_general_desc")}</p>
-      </div>
+    <div className="space-y-1 pb-[calc(5rem+env(safe-area-inset-bottom))] overflow-x-hidden">
+      <h2 className="text-2xl font-bold tracking-tight mb-1">{t("settings")}</h2>
 
-      {/* Tab Navigation */}
-      <Tabs defaultValue="appearance" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 h-13 dark:bg-primary/20">
-          <TabsTrigger value="appearance" className="gap-2 text-xs sm:text-sm">
-            <Palette className="h-4 w-4 hidden sm:block" />
-            {t("tab_appearance")}
-          </TabsTrigger>
-          <TabsTrigger value="data" className="gap-2 text-xs sm:text-sm">
-            <Database className="h-4 w-4 hidden sm:block" />
-            {t("tab_data")}
-          </TabsTrigger>
-          <TabsTrigger value="advanced" className="gap-2 text-xs sm:text-sm">
-            <Wrench className="h-4 w-4 hidden sm:block" />
-            {t("tab_advanced")}
-          </TabsTrigger>
-        </TabsList>
+      {/* ── GENERAL ─────────────────────────────────────── */}
+      <Eyebrow>{t("general") || "General"}</Eyebrow>
+      <Card className="overflow-hidden">
+        <SettingsRow first icon={Languages} color="#3D7CB8" label={t("language")}
+          value={settings.language === "it" ? t("language_it") : t("language_en")}
+          action={
+            <Select value={settings.language || "en"} onValueChange={(value) => {
+              updateSettings({ language: value });
+              import("@/i18n").then(({ default: i18n }) => { i18n.changeLanguage(value); });
+            }}>
+              <SelectTrigger className="w-28 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">{t("language_en")}</SelectItem>
+                <SelectItem value="it">{t("language_it")}</SelectItem>
+              </SelectContent>
+            </Select>
+          }
+        />
+        <SettingsRow icon={Sun} color="#D08A1E" label={t("theme")}
+          action={
+            <div className="flex gap-1">
+              {([{ value: "light", icon: Sun }, { value: "dark", icon: Moon }, { value: "system", icon: Monitor }] as const).map(({ value, icon: Icon }) => (
+                <button key={value} onClick={() => handleThemeChange(value)}
+                  className={cn("h-8 w-8 rounded-[8px] flex items-center justify-center transition-all",
+                    settings.theme === value ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:text-foreground"
+                  )}>
+                  <Icon className="h-3.5 w-3.5" />
+                </button>
+              ))}
+            </div>
+          }
+        />
+      </Card>
 
-        {/* Tab: Appearance */}
-        <TabsContent value="appearance" className="space-y-4 animate-fade-in">
-          {/* Language */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("language")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select
-                value={settings.language || "en"}
-                onValueChange={(value) => {
-                  updateSettings({ language: value });
-                  import("@/i18n").then(({ default: i18n }) => {
-                    i18n.changeLanguage(value);
-                  });
-                }}
-              >
-                <SelectTrigger className="w-full h-12 touch-manipulation">
-                  <SelectValue placeholder={t("select_language")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">{t("language_en")}</SelectItem>
-                  <SelectItem value="it">{t("language_it")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          {/* Theme Toggle */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("theme")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                {[
-                  { value: "light", icon: Sun, label: t("light") },
-                  { value: "dark", icon: Moon, label: t("dark") },
-                  { value: "system", icon: Monitor, label: t("system") },
-                ].map(({ value, icon: Icon, label }) => (
-                  <Button
-                    key={value}
-                    variant={settings.theme === value ? "default" : "outline"}
-                    className={cn(
-                      "flex-1 h-12 gap-2 transition-all touch-manipulation",
-                      settings.theme === value && "ring-2 ring-primary ring-offset-2"
-                    )}
-                    onClick={() => handleThemeChange(value)}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{label}</span>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Accent Color Palette */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("accent_color")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-5 sm:grid-cols-7 gap-2">
-                {Object.values(THEME_COLORS).map((color) => {
-                  const isSelected = (settings.accentColor || "slate") === color.name;
-                  return (
-                    <button
-                      key={color.name}
-                      onClick={() => updateSettings({ accentColor: color.name })}
-                      className={cn(
-                        "relative h-8 w-full rounded-md border-2 transition-all touch-manipulation hover:scale-105 active:scale-95",
-                        isSelected
-                          ? "border-foreground ring-2 ring-offset-1 ring-foreground"
-                          : "border-transparent hover:border-muted-foreground/50"
-                      )}
-                      style={{
-                        backgroundColor: `hsl(${mounted && resolvedTheme === "dark" ? color.dark.primary : color.light.primary})`,
-                      }}
-                      title={t(color.name)}
-                    >
-                      {isSelected && (
-                        <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow-md" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-muted-foreground mt-3 text-center">
-                {t((settings.accentColor || "slate"))}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Review Tutorial */}
-          {/* Help & Resources */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("help_and_resources", "Help & Resources")}</CardTitle>
-              <CardDescription>{t("help_resources_desc", "Learn how to use the app to its full potential.")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <HelpSystemWrapper triggerAsChild>
-                <Button
-                  variant="outline"
-                  className="w-full h-12 gap-3 touch-manipulation justify-start"
-                >
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  <div className="flex flex-col items-start gap-0.5">
-                    <span className="font-medium text-sm">{t("open_user_guide", "Open User Guide")}</span>
-                    <span className="text-[10px] text-muted-foreground font-normal">{t("user_guide_desc", "Documentation, gestures & tips")}</span>
-                  </div>
-                </Button>
-              </HelpSystemWrapper>
-
-              <Button
-                variant="outline"
-                className="w-full h-12 gap-3 touch-manipulation justify-start"
-                onClick={() => welcomeWizard.reset()}
-              >
-                <Compass className="h-5 w-5 text-primary" />
-                <div className="flex flex-col items-start gap-0.5">
-                  <span className="font-medium text-sm">{t("welcome.review_tutorial")}</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">{t("welcome.review_tutorial_desc")}</span>
-                </div>
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tab: Data */}
-        <TabsContent value="data" className="space-y-4 animate-fade-in">
-          {/* Monthly Budget */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("monthly_budget")}</CardTitle>
-              <CardDescription>{t("monthly_budget_desc")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2 items-center">
-                <span className="text-lg font-medium text-muted-foreground">€</span>
-                <Input
-                  key={settings.monthly_budget ?? "empty"}
-                  type="number"
-                  step="1"
-                  min="0"
-                  placeholder={t("budget_placeholder")}
-                  defaultValue={settings.monthly_budget ?? ""}
-                  onBlur={(e) => {
-                    const value = e.target.value;
-                    if (value && parseFloat(value) < 0) {
-                      e.target.value = "";
-                      updateSettings({ monthly_budget: null });
-                      return;
-                    }
-                    updateSettings({
-                      monthly_budget: value ? parseFloat(value) : null,
-                    });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "-" || e.key === "e") {
-                      e.preventDefault();
-                    }
-                  }}
-                  className="flex-1 h-12 touch-manipulation text-lg"
-                />
-                {settings.monthly_budget !== null &&
-                  settings.monthly_budget !== undefined && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 text-muted-foreground hover:text-destructive"
-                      onClick={() => updateSettings({ monthly_budget: null })}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+      <Eyebrow>{t("accent_color")}</Eyebrow>
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-5 sm:grid-cols-8 gap-2">
+            {Object.values(THEME_COLORS).map((color) => {
+              const isSelected = (settings.accentColor || "slate") === color.name;
+              return (
+                <button key={color.name} onClick={() => updateSettings({ accentColor: color.name })}
+                  className={cn("relative h-8 w-full rounded-[8px] border-2 transition-all touch-manipulation hover:scale-105 active:scale-95",
+                    isSelected ? "border-foreground ring-2 ring-offset-1 ring-foreground" : "border-transparent"
                   )}
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                {settings.monthly_budget
-                  ? `€${settings.monthly_budget.toFixed(2)} / ${t("monthly").toLowerCase()}`
-                  : t("budget_not_set")}
-              </p>
-            </CardContent>
-          </Card>
+                  style={{ backgroundColor: `hsl(${mounted && resolvedTheme === "dark" ? color.dark.primary : color.light.primary})` }}
+                  title={t(color.name)}>
+                  {isSelected && <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow-md" />}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3 text-center">{t((settings.accentColor || "slate"))}</p>
+        </CardContent>
+      </Card>
 
-          {/* Export & Import */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("data_management")}</CardTitle>
-              <CardDescription>{t("data_management_desc")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Export */}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full h-14 justify-start gap-3 touch-manipulation"
-                    disabled={exportingData}
-                  >
-                    {exportingData ? (
-                      <RefreshCw className="h-5 w-5 shrink-0 animate-spin" />
-                    ) : (
-                      <Download className="h-5 w-5 shrink-0 text-primary" />
-                    )}
-                    <div className="text-left overflow-hidden min-w-0 flex-1">
-                      <div className="font-medium truncate">{t("export_data")}</div>
-                      <div className="text-xs text-muted-foreground truncate">{t("export_data_desc")}</div>
-                    </div>
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2">
-                      <Download className="h-5 w-5 text-primary" />
-                      {t("export_confirm_title")}
-                    </AlertDialogTitle>
-                    <AlertDialogDescription className="text-left">
-                      {t("export_confirm_desc")}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleExportData}>
-                      {t("export_data")}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              {/* Import */}
-              <Button
-                variant="outline"
-                className="w-full h-14 justify-start gap-3 touch-manipulation"
-                onClick={() => setIsImportWizardOpen(true)}
-              >
-                <Upload className="h-5 w-5 shrink-0 text-primary" />
-                <div className="text-left overflow-hidden min-w-0 flex-1">
-                  <div className="font-medium truncate">{t("import_data")}</div>
-                  <div className="text-xs text-muted-foreground truncate">{t("import_data_desc")}</div>
-                </div>
+      {/* ── TOTALS ───────────────────────────────────────── */}
+      <Eyebrow>{t("monthly_budget")}</Eyebrow>
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex gap-2 items-center">
+            <span className="rounded-[10px] p-2 shrink-0 bg-[#D14A8A] text-white">
+              <PiggyBank className="h-3.5 w-3.5" />
+            </span>
+            <Input key={settings.monthly_budget ?? "empty"} type="number" step="1" min="0"
+              placeholder={t("budget_placeholder")}
+              defaultValue={settings.monthly_budget ?? ""}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (value && parseFloat(value) < 0) { e.target.value = ""; updateSettings({ monthly_budget: null }); return; }
+                updateSettings({ monthly_budget: value ? parseFloat(value) : null });
+              }}
+              onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+              className="flex-1 h-10 touch-manipulation"
+            />
+            {settings.monthly_budget !== null && settings.monthly_budget !== undefined && (
+              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                onClick={() => updateSettings({ monthly_budget: null })}>
+                <X className="h-4 w-4" />
               </Button>
-            </CardContent>
-          </Card>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 pl-11">
+            {settings.monthly_budget ? `€${settings.monthly_budget.toFixed(2)} / ${t("monthly").toLowerCase()}` : t("budget_not_set")}
+          </p>
+        </CardContent>
+      </Card>
 
-
-          {/* Export Transactions (CSV) */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("export_csv") || "Export CSV"}</CardTitle>
-              <CardDescription>{t("export_csv_desc") || "Download your transactions for spreadsheets"}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Select value={exportYear} onValueChange={setExportYear}>
-                  <SelectTrigger
-                    className={cn(
-                      "flex-1 transition-colors",
-                      exportYear === "all" && "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
-                    )}
-                  >
-                    <SelectValue placeholder={t("year")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="text-primary">{t("all_years") || "All Years"}</SelectItem>
-                    {availableYears.map((y) => (
-                      <SelectItem key={y} value={y}>{y}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={exportMonth}
-                  onValueChange={setExportMonth}
-                  disabled={exportYear === "all"}
-                >
-                  <SelectTrigger className="flex-1 transition-opacity disabled:opacity-50">
-                    <SelectValue placeholder={t("month")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t("all_year") || "Whole Year"}</SelectItem>
-                    <SelectItem value="01">{t("january")}</SelectItem>
-                    <SelectItem value="02">{t("february")}</SelectItem>
-                    <SelectItem value="03">{t("march")}</SelectItem>
-                    <SelectItem value="04">{t("april")}</SelectItem>
-                    <SelectItem value="05">{t("may")}</SelectItem>
-                    <SelectItem value="06">{t("june")}</SelectItem>
-                    <SelectItem value="07">{t("july")}</SelectItem>
-                    <SelectItem value="08">{t("august")}</SelectItem>
-                    <SelectItem value="09">{t("september")}</SelectItem>
-                    <SelectItem value="10">{t("october")}</SelectItem>
-                    <SelectItem value="11">{t("november")}</SelectItem>
-                    <SelectItem value="12">{t("december")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button
-                variant="outline"
-                className="w-full h-12 gap-2 touch-manipulation"
-                onClick={handleCSVExport}
-                disabled={isExportingCSV}
-              >
-                {isExportingCSV ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                )}
-                {t("download_csv") || "Download CSV"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <ImportRulesManager />
-        </TabsContent>
-
-        {/* Tab: Advanced */}
-        <TabsContent value="advanced" className="space-y-4 animate-fade-in">
-          {/* Sync */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("sync")}</CardTitle>
-              <CardDescription>{t("sync_desc")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <SyncIndicator
-                isSyncing={isSyncing}
-                isOnline={isOnline}
-                lastSyncTime={lastSyncTime}
+      {/* ── DATA ─────────────────────────────────────────── */}
+      <Eyebrow>{t("data_management")}</Eyebrow>
+      <Card className="overflow-hidden">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <div>
+              <SettingsRow first icon={Download} color="#0E8A8A" label={t("export_data")}
+                value={<span className="text-xs text-muted-foreground">{t("export_data_desc")}</span>}
+                action={exportingData ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
+                onClick={undefined}
               />
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  onClick={handleManualSync}
-                  disabled={isSyncing || !isOnline}
-                  variant="outline"
-                  className="h-12 touch-manipulation"
-                >
-                  <RefreshCw
-                    className={cn("mr-2 h-4 w-4", manualSyncing && "animate-spin")}
-                  />
-                  {t("sync_now")}
-                </Button>
-                <Button
-                  onClick={handleFullSync}
-                  disabled={isSyncing || !isOnline}
-                  variant="secondary"
-                  className="h-12 touch-manipulation"
-                  title={t("full_sync_desc") || "Re-download all data from server"}
-                >
-                  <RefreshCw
-                    className={cn("mr-2 h-4 w-4", fullSyncing && "animate-spin")}
-                  />
-                  {t("full_sync")}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("full_sync_hint")}
-              </p>
-            </CardContent>
-          </Card>
+            </div>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5 text-primary" />{t("export_confirm_title")}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-left">{t("export_confirm_desc")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleExportData}>{t("export_data")}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-          {/* App Info */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("app_info")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button
-                variant="outline"
-                className="w-full h-12 gap-3 touch-manipulation justify-start"
-                onClick={() => window.location.href = "/changelog"}
-              >
-                <History className="h-5 w-5 text-primary" />
-                <div className="flex flex-col items-start gap-0.5">
-                  <span className="font-medium text-sm">{t("changelog")}</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">{t("changelog_desc", "See what's new in this version")}</span>
-                </div>
-              </Button>
-            </CardContent>
-          </Card>
+        <SettingsRow icon={Upload} color="#2F9E5A" label={t("import_data")}
+          value={<span className="text-xs text-muted-foreground">{t("import_data_desc")}</span>}
+          onClick={() => setIsImportWizardOpen(true)}
+        />
+      </Card>
 
-          {/* Danger Zone */}
-          <Card className="border-destructive/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-4 w-4" />
-                {t("danger_zone")}
-              </CardTitle>
-              <CardDescription>{t("danger_zone_desc")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    className="w-full h-12 touch-manipulation"
-                    disabled={clearingCache}
-                  >
-                    {clearingCache ? (
-                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 mr-2" />
-                    )}
-                    {t("clear_local_cache")}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-destructive" />
-                      {t("clear_cache_confirm_title")}
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t("clear_cache_confirm_desc")}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleClearCache}
-                      className="bg-destructive text-destructive-foreground"
-                    >
-                      {t("clear")}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              <p className="text-xs text-muted-foreground mt-2">
-                {t("clear_local_cache_desc")}
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="rounded-[10px] p-2 shrink-0 text-white" style={{ backgroundColor: "#2F7C3E" }}>
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+            </span>
+            <div>
+              <p className="font-semibold text-sm">{t("export_csv") || "Export CSV"}</p>
+              <p className="text-xs text-muted-foreground">{t("export_csv_desc") || "Download transactions for spreadsheets"}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Select value={exportYear} onValueChange={setExportYear}>
+              <SelectTrigger className={cn("flex-1", exportYear === "all" && "bg-primary text-primary-foreground border-primary hover:bg-primary/90")}>
+                <SelectValue placeholder={t("year")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-primary">{t("all_years") || "All Years"}</SelectItem>
+                {availableYears.map((y) => (<SelectItem key={y} value={y}>{y}</SelectItem>))}
+              </SelectContent>
+            </Select>
+            <Select value={exportMonth} onValueChange={setExportMonth} disabled={exportYear === "all"}>
+              <SelectTrigger className="flex-1 disabled:opacity-50">
+                <SelectValue placeholder={t("month")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("all_year") || "Whole Year"}</SelectItem>
+                {["01","02","03","04","05","06","07","08","09","10","11","12"].map((m, i) => (
+                  <SelectItem key={m} value={m}>{t(["january","february","march","april","may","june","july","august","september","october","november","december"][i])}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button variant="outline" className="w-full h-11 gap-2" onClick={handleCSVExport} disabled={isExportingCSV}>
+            {isExportingCSV ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 text-green-600" />}
+            {t("download_csv") || "Download CSV"}
+          </Button>
+        </CardContent>
+      </Card>
 
-      <ImportWizard
-        open={isImportWizardOpen}
-        onOpenChange={setIsImportWizardOpen}
-        onImportComplete={handleImportComplete}
-      />
+      <ImportRulesManager />
+
+      {/* ── SYNC ─────────────────────────────────────────── */}
+      <Eyebrow>{t("sync")}</Eyebrow>
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="rounded-[10px] p-2 shrink-0 bg-[#1A1714] text-white dark:bg-[#FAF6EF] dark:text-[#1A1714]">
+              <ArrowLeftRight className="h-3.5 w-3.5" />
+            </span>
+            <SyncIndicator isSyncing={isSyncing} isOnline={isOnline} lastSyncTime={lastSyncTime} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={handleManualSync} disabled={isSyncing || !isOnline} variant="outline" className="h-11">
+              <RefreshCw className={cn("mr-2 h-4 w-4", manualSyncing && "animate-spin")} />
+              {t("sync_now")}
+            </Button>
+            <Button onClick={handleFullSync} disabled={isSyncing || !isOnline} variant="secondary" className="h-11">
+              <RefreshCw className={cn("mr-2 h-4 w-4", fullSyncing && "animate-spin")} />
+              {t("full_sync")}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">{t("full_sync_hint")}</p>
+        </CardContent>
+      </Card>
+
+      {/* ── ABOUT ─────────────────────────────────────────── */}
+      <Eyebrow>{t("help_and_resources", "Help & Resources")}</Eyebrow>
+      <Card className="overflow-hidden">
+        <HelpSystemWrapper triggerAsChild>
+          <div>
+            <SettingsRow first icon={BookOpen} color="#4F82D9" label={t("open_user_guide", "Open User Guide")}
+              value={<span className="text-xs text-muted-foreground">{t("user_guide_desc", "Docs & tips")}</span>}
+            />
+          </div>
+        </HelpSystemWrapper>
+        <SettingsRow icon={Compass} color="#9B5CF6" label={t("welcome.review_tutorial")}
+          value={<span className="text-xs text-muted-foreground">{t("welcome.review_tutorial_desc")}</span>}
+          onClick={() => welcomeWizard.reset()}
+        />
+        <SettingsRow icon={History} color="#E66A3C" label={t("changelog")}
+          value={<span className="text-xs text-muted-foreground">{t("changelog_desc", "What's new")}</span>}
+          onClick={() => window.location.href = "/changelog"}
+        />
+      </Card>
+
+      {/* ── DANGER ────────────────────────────────────────── */}
+      <Eyebrow className="text-destructive">{t("danger_zone")}</Eyebrow>
+      <Card className="overflow-hidden border-destructive/30">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <div>
+              <SettingsRow first icon={Trash2} color="#D14545" label={t("clear_local_cache")}
+                value={clearingCache ? <RefreshCw className="h-4 w-4 animate-spin" /> : undefined}
+                action={<ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
+                onClick={undefined}
+              />
+            </div>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />{t("clear_cache_confirm_title")}
+              </AlertDialogTitle>
+              <AlertDialogDescription>{t("clear_cache_confirm_desc")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleClearCache} className="bg-destructive text-destructive-foreground">{t("clear")}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </Card>
+
+      <ImportWizard open={isImportWizardOpen} onOpenChange={setIsImportWizardOpen} onImportComplete={handleImportComplete} />
     </div>
   );
 }

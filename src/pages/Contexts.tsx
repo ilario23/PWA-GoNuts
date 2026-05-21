@@ -1,18 +1,9 @@
 import { useState, useMemo } from "react";
 import { useContexts } from "@/hooks/useContexts";
+import { useLiveQuery } from "dexie-react-hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-
-import { Plus, Edit, Trash2, Tag, Search, FilterX, Info, Eye, EyeOff } from "lucide-react";
+import { Plus, Search, FilterX, Tag, Eye, EyeOff, Info } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -22,51 +13,34 @@ import { SwipeableItem } from "@/components/ui/SwipeableItem";
 import { ContextFormDialog } from "@/components/contexts/ContextFormDialog";
 import { ContextDetailDrawer } from "@/components/contexts/ContextDetailDrawer";
 import { ContextFormValues } from "@/lib/schemas";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { useSettings } from "@/hooks/useSettings";
+import { cn } from "@/lib/utils";
 
-// Mobile swipeable row component for contexts
-function MobileContextRow({
-  context,
-  onEdit,
-  onDelete,
-  onClick,
-}: {
-  context: Context;
-  onEdit: (context: Context) => void;
-  onDelete: (id: string) => void;
-  onClick: (context: Context) => void;
-}) {
+const CONTEXT_COLORS = [
+  "#E66A3C",
+  "#2F9E5A",
+  "#4F82D9",
+  "#9B5CF6",
+  "#F59E0B",
+  "#EC4899",
+  "#06B6D4",
+  "#84CC16",
+];
+
+function contextColor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash) + id.charCodeAt(i);
+    hash |= 0;
+  }
+  return CONTEXT_COLORS[Math.abs(hash) % CONTEXT_COLORS.length];
+}
+
+function getCurrencySymbol(code: string): string {
   return (
-    <SwipeableItem
-      onEdit={() => onEdit(context)}
-      onDelete={() => onDelete(context.id)}
-      onClick={() => onClick(context)}
-    >
-      <div
-        className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 cursor-pointer active:bg-muted/50 focus:outline-none"
-        onClick={() => onClick(context)}
-      >
-        {/* Icon */}
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <Tag className="h-5 w-5 text-primary" />
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 min-w-0 text-left">
-          <div className="font-medium text-sm truncate">{context.name}</div>
-          {context.description && (
-            <div className="text-xs text-muted-foreground truncate">
-              {context.description}
-            </div>
-          )}
-        </div>
-      </div>
-    </SwipeableItem>
+    new Intl.NumberFormat("en", { style: "currency", currency: code })
+      .formatToParts(0)
+      .find((p) => p.type === "currency")?.value ?? code
   );
 }
 
@@ -74,6 +48,9 @@ export function ContextsPage() {
   const { contexts, addContext, updateContext, deleteContext } = useContexts();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { settings } = useSettings();
+  const currencySymbol = getCurrencySymbol(settings?.currency ?? "EUR");
+
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -81,25 +58,28 @@ export function ContextsPage() {
   const [deleteDescription, setDeleteDescription] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showInactive, setShowInactive] = useState(false);
-
-
-
-  // Details Drawer State
   const [selectedContext, setSelectedContext] = useState<Context | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-
+  const contextTxStats = useLiveQuery(async () => {
+    const txs = await db.transactions.filter((t) => !!t.context_id).toArray();
+    const map: Record<string, { count: number; total: number }> = {};
+    for (const tx of txs) {
+      if (!tx.context_id) continue;
+      if (!map[tx.context_id]) map[tx.context_id] = { count: 0, total: 0 };
+      map[tx.context_id].count++;
+      if (tx.type === "expense") map[tx.context_id].total += tx.amount;
+    }
+    return map;
+  });
 
   const handleOpenDetail = (context: Context) => {
     setSelectedContext(context);
     setDetailOpen(true);
   };
 
-
-
   const handleFormSubmit = async (data: ContextFormValues) => {
     if (!user) return;
-
     if (editingId) {
       await updateContext(editingId, {
         name: data.name,
@@ -132,7 +112,10 @@ export function ContextsPage() {
     setDeletingId(id);
     const count = await db.transactions.where("context_id").equals(id).count();
     if (count > 0) {
-      setDeleteDescription(t("context_delete_warning_count", { count }) || `Careful! This context is used in ${count} transactions. Deleting it will detach it from these transactions.`);
+      setDeleteDescription(
+        t("context_delete_warning_count", { count }) ||
+          `Careful! This context is used in ${count} transactions. Deleting it will detach it from these transactions.`
+      );
     } else {
       setDeleteDescription("");
     }
@@ -149,182 +132,142 @@ export function ContextsPage() {
   const filteredContexts = useMemo(() => {
     if (!contexts) return [];
     let res = contexts;
-
-    if (!showInactive) {
-      res = res.filter(c => c.active !== 0);
-    }
-
-    if (searchQuery) {
+    if (!showInactive) res = res.filter((c) => c.active !== 0);
+    if (searchQuery)
       res = res.filter((c) =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    }
     return res;
   }, [contexts, searchQuery, showInactive]);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">{t("contexts")}</h1>
-          <div className="flex items-center gap-2 md:hidden">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowInactive(!showInactive)}
-              className="shrink-0"
-            >
-              {showInactive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
-            <Button
-              onClick={openNew}
-              size="icon"
-              className="shrink-0"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">{t("contexts")}</h1>
         <div className="flex items-center gap-2">
-          {/* Search Bar */}
-          <div className="relative flex-1 md:flex-none md:w-[250px]">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t("search_contexts") || "Search contexts..."}
-              className="pl-8 pr-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-              >
-                <FilterX className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={() => setShowInactive(!showInactive)}
-            className="hidden md:inline-flex shrink-0 mr-2"
+            className="h-9 w-9 text-muted-foreground"
             title={showInactive ? t("hide_archived") : t("show_archived")}
           >
             {showInactive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
-
           <Button
             onClick={openNew}
-            size="icon"
-            className="hidden md:inline-flex md:w-auto md:px-4 md:h-10 shrink-0"
+            size="sm"
+            className="gap-1.5 bg-[hsl(var(--gonuts-orange))] hover:bg-[hsl(var(--gonuts-orange))]/90 text-white"
           >
-            <Plus className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">{t("add_context")}</span>
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("add_context")}</span>
           </Button>
         </div>
       </div>
 
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={t("search_contexts") || "Search contexts..."}
+          className="pl-9 pr-8"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <FilterX className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Info card */}
+      <Card>
+        <CardContent className="p-4 flex gap-3">
+          <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold">{t("what_are_contexts")}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t("what_are_contexts_desc")}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Context list */}
       {!filteredContexts || filteredContexts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Tag className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold">{t("no_contexts")}</h3>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm text-center max-w-xs">
               {t("no_contexts_desc")}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <>
-          {/* Mobile View: Swipeable Cards */}
-          <div className="space-y-1 md:hidden">
-            {filteredContexts.map((c) => (
-              <MobileContextRow
+        <div className="space-y-2">
+          {filteredContexts.map((c) => {
+            const stats = contextTxStats?.[c.id];
+            const count = stats?.count ?? 0;
+            const total = stats?.total ?? 0;
+            const color = contextColor(c.id);
+            const inactive = c.active === 0;
+
+            return (
+              <SwipeableItem
                 key={c.id}
-                context={c}
-                onEdit={handleEdit}
-                onDelete={handleDeleteClick}
-                onClick={handleOpenDetail}
-              />
-            ))}
-          </div>
+                onEdit={() => handleEdit(c)}
+                onDelete={() => handleDeleteClick(c.id)}
+                onClick={() => handleOpenDetail(c)}
+              >
+                <Card
+                  className={cn(
+                    "overflow-hidden cursor-pointer transition-all duration-150 active:scale-[0.99]",
+                    inactive && "opacity-50"
+                  )}
+                  onClick={() => handleOpenDetail(c)}
+                >
+                  <CardContent className="p-0 flex items-center gap-3">
+                    {/* Colored left bar */}
+                    <div
+                      className="w-2 self-stretch shrink-0 rounded-l-[var(--radius)]"
+                      style={{ backgroundColor: color }}
+                    />
 
-          {/* Desktop View: Table */}
-          <div className="hidden md:block rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("name")}</TableHead>
-                  <TableHead>{t("description")}</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredContexts.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>{c.name}</TableCell>
-                    <TableCell>{c.description}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <TooltipProvider delayDuration={300}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleOpenDetail(c)}
-                              >
-                                <Info className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{t("info") || "Info"}</p>
-                            </TooltipContent>
-                          </Tooltip>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 py-4 pr-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm truncate">{c.name}</p>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {c.description
+                              ? `${c.description} · ${count} ${t("tagged")}`
+                              : `${count} ${t("tagged")}`}
+                          </p>
+                        </div>
 
-
-
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(c)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{t("edit")}</p>
-                            </TooltipContent>
-                          </Tooltip>
-
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteClick(c.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{t("delete")}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        {/* Stats */}
+                        <div className="text-right shrink-0">
+                          <p className="num text-sm font-semibold tabular-nums">
+                            {currencySymbol}{Math.round(total).toLocaleString()}
+                          </p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                            {t("spent")}
+                          </p>
+                        </div>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </>
+                    </div>
+                  </CardContent>
+                </Card>
+              </SwipeableItem>
+            );
+          })}
+        </div>
       )}
 
       <DeleteConfirmDialog
@@ -343,12 +286,9 @@ export function ContextsPage() {
         open={isOpen}
         onOpenChange={setIsOpen}
         initialData={(() => {
-          const ctx = contexts?.find(c => c.id === editingId);
+          const ctx = contexts?.find((c) => c.id === editingId);
           if (!ctx) return null;
-          return {
-            ...ctx,
-            active: ctx.active === 1
-          };
+          return { ...ctx, active: ctx.active === 1 };
         })()}
         onSubmit={handleFormSubmit}
       />
@@ -358,7 +298,6 @@ export function ContextsPage() {
         open={detailOpen}
         onOpenChange={setDetailOpen}
       />
-
     </div>
   );
 }

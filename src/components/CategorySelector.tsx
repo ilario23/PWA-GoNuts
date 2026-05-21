@@ -30,6 +30,10 @@ interface CategorySelectorProps {
   triggerClassName?: string;
   showSkipOption?: boolean;
   usageFrequency?: Record<string, number>;
+  customTrigger?: React.ReactNode;
+  /** External open control — when provided, no trigger button is rendered */
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
 // Helper to get descendant IDs (defined outside to avoid recursion issues)
@@ -52,6 +56,9 @@ export function CategorySelector({
   triggerClassName,
   showSkipOption = false,
   usageFrequency,
+  customTrigger,
+  externalOpen,
+  onExternalOpenChange,
 }: CategorySelectorProps) {
   // Fetch ALL categories first, then filter strictly in memory for responsiveness
   // Or should we trust the hook? Let's filter in memory to be sure.
@@ -59,7 +66,9 @@ export function CategorySelector({
   const {groups} = useGroups();
   const {t} = useTranslation();
 
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = onExternalOpenChange !== undefined ? onExternalOpenChange : setInternalOpen;
   const [isMobile, setIsMobile] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [expandedRoots, setExpandedRoots] = React.useState<Set<string>>(
@@ -372,7 +381,11 @@ export function CategorySelector({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
+        {externalOpen === undefined && (
         <DrawerTrigger asChild>
+          {customTrigger ? (
+            <span>{customTrigger}</span>
+          ) : (
           <Button
             variant='outline'
             role='combobox'
@@ -413,7 +426,9 @@ export function CategorySelector({
             )}
             <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
           </Button>
+          )}
         </DrawerTrigger>
+        )}
         <DrawerContent className='h-[85dvh] max-h-[85lvh] flex flex-col overflow-hidden fixed bottom-0 left-0 right-0 z-50'>
           <DrawerHeader className='border-b px-4 py-3 shrink-0 text-left'>
             <DrawerTitle>{t('select_category')}</DrawerTitle>
@@ -429,7 +444,11 @@ export function CategorySelector({
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={modal}>
+      {externalOpen === undefined && (
       <PopoverTrigger asChild>
+        {customTrigger ? (
+          <span>{customTrigger}</span>
+        ) : (
         <Button
           variant='outline'
           role='combobox'
@@ -459,7 +478,9 @@ export function CategorySelector({
           )}
           <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
         </Button>
+        )}
       </PopoverTrigger>
+      )}
       <PopoverContent className='w-[300px] p-0 shadow-xl' align='start'>
         <div className='h-[400px] flex flex-col'>{Content}</div>
       </PopoverContent>
