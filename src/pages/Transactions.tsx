@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useContexts } from "@/hooks/useContexts";
-import { useGroups, GroupWithMembers } from "@/hooks/useGroups";
+import { useGroups } from "@/hooks/useGroups";
 import { Transaction } from "@/lib/db";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { Button } from "@/components/ui/button";
@@ -19,11 +19,6 @@ import { Plus, Filter, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { TransactionList } from "@/components/TransactionList";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -572,144 +567,52 @@ export function TransactionsPage() {
 
 
 
+  // Advanced filter active indicator
+  const hasAdvancedFilters =
+    filters.text ||
+    filters.dateFrom ||
+    filters.dateTo ||
+    filters.minAmount ||
+    filters.maxAmount ||
+    filters.categoryId !== "all" ||
+    filters.groupFilter !== "all" ||
+    filters.contextFilter !== "all" ||
+    filters.needsReview ||
+    filters.onlySettlements;
+
   return (
-    <div className="space-y-4">
-      {/* First row: Title and action buttons */}
+    <div className="space-y-3">
+      {/* Title row */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <h1 className="text-2xl font-bold">{t("transactions")}</h1>
           <Badge variant="secondary" className="px-2 py-0.5 h-6">
             {filteredTransactions.length}
           </Badge>
-          <div className="hidden md:inline-block text-sm font-medium text-muted-foreground ml-2">
-            {t("total")}:{" "}
-            <span className="text-red-500">
-              -€
-              {Math.abs(
-                filteredTransactions
-                  .filter((t) => t.type === "expense")
-                  .reduce((sum, t) => {
-                    if (!t.group_id) return sum + t.amount;
-                    const group = groups.find((g) => g.id === t.group_id);
-                    if (!group || !("myShare" in group)) return sum + t.amount;
-                    // Type assertion safe because we checked 'myShare' in group
-                    return (
-                      sum +
-                      (t.amount * (group as GroupWithMembers).myShare) / 100
-                    );
-                  }, 0)
-              ).toFixed(2)}
-            </span>
-          </div>
         </div>
         <div className="flex gap-2">
-          {/* Mobile Filter Sheet */}
-          <div className="md:hidden">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent
-                side="left"
-                className="flex flex-col overflow-hidden gap-0"
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
-                <SheetHeader className="shrink-0 pb-4 text-left">
-                  <SheetTitle>{t("filters")}</SheetTitle>
-                </SheetHeader>
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain -mx-2 px-2">
-                  <FilterContent
-                    filters={filters}
-                    setFilters={setFilters}
-                    availableCategories={availableCategories}
-                    groups={groups}
-                    contexts={contexts}
-                    onReset={handleResetFilters}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-
-          {/* Date Selectors - Desktop only */}
-          <div className="hidden md:flex gap-2">
-            <Select
-              value={showAllMonths ? "all" : selectedMonth.split("-")[1]}
-              onValueChange={handleMonthChange}
-            >
-              <SelectTrigger className="w-[130px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((month) => (
-                  <SelectItem key={month.value} value={month.value}>
-                    {month.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedYear} onValueChange={handleYearChange}>
-              <SelectTrigger className="w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((year) => (
-                  <SelectItem key={year} value={year}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Desktop Filter Popover */}
-          <div className="hidden md:block">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Filter className="h-4 w-4" />
-                  {t("filters") || "Filters"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-80 max-h-[var(--radix-popover-content-available-height,85dvh)] overflow-y-auto overscroll-contain p-0"
-                align="end"
-              >
-                <FilterContent
-                  filters={filters}
-                  setFilters={setFilters}
-                  availableCategories={availableCategories}
-                  groups={groups}
-                  contexts={contexts}
-                  onReset={handleResetFilters}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
+          {/* Desktop Add button */}
+          <Button
+            onClick={openNew}
+            size="sm"
+            className="hidden md:flex gap-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            {t("add_transaction")}
+          </Button>
+          {/* Mobile Add button (shown because BottomNav FAB is hidden on this page variant) */}
           <Button
             onClick={openNew}
             size="icon"
-            className="md:w-auto md:px-4 md:h-10"
+            className="md:hidden"
           >
-            <Plus className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">{t("add_transaction")}</span>
+            <Plus className="h-4 w-4" />
           </Button>
-
-          <TransactionDialog
-            open={isOpen}
-            onOpenChange={setIsOpen}
-            onSubmit={handleSubmit}
-            editingTransaction={editingTransaction}
-            initialData={duplicatingTransaction || undefined}
-          />
         </div>
       </div>
 
-      {/* Second row: Date Selectors - Mobile only */}
-      <div className="flex gap-2 md:hidden">
+      {/* Date Selectors row */}
+      <div className="flex gap-2">
         <Select
           value={showAllMonths ? "all" : selectedMonth.split("-")[1]}
           onValueChange={handleMonthChange}
@@ -739,114 +642,116 @@ export function TransactionsPage() {
         </Select>
       </div>
 
-      {/* Mobile Total Row */}
-      <div className="md:hidden flex items-center justify-between bg-muted/30 px-3 py-2 rounded-md">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">{t("total_expenses") || "Total Expenses"}</span>
-          <Badge variant="secondary" className="px-1.5 py-0 h-5 text-[10px]">
-            {filteredTransactions.filter(t => t.type === 'expense').length}
-          </Badge>
-        </div>
-        <span className="text-sm font-bold text-red-500">
-          -€
-          {Math.abs(
-            filteredTransactions
-              .filter((t) => t.type === "expense")
-              .reduce((sum, t) => {
-                if (!t.group_id) return sum + t.amount;
-                const group = groups.find((g) => g.id === t.group_id);
-                if (!group || !("myShare" in group)) return sum + t.amount;
-                return (
-                  sum +
-                  (t.amount * (group as GroupWithMembers).myShare) / 100
-                );
-              }, 0)
-          ).toFixed(2)}
-        </span>
-      </div>
-
-      {/* Active Filters Summary */}
-      {(filters.text ||
-        filters.dateFrom ||
-        filters.dateTo ||
-        filters.minAmount ||
-        filters.maxAmount ||
-        filters.categoryId !== "all" ||
-        filters.type !== "all" ||
-        filters.groupFilter !== "all" ||
-        filters.groupFilter !== "all" ||
-        filters.contextFilter !== "all" ||
-        filters.needsReview ||
-        filters.onlySettlements) && (
-          <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
-            <span>{t("active_filters")}:</span>
-            {filters.text && (
-              <span className="bg-muted px-2 py-1 rounded-md">
-                "{filters.text}"
-              </span>
-            )}
-            {filters.type !== "all" && (
-              <span className="bg-muted px-2 py-1 rounded-md capitalize">
-                {t(filters.type)}
-              </span>
-            )}
-            {filters.groupFilter !== "all" && (
-              <span className="bg-muted px-2 py-1 rounded-md">
-                {filters.groupFilter === "personal"
-                  ? t("personal")
-                  : filters.groupFilter === "group"
-                    ? t("all_groups")
-                    : groups.find((g) => g.id === filters.groupFilter)?.name ||
-                    filters.groupFilter}
-              </span>
-            )}
-            {filters.contextFilter !== "all" && (
-              <span className="bg-muted px-2 py-1 rounded-md">
-                {filters.contextFilter === "none"
-                  ? t("no_contexts")
-                  : contexts.find((c) => c.id === filters.contextFilter)?.name ||
-                  filters.contextFilter}
-              </span>
-            )}
-            {filters.needsReview && (
-              <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-md flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                {t("needs_review") || "Needs Review"}
-              </span>
-            )}
-            {filters.onlySettlements && (
-              <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-md flex items-center gap-1">
-                {t("group_settlement_reset")}
-              </span>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetFilters}
-              className="h-auto p-0 text-destructive hover:text-destructive"
+      {/* Type chip filters + advanced filter button */}
+      <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+        {[
+          { id: "all", label: t("all") },
+          { id: "expense", label: t("expense") },
+          { id: "income", label: t("income") },
+          { id: "investment", label: t("investment") },
+        ].map((f) => (
+          <button
+            key={f.id}
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                type: f.id,
+                categoryId: "all",
+              }))
+            }
+            className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+              filters.type === f.id
+                ? "bg-foreground text-background"
+                : "bg-muted text-foreground/70 hover:bg-muted/80"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+        <div className="flex-1" />
+        {/* Advanced filters */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <button
+              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                hasAdvancedFilters
+                  ? "bg-[hsl(var(--gonuts-orange))] text-white"
+                  : "bg-muted text-foreground/70 hover:bg-muted/80"
+              }`}
             >
-              <X className="h-3 w-3 mr-1" />
-              {t("clear")}
-            </Button>
-          </div>
-        )}
-
-      <div className="flex items-center gap-2">
-        <Button
-          variant={filters.onlySettlements ? "default" : "outline"}
-          size="sm"
-          onClick={() =>
-            setFilters((prev) => ({
-              ...prev,
-              onlySettlements: !prev.onlySettlements,
-            }))
-          }
-        >
-          {t("only_settlements")}
-        </Button>
+              <Filter className="h-3.5 w-3.5" />
+              {t("filters")}
+            </button>
+          </SheetTrigger>
+          <SheetContent
+            side="left"
+            className="flex flex-col overflow-hidden gap-0"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            <SheetHeader className="shrink-0 pb-4 text-left">
+              <SheetTitle>{t("filters")}</SheetTitle>
+            </SheetHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain -mx-2 px-2">
+              <FilterContent
+                filters={filters}
+                setFilters={setFilters}
+                availableCategories={availableCategories}
+                groups={groups}
+                contexts={contexts}
+                onReset={handleResetFilters}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
-      {/* Mobile View: Card Stack */}
+      {/* Active advanced-filters summary chips */}
+      {hasAdvancedFilters && (
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {filters.text && (
+            <span className="bg-muted text-sm px-2.5 py-0.5 rounded-full">
+              "{filters.text}"
+            </span>
+          )}
+          {filters.groupFilter !== "all" && (
+            <span className="bg-muted text-sm px-2.5 py-0.5 rounded-full">
+              {filters.groupFilter === "personal"
+                ? t("personal")
+                : filters.groupFilter === "group"
+                ? t("all_groups")
+                : groups.find((g) => g.id === filters.groupFilter)?.name ||
+                  filters.groupFilter}
+            </span>
+          )}
+          {filters.contextFilter !== "all" && (
+            <span className="bg-muted text-sm px-2.5 py-0.5 rounded-full">
+              {filters.contextFilter === "none"
+                ? t("no_contexts")
+                : contexts.find((c) => c.id === filters.contextFilter)?.name ||
+                  filters.contextFilter}
+            </span>
+          )}
+          {filters.needsReview && (
+            <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 text-sm px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {t("needs_review") || "Needs Review"}
+            </span>
+          )}
+          {filters.onlySettlements && (
+            <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 text-sm px-2.5 py-0.5 rounded-full">
+              {t("only_settlements")}
+            </span>
+          )}
+          <button
+            onClick={handleResetFilters}
+            className="flex items-center gap-1 text-destructive text-sm font-medium"
+          >
+            <X className="h-3 w-3" />
+            {t("clear")}
+          </button>
+        </div>
+      )}
+
       <TransactionList
         transactions={filteredTransactions}
         categories={categories}
@@ -856,6 +761,14 @@ export function TransactionsPage() {
         onDelete={handleDeleteClick}
         onDuplicate={handleDuplicate}
         isLoading={transactions === undefined}
+      />
+
+      <TransactionDialog
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        onSubmit={handleSubmit}
+        editingTransaction={editingTransaction}
+        initialData={duplicatingTransaction || undefined}
       />
 
       <DeleteConfirmDialog

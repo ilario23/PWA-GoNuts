@@ -14,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -111,6 +110,9 @@ export function StatisticsPage() {
   const [comparisonYear, setComparisonYear] = useState<string | undefined>(
     undefined
   );
+
+  // View tab state for monthly breakdown/trend/contexts
+  const [viewTab, setViewTab] = useState<"breakdown" | "trend" | "contexts">("breakdown");
 
   // State for flip cards (yearly view) - which cards show monthly average
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
@@ -268,7 +270,8 @@ export function StatisticsPage() {
   }, [yearlyStats, yearlyNetBalance, monthlyTrendData]);
 
   return (
-    <div className="space-y-6" >
+    <div className="space-y-4">
+      {/* Header: title + back button */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
           {selectedGroup
@@ -286,80 +289,62 @@ export function StatisticsPage() {
         )}
       </div>
 
-      {/* Tabs and filters always visible at the top */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(value: string) =>
-          startTransition(() => setActiveTab(value as "monthly" | "yearly"))
-        }
-      >
-        <TabsList className="grid w-full grid-cols-2 mb-4 dark:bg-primary/20">
-          <TabsTrigger value="monthly">{t("monthly_statistics")}</TabsTrigger>
-          <TabsTrigger value="yearly">{t("yearly_statistics")}</TabsTrigger>
-        </TabsList>
+      {/* Period selector: pill segmented + date selects */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Monthly / Yearly pill segmented */}
+        <div className="inline-flex rounded-full bg-muted p-1 gap-1">
+          {(["monthly", "yearly"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => startTransition(() => setActiveTab(tab))}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                activeTab === tab
+                  ? "bg-foreground text-background"
+                  : "text-foreground/60 hover:text-foreground"
+              }`}
+            >
+              {tab === "monthly" ? t("monthly_statistics") : t("yearly_statistics")}
+            </button>
+          ))}
+        </div>
 
-        {/* Filters - Always visible based on selected tab */}
-        {
-          activeTab === "monthly" ? (
-            <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex flex-col gap-2 min-w-[180px]">
-                <label className="text-sm font-medium">{t("select_month")}</label>
-                <Select
-                  value={selectedMonth.split("-")[1]}
-                  onValueChange={handleMonthChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map((month) => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2 min-w-[140px]">
-                <label className="text-sm font-medium">{t("select_year")}</label>
-                <Select value={selectedYear} onValueChange={handleYearChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex flex-col gap-2 min-w-[140px]">
-                <label className="text-sm font-medium">{t("select_year")}</label>
-                <Select value={selectedYear} onValueChange={handleYearChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )
-        }
-
-        {/* Group Filter Dropdown REMOVED as per user request */}
-        {/* The page now behaves as a dedicated view when accessed from a group card */}
-      </Tabs >
+        {/* Date selectors */}
+        {activeTab === "monthly" ? (
+          <>
+            <Select value={selectedMonth.split("-")[1]} onValueChange={handleMonthChange}>
+              <SelectTrigger className="w-[130px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedYear} onValueChange={handleYearChange}>
+              <SelectTrigger className="w-[100px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        ) : (
+          <Select value={selectedYear} onValueChange={handleYearChange}>
+            <SelectTrigger className="w-[100px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) => (
+                <SelectItem key={year} value={year}>{year}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
 
 
 
@@ -378,6 +363,25 @@ export function StatisticsPage() {
 
 
 
+          {/* View pill tabs (monthly only) */}
+          {activeTab === "monthly" && (
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+              {(["breakdown", "trend", "contexts"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setViewTab(tab)}
+                  className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                    viewTab === tab
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-foreground/60 hover:text-foreground"
+                  }`}
+                >
+                  {tab === "breakdown" ? t("breakdown") : tab === "trend" ? t("trend") : t("contexts")}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Charts based on selected tab */}
           {
             activeTab === "monthly" ? (
@@ -385,7 +389,7 @@ export function StatisticsPage() {
 
 
                 {/* Monthly Charts */}
-                <div className="grid gap-4 md:grid-cols-2 min-w-0">
+                <div className={`grid gap-4 md:grid-cols-2 min-w-0 ${viewTab !== "breakdown" ? "hidden" : ""}`}>
                   {/* Pie Chart - Income vs Expense */}
                   <Card className="flex flex-col min-w-0">
                     <CardHeader className="items-center pb-0">
@@ -437,8 +441,8 @@ export function StatisticsPage() {
                   <BudgetHealthChart />
                 </div>
 
-                {/* Burn Rate / Spending Projection Card */}
-                {settings?.monthly_budget && settings.monthly_budget > 0 && (
+                {/* Burn Rate / Spending Projection Card - Trend tab */}
+                {viewTab === "trend" && settings?.monthly_budget && settings.monthly_budget > 0 && (
                   <StatsBurnRateCard
                     spending={monthlyStats.expense}
                     budget={settings.monthly_budget}
@@ -450,8 +454,8 @@ export function StatisticsPage() {
                   />
                 )}
 
-                {/* Period Comparison Section - Monthly */}
-                <Card className="min-w-0">
+                {/* Period Comparison Section - Monthly - Trend tab */}
+                <Card className={`min-w-0 ${viewTab !== "trend" ? "hidden" : ""}`}>
                   <CardHeader>
                     <CardTitle>{t("period_comparison")}</CardTitle>
                     <CardDescription>
@@ -753,8 +757,8 @@ export function StatisticsPage() {
                   </CardContent>
                 </Card>
 
-                {/* Category Comparison */}
-                {categoryComparison.length > 0 && (
+                {/* Category Comparison - Trend tab */}
+                {viewTab === "trend" && categoryComparison.length > 0 && (
                   <Card className="min-w-0">
                     <CardHeader>
                       <CardTitle>{t("category_comparison")}</CardTitle>
@@ -1490,8 +1494,10 @@ export function StatisticsPage() {
               </Card>
             )}
 
-            {/* Context Analytics - using extracted component */}
-            <StatsContextAnalytics contextStats={contextStats} />
+            {/* Context Analytics - contexts tab (monthly) or always visible (yearly) */}
+            {(activeTab === "yearly" || viewTab === "contexts") && (
+              <StatsContextAnalytics contextStats={contextStats} />
+            )}
 
 
 
@@ -1512,8 +1518,8 @@ export function StatisticsPage() {
               />
             )}
 
-            {/* Budget Health - Monthly Only */}
-            {activeTab === "monthly" && monthlyBudgetHealth.length > 0 && (
+            {/* Budget Health - breakdown tab (monthly) or yearly */}
+            {(activeTab === "yearly" || (activeTab === "monthly" && viewTab === "breakdown")) && monthlyBudgetHealth.length > 0 && (
               <StatsBudgetHealth data={monthlyBudgetHealth} />
             )}
 

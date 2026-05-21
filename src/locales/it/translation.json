@@ -1054,5 +1054,22 @@
   "changelog_v1_0_2_3": "Raffinata logica di chiusura calcolatrice",
   "changelog_v1_0_1_0": "Implementato misuratore forza password",
   "changelog_v1_0_1_1": "Migliorata pagina statistiche (header grafici, stato vuoto)",
-  "changelog_v1_0_0_0": "Rilascio iniziale di GoNuts PWA"
+  "changelog_v1_0_0_0": "Rilascio iniziale di GoNuts PWA",
+  "oggi": "Oggi",
+  "today": "Oggi",
+  "breakdown": "Ripartizione",
+  "trend": "Andamento",
+  "where_it_went": "Come ho speso",
+  "daily_rhythm": "Ritmo giornaliero",
+  "so_far": "finora",
+  "spent_on_transactions": "speso in {{count}} transazioni",
+  "invested": "Investito",
+  "see_all": "Vedi tutto",
+  "manage": "Gestisci",
+  "over_by": "Superato di {{amount}}",
+  "budget_getting_tight": "{{pct}}% — sta stringendo",
+  "of_spend": "della spesa",
+  "recent": "Recenti",
+  "net": "Netto",
+  "saving_rate_short": "Risparmio %"
 }

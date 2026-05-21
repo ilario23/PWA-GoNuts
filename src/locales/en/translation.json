@@ -1057,5 +1057,21 @@
   "changelog_v1_0_2_3": "Refined calculator closing logic",
   "changelog_v1_0_1_0": "Implemented Password Strength Meter",
   "changelog_v1_0_1_1": "Enhanced statistics page (graphs header, empty state)",
-  "changelog_v1_0_0_0": "Initial release of GoNuts PWA"
+  "changelog_v1_0_0_0": "Initial release of GoNuts PWA",
+  "today": "Today",
+  "breakdown": "Breakdown",
+  "trend": "Trend",
+  "where_it_went": "Where it went",
+  "daily_rhythm": "Daily rhythm",
+  "so_far": "so far",
+  "spent_on_transactions": "spent on {{count}} transactions",
+  "invested": "Invested",
+  "see_all": "See all",
+  "manage": "Manage",
+  "over_by": "Over by {{amount}}",
+  "budget_getting_tight": "{{pct}}% — getting tight",
+  "of_spend": "of spend",
+  "recent": "Recent",
+  "net": "Net",
+  "saving_rate_short": "Saving %"
 }
