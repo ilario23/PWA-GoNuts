@@ -73,6 +73,9 @@ const UpdatePasswordPage = lazy(() =>
 const ChangelogPage = lazy(() =>
   import("@/pages/Changelog").then((m) => ({ default: m.ChangelogPage }))
 );
+const MorePage = lazy(() =>
+  import("@/pages/More").then((m) => ({ default: m.MorePage }))
+);
 
 /**
  * Loading fallback for lazy-loaded pages
@@ -390,6 +393,18 @@ function AppRoutes() {
               <Suspense fallback={<PageLoadingFallback />}>
                 <PageTransition>
                   <ChangelogPage />
+                </PageTransition>
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/more"
+          element={
+            <ErrorBoundary section="More" minimal>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <PageTransition>
+                  <MorePage />
                 </PageTransition>
               </Suspense>
             </ErrorBoundary>

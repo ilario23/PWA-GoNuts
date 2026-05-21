@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" media="(prefers-color-scheme: light)" />
     <link rel="icon" type="image/svg+xml" href="/vite-dark.svg" media="(prefers-color-scheme: dark)" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover"
@@ -17,7 +20,7 @@
     />
     <meta name="apple-mobile-web-app-title" content="GoNuts" />
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#FAF6EF" />
     <style>
       /* Critical CSS for initial loading state */
       #app-loading {
@@ -29,22 +32,22 @@
         height: 100dvh;
         padding-top: env(safe-area-inset-top, 0px);
         padding-bottom: env(safe-area-inset-bottom, 0px);
-        font-family: system-ui, -apple-system, sans-serif;
-        background: #fff;
-        color: #333;
+        font-family: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
+        background: #FAF6EF;
+        color: #1A1714;
         box-sizing: border-box;
       }
       @media (prefers-color-scheme: dark) {
         #app-loading {
-          background: #0a0a0a;
-          color: #fafafa;
+          background: #1A1714;
+          color: #FAF6EF;
         }
       }
       #app-loading .spinner {
         width: 40px;
         height: 40px;
-        border: 3px solid #e5e5e5;
-        border-top-color: #3b82f6;
+        border: 3px solid #E7E0D2;
+        border-top-color: #E66A3C;
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }

@@ -10,7 +10,6 @@ import {
   TransactionFormData,
 } from "@/components/TransactionDialog";
 import { useState, useCallback, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { useCategories } from "@/hooks/useCategories";
 import { useGroups } from "@/hooks/useGroups";
 import { useContexts } from "@/hooks/useContexts";
@@ -426,24 +425,6 @@ export function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* Floating Action Button */}
-      {/* Floating Action Button - Rendered in Portal to avoid transform context issues */}
-      {typeof document !== "undefined" &&
-        createPortal(
-          <Button
-            size="icon"
-            className="fixed bottom-8 right-4 h-14 w-14 rounded-full shadow-lg md:hidden z-50 animate-glow"
-            onClick={() => {
-              setEditingTransaction(null);
-              setIsDialogOpen(true);
-            }}
-            data-testid="add-transaction-fab"
-          >
-            <Plus className="h-6 w-6 shrink-0" />
-          </Button>,
-          document.body
-        )}
 
       <TransactionDialog
         open={isDialogOpen}

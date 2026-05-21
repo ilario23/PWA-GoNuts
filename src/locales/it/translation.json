@@ -11,6 +11,8 @@
   "about": "Info",
   "changelog": "Changelog",
   "changelog_desc": "Vedi le novità di questa versione",
+  "categories_desc": "Organizza e gestisci le categorie",
+  "settings_desc": "Preferenze e configurazione dell'app",
   "latest": "Ultima",
   "loading": "Caricamento...",
   "save": "Salva",
