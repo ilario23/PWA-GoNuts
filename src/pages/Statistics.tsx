@@ -57,6 +57,7 @@ import {
 import { format } from "date-fns";
 import { it, enUS } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthProvider";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatsSummaryCards } from "@/components/statistics/StatsSummaryCards";
 import { StatsBurnRateCard } from "@/components/statistics/StatsBurnRateCard";
 import { StatsContextAnalytics } from "@/components/statistics/StatsContextAnalytics";
@@ -268,6 +269,26 @@ export function StatisticsPage() {
     };
   }, [yearlyStats, yearlyNetBalance, monthlyTrendData]);
 
+  // Daily rhythm data (monthly view)
+  const dailyAmounts = useMemo(() => {
+    return dailyCumulativeExpenses.map((d, i) => {
+      const hasData = d.cumulative !== undefined;
+      const prev = i > 0 ? dailyCumulativeExpenses[i - 1].cumulative ?? 0 : 0;
+      const curr = d.cumulative ?? 0;
+      return { day: Number(d.day), value: hasData ? Math.max(0, curr - prev) : 0, hasData };
+    });
+  }, [dailyCumulativeExpenses]);
+
+  const maxDailyAmount = useMemo(
+    () => Math.max(...dailyAmounts.map((d) => d.value), 1),
+    [dailyAmounts]
+  );
+
+  const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
+  const daysInSelectedMonth = new Date(selYear, selMonthNum, 0).getDate();
+  const selectedMonthDisplayName = format(new Date(`${selectedMonth}-01`), "MMM", { locale: dateLocale });
+  const todayDayNum = selectedMonth === format(now, "yyyy-MM") ? now.getDate() : -1;
+
   return (
     <div className="space-y-4">
       {/* Header: title + back button */}
@@ -288,75 +309,67 @@ export function StatisticsPage() {
         )}
       </div>
 
-      {/* Period selector */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Monthly / Yearly pill */}
-        <div className="inline-flex rounded-full bg-muted p-1 gap-1">
-          {(["monthly", "yearly"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => startTransition(() => setActiveTab(tab))}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                activeTab === tab
-                  ? "bg-foreground text-background"
-                  : "text-foreground/60 hover:text-foreground"
-              }`}
-            >
-              {tab === "monthly" ? t("monthly_statistics") : t("yearly_statistics")}
-            </button>
-          ))}
+      {/* Period selector - centered combined control */}
+      <div className="flex items-center justify-center gap-1">
+        <button
+          onClick={() => {
+            if (activeTab === "monthly") {
+              const [y, m] = selectedMonth.split("-").map(Number);
+              const d = new Date(y, m - 2, 1);
+              setSelectedMonth(format(d, "yyyy-MM"));
+              setSelectedYear(format(d, "yyyy"));
+            } else {
+              handleYearChange(String(parseInt(selectedYear) - 1));
+            }
+          }}
+          className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        <div className="inline-flex rounded-[var(--radius)] bg-muted p-1">
+          <button
+            onClick={() => startTransition(() => setActiveTab("monthly"))}
+            className={`px-5 py-2 rounded-[calc(var(--radius)-2px)] text-sm font-semibold transition-colors ${
+              activeTab === "monthly"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-foreground/50 hover:text-foreground"
+            }`}
+          >
+            {format(new Date(`${selectedMonth}-01`), "MMM yyyy", { locale: dateLocale })}
+          </button>
+          <button
+            onClick={() => startTransition(() => setActiveTab("yearly"))}
+            className={`px-5 py-2 rounded-[calc(var(--radius)-2px)] text-sm font-semibold transition-colors ${
+              activeTab === "yearly"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-foreground/50 hover:text-foreground"
+            }`}
+          >
+            {selectedYear}
+          </button>
         </div>
 
-        {/* Period navigator */}
-        {activeTab === "monthly" ? (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => {
-                const [y, m] = selectedMonth.split("-").map(Number);
-                const d = new Date(y, m - 2, 1);
-                setSelectedMonth(format(d, "yyyy-MM"));
-                setSelectedYear(format(d, "yyyy"));
-              }}
-              className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-card text-sm font-semibold min-w-[110px] justify-center">
-              {format(new Date(`${selectedMonth}-01`), "MMM yyyy", { locale: dateLocale })}
-            </div>
-            <button
-              onClick={() => {
-                const [y, m] = selectedMonth.split("-").map(Number);
-                const d = new Date(y, m, 1);
-                setSelectedMonth(format(d, "yyyy-MM"));
-                setSelectedYear(format(d, "yyyy"));
-              }}
-              className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-              disabled={selectedMonth >= format(now, "yyyy-MM")}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => handleYearChange(String(parseInt(selectedYear) - 1))}
-              className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <div className="inline-flex items-center px-3 py-1.5 rounded-full border bg-card text-sm font-semibold min-w-[80px] justify-center num">
-              {selectedYear}
-            </div>
-            <button
-              onClick={() => handleYearChange(String(parseInt(selectedYear) + 1))}
-              className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-              disabled={selectedYear >= format(now, "yyyy")}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+        <button
+          onClick={() => {
+            if (activeTab === "monthly") {
+              const [y, m] = selectedMonth.split("-").map(Number);
+              const d = new Date(y, m, 1);
+              setSelectedMonth(format(d, "yyyy-MM"));
+              setSelectedYear(format(d, "yyyy"));
+            } else {
+              handleYearChange(String(parseInt(selectedYear) + 1));
+            }
+          }}
+          disabled={
+            activeTab === "monthly"
+              ? selectedMonth >= format(now, "yyyy-MM")
+              : selectedYear >= format(now, "yyyy")
+          }
+          className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-30"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
 
 
@@ -375,6 +388,46 @@ export function StatisticsPage() {
           />
 
 
+
+          {/* Daily rhythm - monthly only */}
+          {activeTab === "monthly" && (
+            <section>
+              <h2 className="text-base font-bold mb-2.5">{t("daily_rhythm")}</h2>
+              <div className="rounded-[var(--radius)] border border-border/50 bg-card p-4
+                shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]
+                dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]">
+                {isLoading ? (
+                  <Skeleton className="h-[84px] w-full" />
+                ) : (
+                  <>
+                    <div className="flex items-end gap-[3px] h-[84px]">
+                      {dailyAmounts.map((d) => {
+                        const h = d.hasData ? Math.max(3, (d.value / maxDailyAmount) * 80) : 3;
+                        const isToday = d.day === todayDayNum;
+                        const bg = isToday
+                          ? "hsl(var(--gonuts-orange))"
+                          : d.value > 0
+                          ? "hsl(var(--foreground))"
+                          : "hsl(var(--muted))";
+                        return (
+                          <div
+                            key={d.day}
+                            className="flex-1 rounded-[3px] transition-all"
+                            style={{ height: h, backgroundColor: bg }}
+                          />
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center justify-between mt-2.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                      <span>1 {selectedMonthDisplayName}</span>
+                      {todayDayNum > 0 && <span>{t("today")}</span>}
+                      <span>{daysInSelectedMonth} {selectedMonthDisplayName}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* View pill tabs (monthly only) */}
           {activeTab === "monthly" && (

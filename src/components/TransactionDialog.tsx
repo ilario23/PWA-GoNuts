@@ -5,10 +5,15 @@ import {useGroups} from '@/hooks/useGroups';
 import {useContexts} from '@/hooks/useContexts';
 import {useCategories} from '@/hooks/useCategories';
 import {getLocalDate, cn} from '@/lib/utils';
+import {useIsMobile} from '@/hooks/use-mobile';
 import {
   Sheet,
   SheetContent,
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -106,6 +111,7 @@ export function TransactionDialog({
   initialData,
 }: TransactionDialogProps) {
   const {t} = useTranslation();
+  const isMobile = useIsMobile();
   const {user} = useAuth();
   const {groups} = useGroups();
   const {contexts} = useContexts();
@@ -304,34 +310,24 @@ export function TransactionDialog({
         ? 'hsl(217 92% 58%)'
         : 'hsl(var(--foreground))';
 
-  return (
+  const formHeader = (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side='bottom'
-          hideClose
-          className='rounded-t-[28px] p-0 flex flex-col gap-0 max-h-[92dvh] focus:outline-none overflow-hidden'
-        >
-          {/* Handle */}
-          <div className='mx-auto w-10 h-1 rounded-full bg-muted mt-3 mb-2 shrink-0' />
+      <button
+        type='button'
+        onClick={() => onOpenChange(false)}
+        className='h-9 w-9 rounded-full bg-muted flex items-center justify-center text-foreground'
+      >
+        <X className='h-4 w-4' />
+      </button>
+      <span className='text-xs font-bold uppercase tracking-widest text-muted-foreground'>
+        {editingTransaction ? t('edit_transaction') : t('new_transaction', {defaultValue: 'New transaction'})}
+      </span>
+      <div className='w-9' />
+    </>
+  );
 
-          {/* Header */}
-          <div className='flex items-center justify-between px-5 pb-3 shrink-0'>
-            <button
-              type='button'
-              onClick={() => onOpenChange(false)}
-              className='h-9 w-9 rounded-full bg-muted flex items-center justify-center text-foreground'
-            >
-              <X className='h-4 w-4' />
-            </button>
-            <span className='text-xs font-bold uppercase tracking-widest text-muted-foreground'>
-              {editingTransaction ? t('edit_transaction') : t('new_transaction', {defaultValue: 'New transaction'})}
-            </span>
-            <div className='w-9' />
-          </div>
-
-          {/* Scrollable body */}
-          <div className='flex-1 overflow-y-auto overflow-x-hidden flex flex-col min-h-0'>
+  const formBody = (
+    <div className='flex-1 overflow-y-auto overflow-x-hidden flex flex-col min-h-0'>
             {/* Type segmented */}
             <div className='px-5 pb-4 shrink-0'>
               <div className='grid grid-cols-3 rounded-[14px] bg-muted p-1 gap-1'>
@@ -562,28 +558,77 @@ export function TransactionDialog({
             {/* Spacer */}
             <div className='flex-1 min-h-4' />
           </div>
+  );
 
-          {/* Save button */}
-          <div className='px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] shrink-0 border-t border-border/40'>
-            <button
-              type='button'
-              onClick={form.handleSubmit(handleFormSubmit)}
-              disabled={!canSave}
-              data-testid='save-transaction-button'
-              className={cn(
-                'w-full h-14 rounded-[18px] flex items-center justify-center gap-2',
-                'text-[17px] font-extrabold transition-all',
-                canSave
-                  ? 'bg-[hsl(var(--gonuts-orange))] text-white shadow-[0_4px_16px_-2px_rgba(230,106,60,0.40)] active:scale-[0.98]'
-                  : 'bg-muted text-muted-foreground cursor-not-allowed',
-              )}
-            >
-              <Check className='h-5 w-5' />
-              {editingTransaction ? t('save_changes') : t('add_transaction')}
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
+  const formSaveButton = (
+    <div className='px-5 pt-3 pb-5 shrink-0 border-t border-border/40'>
+      <button
+        type='button'
+        onClick={form.handleSubmit(handleFormSubmit)}
+        disabled={!canSave}
+        data-testid='save-transaction-button'
+        className={cn(
+          'w-full h-14 rounded-[18px] flex items-center justify-center gap-2',
+          'text-[17px] font-extrabold transition-all',
+          canSave
+            ? 'bg-[hsl(var(--gonuts-orange))] text-white shadow-[0_4px_16px_-2px_rgba(230,106,60,0.40)] active:scale-[0.98]'
+            : 'bg-muted text-muted-foreground cursor-not-allowed',
+        )}
+      >
+        <Check className='h-5 w-5' />
+        {editingTransaction ? t('save_changes') : t('add_transaction')}
+      </button>
+    </div>
+  );
+
+  return (
+    <>
+      {isMobile ? (
+        <Sheet open={open} onOpenChange={onOpenChange}>
+          <SheetContent
+            side='bottom'
+            hideClose
+            className='rounded-t-[28px] p-0 flex flex-col gap-0 max-h-[92dvh] focus:outline-none overflow-hidden'
+          >
+            <div className='mx-auto w-10 h-1 rounded-full bg-muted mt-3 mb-2 shrink-0' />
+            <div className='flex items-center justify-between px-5 pb-3 shrink-0'>
+              {formHeader}
+            </div>
+            {formBody}
+            <div className='px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] shrink-0 border-t border-border/40'>
+              <button
+                type='button'
+                onClick={form.handleSubmit(handleFormSubmit)}
+                disabled={!canSave}
+                data-testid='save-transaction-button'
+                className={cn(
+                  'w-full h-14 rounded-[18px] flex items-center justify-center gap-2',
+                  'text-[17px] font-extrabold transition-all',
+                  canSave
+                    ? 'bg-[hsl(var(--gonuts-orange))] text-white shadow-[0_4px_16px_-2px_rgba(230,106,60,0.40)] active:scale-[0.98]'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed',
+                )}
+              >
+                <Check className='h-5 w-5' />
+                {editingTransaction ? t('save_changes') : t('add_transaction')}
+              </button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent
+            hideClose
+            className='p-0 flex flex-col gap-0 max-h-[85dvh] w-full max-w-[460px] focus:outline-none overflow-hidden rounded-[28px] border-0 shadow-2xl'
+          >
+            <div className='flex items-center justify-between px-5 pb-3 pt-5 shrink-0'>
+              {formHeader}
+            </div>
+            {formBody}
+            {formSaveButton}
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Category picker (headless — no trigger rendered) */}
       <CategorySelector
