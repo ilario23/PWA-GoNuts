@@ -167,6 +167,11 @@ export function Dashboard() {
     [dailyAmounts]
   );
 
+  const hasDailyData = useMemo(
+    () => dailyAmounts.some((d) => d.value > 0),
+    [dailyAmounts]
+  );
+
   const today = now.getDate();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
@@ -504,6 +509,10 @@ export function Dashboard() {
           dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]">
           {isLoading ? (
             <Skeleton className="h-[84px] w-full" />
+          ) : !hasDailyData ? (
+            <div className="flex items-center justify-center h-[84px] text-sm text-muted-foreground">
+              {t("no_spending_this_month")}
+            </div>
           ) : (
             <>
               <div className="flex items-end gap-[3px] h-[84px]">

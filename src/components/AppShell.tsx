@@ -1,10 +1,9 @@
 import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { SidebarInset, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Squirrel, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { applyThemeColor } from "@/lib/theme-colors";
 import { useTheme } from "next-themes";
@@ -13,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
 
 function AppHeader() {
-  const { t } = useTranslation();
   const { isMobile } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
@@ -43,10 +41,6 @@ function AppHeader() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 mt-1">
-            <Squirrel className="size-5 text-primary" />
-            <h1 className="font-semibold text-lg">{t("app_title")}</h1>
-          </div>
           {/* Pending Changes Indicator */}
           <div className="ml-auto">
             <PendingChangesIndicator />

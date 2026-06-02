@@ -57,7 +57,14 @@ export function StatsSummaryCards({
     // Helper to render value or placeholder
     const renderAnimatedValue = (value: number, prefix: string = "", suffix: string = "", decimals: number = 2) => {
         if (value === 0) {
-            return <span className="text-muted-foreground">-</span>;
+            const symbol = prefix.replace(/[+-]/g, "");
+            return (
+                <span className="text-muted-foreground">
+                    {symbol}
+                    {(0).toFixed(decimals)}
+                    {suffix}
+                </span>
+            );
         }
         return (
             <CountUp

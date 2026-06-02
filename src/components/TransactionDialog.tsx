@@ -9,10 +9,14 @@ import {useIsMobile} from '@/hooks/use-mobile';
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet';
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -590,6 +594,12 @@ export function TransactionDialog({
             hideClose
             className='rounded-t-[28px] p-0 flex flex-col gap-0 max-h-[92dvh] focus:outline-none overflow-hidden'
           >
+            <SheetTitle className='sr-only'>
+              {editingTransaction ? t('edit_transaction') : t('new_transaction', {defaultValue: 'New transaction'})}
+            </SheetTitle>
+            <SheetDescription className='sr-only'>
+              {t('new_transaction', {defaultValue: 'New transaction'})}
+            </SheetDescription>
             <div className='mx-auto w-10 h-1 rounded-full bg-muted mt-3 mb-2 shrink-0' />
             <div className='flex items-center justify-between px-5 pb-3 shrink-0'>
               {formHeader}
@@ -621,6 +631,12 @@ export function TransactionDialog({
             hideClose
             className='p-0 flex flex-col gap-0 max-h-[85dvh] w-full max-w-[460px] focus:outline-none overflow-hidden rounded-[28px] border-0 shadow-2xl'
           >
+            <DialogTitle className='sr-only'>
+              {editingTransaction ? t('edit_transaction') : t('new_transaction', {defaultValue: 'New transaction'})}
+            </DialogTitle>
+            <DialogDescription className='sr-only'>
+              {t('new_transaction', {defaultValue: 'New transaction'})}
+            </DialogDescription>
             <div className='flex items-center justify-between px-5 pb-3 pt-5 shrink-0'>
               {formHeader}
             </div>

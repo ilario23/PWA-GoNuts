@@ -323,7 +323,6 @@ export function SettingsPage() {
       <Eyebrow>{t("general") || "General"}</Eyebrow>
       <Card className="overflow-hidden">
         <SettingsRow first icon={Languages} color="#3D7CB8" label={t("language")}
-          value={settings.language === "it" ? t("language_it") : t("language_en")}
           action={
             <Select value={settings.language || "en"} onValueChange={(value) => {
               updateSettings({ language: value });
@@ -364,7 +363,7 @@ export function SettingsPage() {
               return (
                 <button key={color.name} onClick={() => updateSettings({ accentColor: color.name })}
                   className={cn("relative h-8 w-full rounded-[8px] border-2 transition-all touch-manipulation hover:scale-105 active:scale-95",
-                    isSelected ? "border-foreground ring-2 ring-offset-1 ring-foreground" : "border-transparent"
+                    isSelected ? "border-foreground ring-2 ring-offset-1 ring-foreground" : "border-border/60"
                   )}
                   style={{ backgroundColor: `hsl(${mounted && resolvedTheme === "dark" ? color.dark.primary : color.light.primary})` }}
                   title={t(color.name)}>
