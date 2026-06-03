@@ -36,6 +36,8 @@ import {
   DrawerDescription,
 } from '@/components/ui/drawer';
 import {CategorySelector} from '@/components/CategorySelector';
+import {Calculator} from '@/components/Calculator';
+import {Collapsible, CollapsibleContent} from '@/components/ui/collapsible';
 import {
   X,
   Calendar,
@@ -46,6 +48,7 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   TrendingUp,
+  Calculator as CalculatorIcon,
 } from 'lucide-react';
 import {useCategoryBudgets} from '@/hooks/useCategoryBudgets';
 import {useForm} from 'react-hook-form';
@@ -127,10 +130,12 @@ export function TransactionDialog({
   const [contextPickerOpen, setContextPickerOpen] = useState(false);
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
 
+  const [showCalc, setShowCalc] = useState(false);
   const [calcState, setCalcState] = useState<{
     prevValue: number | null;
     operation: string | null;
-  }>({prevValue: null, operation: null});
+    awaitingOperand: boolean;
+  }>({prevValue: null, operation: null, awaitingOperand: false});
 
   const [showLargeValueConfirm, setShowLargeValueConfirm] = useState(false);
   const [pendingData, setPendingData] = useState<TransactionFormValues | null>(null);
@@ -190,7 +195,8 @@ export function TransactionDialog({
           paid_by_member_id: null,
         });
       }
-      setCalcState({prevValue: null, operation: null});
+      setCalcState({prevValue: null, operation: null, awaitingOperand: false});
+      setShowCalc(false);
       setCategoryOpen(false);
       setContextPickerOpen(false);
       setGroupPickerOpen(false);
@@ -247,6 +253,81 @@ export function TransactionDialog({
       return isNaN(parsed) ? 0 : parsed;
     }
     return 0;
+  };
+
+  const computeCalc = (a: number, op: string, b: number): number => {
+    let result: number;
+    switch (op) {
+      case '+':
+        result = a + b;
+        break;
+      case '-':
+        result = a - b;
+        break;
+      case '*':
+        result = a * b;
+        break;
+      case '/':
+        result = b === 0 ? a : a / b;
+        break;
+      default:
+        result = b;
+    }
+    return Math.round(result * 100) / 100;
+  };
+
+  const isAmountEmpty = () => {
+    const v = watchedAmount as unknown;
+    return v === '' || v === null || v === undefined;
+  };
+
+  const handleOperation = (op: string) => {
+    // Swap the pending operation if the running total is still untouched.
+    if (calcState.awaitingOperand) {
+      setCalcState((s) => ({...s, operation: op}));
+      return;
+    }
+    // Nothing to operate on yet.
+    if (isAmountEmpty() && calcState.prevValue === null) return;
+    const current = parseAmount(watchedAmount);
+    let prev = current;
+    if (calcState.prevValue !== null && calcState.operation) {
+      prev = computeCalc(calcState.prevValue, calcState.operation, current);
+    }
+    setCalcState({prevValue: prev, operation: op, awaitingOperand: true});
+    // Prepopulate the running total — the next keystroke overwrites it.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form.setValue('amount', String(prev) as any, {shouldValidate: true});
+  };
+
+  const handleEqual = () => {
+    if (calcState.prevValue === null || !calcState.operation) return;
+    const operand = parseAmount(watchedAmount);
+    const result = computeCalc(calcState.prevValue, calcState.operation, operand);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form.setValue('amount', String(result) as any, {shouldValidate: true});
+    setCalcState({prevValue: null, operation: null, awaitingOperand: false});
+  };
+
+  const handleClear = () => {
+    if (isAmountEmpty()) {
+      // Nothing to clear in the operand — cancel any pending operation.
+      setCalcState({prevValue: null, operation: null, awaitingOperand: false});
+      return;
+    }
+    // Clear the operand but keep the pending operation so a new operand can be typed.
+    setCalcState((s) => ({...s, awaitingOperand: false}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form.setValue('amount', '' as any, {shouldValidate: true});
+  };
+
+  const toggleCalc = () => {
+    setShowCalc((prev) => {
+      const next = !prev;
+      // Closing the calculator cancels any pending operation (keeps the shown amount).
+      if (!next) setCalcState({prevValue: null, operation: null, awaitingOperand: false});
+      return next;
+    });
   };
 
   const finalSubmit = async (data: TransactionFormValues) => {
@@ -357,7 +438,7 @@ export function TransactionDialog({
             </div>
 
             {/* Amount */}
-            <div className='text-center px-5 pb-1 shrink-0'>
+            <div className='relative text-center px-5 pb-1 shrink-0'>
               <div className='inline-flex items-baseline gap-1'>
                 <span className='text-3xl font-bold text-muted-foreground'>{currencySymbol}</span>
                 <input
@@ -366,7 +447,21 @@ export function TransactionDialog({
                   placeholder='0'
                   value={String((watchedAmount as unknown) ?? '')}
                   onChange={(e) => {
-                    const v = e.target.value;
+                    let v = e.target.value;
+                    // While the prepopulated total is shown, the first keystroke starts the
+                    // new operand: strip the total we appended onto.
+                    if (calcState.awaitingOperand) {
+                      const prevStr = String(calcState.prevValue ?? '');
+                      if (v.length > prevStr.length && v.startsWith(prevStr)) {
+                        v = v.slice(prevStr.length);
+                      }
+                      if (v === '' || /^[0-9]*([.,][0-9]{0,2})?$/.test(v)) {
+                        setCalcState((s) => ({...s, awaitingOperand: false}));
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        form.setValue('amount', v as any, {shouldValidate: true});
+                      }
+                      return;
+                    }
                     if (v === '' || /^[0-9]*([.,][0-9]{0,2})?$/.test(v)) {
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       form.setValue('amount', v as any, {shouldValidate: true});
@@ -382,7 +477,33 @@ export function TransactionDialog({
                   {calcState.operation === '/' ? '÷' : calcState.operation === '*' ? '×' : calcState.operation}
                 </div>
               )}
+              <button
+                type='button'
+                onClick={toggleCalc}
+                aria-label={t('calculator', {defaultValue: 'Calculator'})}
+                aria-pressed={showCalc}
+                className={cn(
+                  'absolute right-5 top-1 h-9 w-9 rounded-full flex items-center justify-center transition-colors active:scale-95',
+                  showCalc ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground',
+                )}
+              >
+                <CalculatorIcon className='h-4 w-4' />
+              </button>
             </div>
+
+            {/* Calculator */}
+            <Collapsible open={showCalc} className='shrink-0'>
+              <CollapsibleContent>
+                <div className='px-5 pb-4 pt-1'>
+                  <Calculator
+                    activeOperation={calcState.operation}
+                    onOperation={handleOperation}
+                    onEqual={handleEqual}
+                    onClear={handleClear}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* Description */}
             <div className='px-5 pb-5 shrink-0'>
