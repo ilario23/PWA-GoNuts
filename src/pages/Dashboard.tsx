@@ -2,6 +2,8 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useStatistics } from "@/hooks/useStatistics";
 import { useSettings } from "@/hooks/useSettings";
 import { useCategories } from "@/hooks/useCategories";
+import { useContexts } from "@/hooks/useContexts";
+import { useGroups } from "@/hooks/useGroups";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { ArrowDownLeft, ArrowUpRight, TrendingUp, ChevronRight, Plus } from "lucide-react";
@@ -9,7 +11,11 @@ import {
   TransactionDialog,
   TransactionFormData,
 } from "@/components/TransactionDialog";
-import { createElement, useState, useCallback, useMemo } from "react";
+import { TransactionList } from "@/components/TransactionList";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { TransactionFormValues } from "@/lib/schemas";
+import { toast } from "sonner";
+import { useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -27,65 +33,17 @@ function getCurrencySymbol(code: string): string {
   );
 }
 
-// Transaction row for the "Recent" section
-function RecentTxRow({
-  tx,
-  catName,
-  catColor,
-  catIcon,
-  currencySymbol,
-  onEdit,
-}: {
-  tx: Transaction;
-  catName: string;
-  catColor: string;
-  catIcon: string;
-  currencySymbol: string;
-  onEdit: (tx: Transaction) => void;
-}) {
-  const IconComponent = getIconComponent(catIcon);
-  const sign = tx.type === "income" ? "+" : tx.type === "investment" ? "↗" : "−";
-  const amountColor =
-    tx.type === "income"
-      ? "text-[hsl(var(--gonuts-good))]"
-      : tx.type === "investment"
-      ? "text-[hsl(var(--color-investment))]"
-      : "text-foreground";
-
-  return (
-    <button
-      onClick={() => onEdit(tx)}
-      className="flex items-center gap-3 w-full py-3 text-left"
-    >
-      <span
-        className="flex items-center justify-center w-10 h-10 rounded-[14px] shrink-0"
-        style={{ backgroundColor: catColor, color: "#fff" }}
-      >
-        {IconComponent ? (
-          createElement(IconComponent, { className: "w-5 h-5" })
-        ) : (
-          <span className="text-xs font-bold">{catName[0]}</span>
-        )}
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-[15px] truncate leading-tight">
-          {tx.description || catName}
-        </div>
-        <div className="text-xs text-muted-foreground mt-0.5 truncate">{catName}</div>
-      </div>
-      <span className={cn("num font-bold text-[15px] whitespace-nowrap", amountColor)}>
-        {sign}
-        {currencySymbol}
-        {tx.amount.toFixed(2)}
-      </span>
-    </button>
-  );
-}
-
 export function Dashboard() {
-  const { transactions, addTransaction, updateTransaction } =
-    useTransactions();
+  const {
+    transactions,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    restoreTransaction,
+  } = useTransactions();
   const { categories } = useCategories();
+  const { contexts } = useContexts();
+  const { groups } = useGroups();
   const { settings } = useSettings();
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -181,11 +139,49 @@ export function Dashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
+  const [duplicatingTransaction, setDuplicatingTransaction] =
+    useState<TransactionFormValues | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleEdit = useCallback((tx: Transaction) => {
     setEditingTransaction(tx);
+    setDuplicatingTransaction(null);
     setIsDialogOpen(true);
   }, []);
+
+  const handleDuplicate = useCallback((tx: Transaction) => {
+    setEditingTransaction(null);
+    setDuplicatingTransaction({
+      amount: tx.amount,
+      description: tx.description,
+      type: tx.type,
+      category_id: tx.category_id,
+      date: format(new Date(), "yyyy-MM-dd"),
+      context_id: tx.context_id || null,
+      group_id: tx.group_id || null,
+      paid_by_member_id: tx.paid_by_member_id || null,
+    });
+    setIsDialogOpen(true);
+  }, []);
+
+  const handleDeleteClick = useCallback((id: string) => {
+    setDeletingId(id);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!deletingId) return;
+    const idToRestore = deletingId;
+    deleteTransaction(deletingId);
+    toast.success(t("transaction_deleted"), {
+      action: {
+        label: t("undo"),
+        onClick: () => restoreTransaction(idToRestore),
+      },
+    });
+    setDeletingId(null);
+  }, [deletingId, deleteTransaction, restoreTransaction, t]);
 
   const handleSubmit = useCallback(
     async (data: TransactionFormData) => {
@@ -218,13 +214,17 @@ export function Dashboard() {
       }
       setIsDialogOpen(false);
       setEditingTransaction(null);
+      setDuplicatingTransaction(null);
     },
     [user, addTransaction, updateTransaction, editingTransaction]
   );
 
   const handleOpenChange = useCallback((open: boolean) => {
     setIsDialogOpen(open);
-    if (!open) setEditingTransaction(null);
+    if (!open) {
+      setEditingTransaction(null);
+      setDuplicatingTransaction(null);
+    }
   }, []);
 
   return (
@@ -549,40 +549,16 @@ export function Dashboard() {
             <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="rounded-[var(--radius)] border border-border/50 bg-card px-4
-          shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]
-          dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]">
-          {isLoading ? (
-            <div className="py-3 space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
-          ) : recentTransactions.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              {t("no_transactions")}
-            </p>
-          ) : (
-            <div>
-              {recentTransactions.map((tx, i) => {
-                const cat = catMap.get(tx.category_id ?? "");
-                return (
-                  <div
-                    key={tx.id}
-                    className={cn(i > 0 && "border-t border-border/40")}
-                  >
-                    <RecentTxRow
-                      tx={tx}
-                      catName={cat?.name ?? t("uncategorized", { defaultValue: "Uncategorized" })}
-                      catColor={cat?.color ?? "#888"}
-                      catIcon={cat?.icon ?? "Folder"}
-                      currencySymbol={currencySymbol}
-                      onEdit={handleEdit}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <TransactionList
+          transactions={recentTransactions}
+          categories={categories}
+          contexts={contexts}
+          groups={groups}
+          onEdit={handleEdit}
+          onDelete={handleDeleteClick}
+          onDuplicate={handleDuplicate}
+          isLoading={transactions === undefined}
+        />
       </section>
 
       <TransactionDialog
@@ -590,6 +566,18 @@ export function Dashboard() {
         onOpenChange={handleOpenChange}
         onSubmit={handleSubmit}
         editingTransaction={editingTransaction}
+        initialData={duplicatingTransaction || undefined}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        title={t("confirm_delete_transaction") || t("confirm_delete")}
+        description={
+          t("confirm_delete_transaction_description") ||
+          t("confirm_delete_description")
+        }
       />
     </div>
   );

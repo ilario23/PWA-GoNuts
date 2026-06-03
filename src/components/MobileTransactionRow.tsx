@@ -73,21 +73,21 @@ export function MobileTransactionRow({
         }
         aria-label={`${transaction.description}, ${(personalAmount ?? transaction.amount).toFixed(2)}`}
       >
-        {/* Category icon */}
+        {/* Category icon — solid fill, white glyph (matches dashboard) */}
         <div
-          className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 ring-1 ring-inset ring-foreground/[0.05] transition-transform duration-150 ease-out group-active:scale-95"
+          className="h-10 w-10 rounded-[14px] flex items-center justify-center shrink-0 transition-transform duration-150 ease-out group-active:scale-95"
           style={{
-            backgroundColor: category?.color
-              ? `${category.color}1f`
-              : "hsl(var(--muted))",
-            color: category?.color || "hsl(var(--muted-foreground))",
+            backgroundColor: category?.color || "hsl(var(--muted))",
+            color: "#fff",
           }}
           aria-hidden="true"
         >
           {IconComp ? (
-            createElement(IconComp, { className: "h-[18px] w-[18px]" })
+            createElement(IconComp, { className: "h-5 w-5" })
           ) : (
-            <div className="h-[18px] w-[18px] rounded-full bg-muted-foreground/30" />
+            <span className="text-xs font-bold">
+              {(category?.name || transaction.description || "?")[0]}
+            </span>
           )}
         </div>
 
