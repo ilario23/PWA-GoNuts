@@ -14,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -26,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import {
   PieChart,
   Pie,
+  Label,
   Bar,
   XAxis,
   YAxis,
@@ -51,10 +51,13 @@ import {
   ArrowUp,
   ArrowDown,
   TrendingUp,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
 import { it, enUS } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthProvider";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatsSummaryCards } from "@/components/statistics/StatsSummaryCards";
 import { StatsBurnRateCard } from "@/components/statistics/StatsBurnRateCard";
 import { StatsContextAnalytics } from "@/components/statistics/StatsContextAnalytics";
@@ -111,6 +114,9 @@ export function StatisticsPage() {
   const [comparisonYear, setComparisonYear] = useState<string | undefined>(
     undefined
   );
+
+  // View tab state for monthly breakdown/trend/contexts
+  const [viewTab, setViewTab] = useState<"breakdown" | "trend" | "contexts">("breakdown");
 
   // State for flip cards (yearly view) - which cards show monthly average
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
@@ -238,10 +244,6 @@ export function StatisticsPage() {
     { value: "12", label: t("december") },
   ];
 
-  const handleMonthChange = (monthValue: string) => {
-    setSelectedMonth(`${selectedYear}-${monthValue}`);
-  };
-
   const handleYearChange = (year: string) => {
     setSelectedYear(year);
     if (activeTab === "monthly") {
@@ -267,8 +269,34 @@ export function StatisticsPage() {
     };
   }, [yearlyStats, yearlyNetBalance, monthlyTrendData]);
 
+  // Daily rhythm data (monthly view)
+  const dailyAmounts = useMemo(() => {
+    return dailyCumulativeExpenses.map((d, i) => {
+      const hasData = d.cumulative !== undefined;
+      const prev = i > 0 ? dailyCumulativeExpenses[i - 1].cumulative ?? 0 : 0;
+      const curr = d.cumulative ?? 0;
+      return { day: Number(d.day), value: hasData ? Math.max(0, curr - prev) : 0, hasData };
+    });
+  }, [dailyCumulativeExpenses]);
+
+  const maxDailyAmount = useMemo(
+    () => Math.max(...dailyAmounts.map((d) => d.value), 1),
+    [dailyAmounts]
+  );
+
+  const hasDailyData = useMemo(
+    () => dailyAmounts.some((d) => d.value > 0),
+    [dailyAmounts]
+  );
+
+  const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
+  const daysInSelectedMonth = new Date(selYear, selMonthNum, 0).getDate();
+  const selectedMonthDisplayName = format(new Date(`${selectedMonth}-01`), "MMM", { locale: dateLocale });
+  const todayDayNum = selectedMonth === format(now, "yyyy-MM") ? now.getDate() : -1;
+
   return (
-    <div className="space-y-6" >
+    <div className="space-y-4">
+      {/* Header: title + back button */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
           {selectedGroup
@@ -286,80 +314,68 @@ export function StatisticsPage() {
         )}
       </div>
 
-      {/* Tabs and filters always visible at the top */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(value: string) =>
-          startTransition(() => setActiveTab(value as "monthly" | "yearly"))
-        }
-      >
-        <TabsList className="grid w-full grid-cols-2 mb-4 dark:bg-primary/20">
-          <TabsTrigger value="monthly">{t("monthly_statistics")}</TabsTrigger>
-          <TabsTrigger value="yearly">{t("yearly_statistics")}</TabsTrigger>
-        </TabsList>
+      {/* Period selector - centered combined control */}
+      <div className="flex items-center justify-center gap-1">
+        <button
+          onClick={() => {
+            if (activeTab === "monthly") {
+              const [y, m] = selectedMonth.split("-").map(Number);
+              const d = new Date(y, m - 2, 1);
+              setSelectedMonth(format(d, "yyyy-MM"));
+              setSelectedYear(format(d, "yyyy"));
+            } else {
+              handleYearChange(String(parseInt(selectedYear) - 1));
+            }
+          }}
+          className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
 
-        {/* Filters - Always visible based on selected tab */}
-        {
-          activeTab === "monthly" ? (
-            <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex flex-col gap-2 min-w-[180px]">
-                <label className="text-sm font-medium">{t("select_month")}</label>
-                <Select
-                  value={selectedMonth.split("-")[1]}
-                  onValueChange={handleMonthChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map((month) => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2 min-w-[140px]">
-                <label className="text-sm font-medium">{t("select_year")}</label>
-                <Select value={selectedYear} onValueChange={handleYearChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex flex-col gap-2 min-w-[140px]">
-                <label className="text-sm font-medium">{t("select_year")}</label>
-                <Select value={selectedYear} onValueChange={handleYearChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )
-        }
+        <div className="inline-flex rounded-[var(--radius)] bg-muted p-1">
+          <button
+            onClick={() => startTransition(() => setActiveTab("monthly"))}
+            className={`px-5 py-2 rounded-[calc(var(--radius)-2px)] text-sm font-semibold transition-colors ${
+              activeTab === "monthly"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {format(new Date(`${selectedMonth}-01`), "MMM yyyy", { locale: dateLocale })}
+          </button>
+          <button
+            onClick={() => startTransition(() => setActiveTab("yearly"))}
+            className={`px-5 py-2 rounded-[calc(var(--radius)-2px)] text-sm font-semibold transition-colors ${
+              activeTab === "yearly"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {selectedYear}
+          </button>
+        </div>
 
-        {/* Group Filter Dropdown REMOVED as per user request */}
-        {/* The page now behaves as a dedicated view when accessed from a group card */}
-      </Tabs >
+        <button
+          onClick={() => {
+            if (activeTab === "monthly") {
+              const [y, m] = selectedMonth.split("-").map(Number);
+              const d = new Date(y, m, 1);
+              setSelectedMonth(format(d, "yyyy-MM"));
+              setSelectedYear(format(d, "yyyy"));
+            } else {
+              handleYearChange(String(parseInt(selectedYear) + 1));
+            }
+          }}
+          disabled={
+            activeTab === "monthly"
+              ? selectedMonth >= format(now, "yyyy-MM")
+              : selectedYear >= format(now, "yyyy")
+          }
+          className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-30"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
 
 
 
@@ -378,6 +394,69 @@ export function StatisticsPage() {
 
 
 
+          {/* Daily rhythm - monthly only */}
+          {activeTab === "monthly" && (
+            <section>
+              <h2 className="text-base font-bold mb-2.5">{t("daily_rhythm")}</h2>
+              <div className="rounded-[var(--radius)] border border-border/50 bg-card p-4
+                shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]
+                dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]">
+                {isLoading ? (
+                  <Skeleton className="h-[84px] w-full" />
+                ) : !hasDailyData ? (
+                  <div className="flex items-center justify-center h-[84px] text-sm text-muted-foreground">
+                    {t("no_spending_this_month")}
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-end gap-[3px] h-[84px]">
+                      {dailyAmounts.map((d) => {
+                        const h = d.hasData ? Math.max(3, (d.value / maxDailyAmount) * 80) : 3;
+                        const isToday = d.day === todayDayNum;
+                        const bg = isToday
+                          ? "hsl(var(--gonuts-orange))"
+                          : d.value > 0
+                          ? "hsl(var(--foreground))"
+                          : "hsl(var(--muted))";
+                        return (
+                          <div
+                            key={d.day}
+                            className="flex-1 rounded-[3px] transition-all"
+                            style={{ height: h, backgroundColor: bg }}
+                          />
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center justify-between mt-2.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                      <span>1 {selectedMonthDisplayName}</span>
+                      {todayDayNum > 0 && <span>{t("today")}</span>}
+                      <span>{daysInSelectedMonth} {selectedMonthDisplayName}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* View pill tabs (monthly + yearly) */}
+          {(
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+              {(["breakdown", "trend", "contexts"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setViewTab(tab)}
+                  className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                    viewTab === tab
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-foreground/80 hover:text-foreground"
+                  }`}
+                >
+                  {tab === "breakdown" ? t("breakdown") : tab === "trend" ? t("trend") : t("contexts")}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Charts based on selected tab */}
           {
             activeTab === "monthly" ? (
@@ -385,7 +464,7 @@ export function StatisticsPage() {
 
 
                 {/* Monthly Charts */}
-                <div className="grid gap-4 md:grid-cols-2 min-w-0">
+                <div className={`grid gap-4 md:grid-cols-2 min-w-0 ${viewTab !== "breakdown" ? "hidden" : ""}`}>
                   {/* Pie Chart - Income vs Expense */}
                   <Card className="flex flex-col min-w-0">
                     <CardHeader className="items-center pb-0">
@@ -406,9 +485,41 @@ export function StatisticsPage() {
                               data={pieData}
                               dataKey="value"
                               nameKey="name"
-                              innerRadius={60}
-                              strokeWidth={5}
-                            />
+                              innerRadius={70}
+                              strokeWidth={4}
+                            >
+                              <Label
+                                content={({ viewBox }) => {
+                                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                    const { cx, cy } = viewBox as { cx: number; cy: number };
+                                    return (
+                                      <g>
+                                        <text
+                                          x={cx}
+                                          y={cy - 8}
+                                          textAnchor="middle"
+                                          dominantBaseline="middle"
+                                          className="fill-foreground"
+                                          style={{ fontSize: 20, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}
+                                        >
+                                          €{Math.round(currentStats.expense).toLocaleString()}
+                                        </text>
+                                        <text
+                                          x={cx}
+                                          y={cy + 14}
+                                          textAnchor="middle"
+                                          dominantBaseline="middle"
+                                          className="fill-muted-foreground"
+                                          style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase" }}
+                                        >
+                                          {t("spent")}
+                                        </text>
+                                      </g>
+                                    );
+                                  }
+                                }}
+                              />
+                            </Pie>
                             <ChartLegend
                               content={
                                 <ChartLegendContent className="flex-wrap gap-2" />
@@ -437,8 +548,8 @@ export function StatisticsPage() {
                   <BudgetHealthChart />
                 </div>
 
-                {/* Burn Rate / Spending Projection Card */}
-                {settings?.monthly_budget && settings.monthly_budget > 0 && (
+                {/* Burn Rate / Spending Projection Card - Trend tab */}
+                {viewTab === "trend" && settings?.monthly_budget && settings.monthly_budget > 0 && (
                   <StatsBurnRateCard
                     spending={monthlyStats.expense}
                     budget={settings.monthly_budget}
@@ -450,8 +561,8 @@ export function StatisticsPage() {
                   />
                 )}
 
-                {/* Period Comparison Section - Monthly */}
-                <Card className="min-w-0">
+                {/* Period Comparison Section - Monthly - Trend tab */}
+                <Card className={`min-w-0 ${viewTab !== "trend" ? "hidden" : ""}`}>
                   <CardHeader>
                     <CardTitle>{t("period_comparison")}</CardTitle>
                     <CardDescription>
@@ -532,7 +643,7 @@ export function StatisticsPage() {
                         <div className="text-sm text-muted-foreground">
                           {t("income")}
                         </div>
-                        <div className="text-xl font-bold">
+                        <div className="num text-xl font-bold">
                           {monthlyComparison.income.current === 0
                             ? "-"
                             : `€${monthlyComparison.income.current.toFixed(0)}`
@@ -563,7 +674,7 @@ export function StatisticsPage() {
                         <div className="text-sm text-muted-foreground">
                           {t("expense")}
                         </div>
-                        <div className="text-xl font-bold">
+                        <div className="num text-xl font-bold">
                           €{monthlyComparison.expense.current.toFixed(0)}
                         </div>
                         <div
@@ -593,7 +704,7 @@ export function StatisticsPage() {
                           {t("balance")}
                         </div>
                         <div
-                          className={`text-xl font-bold ${monthlyComparison.balance.current >= 0
+                          className={`num text-xl font-bold ${monthlyComparison.balance.current >= 0
                             ? "text-green-500"
                             : "text-red-500"
                             }`}
@@ -626,7 +737,7 @@ export function StatisticsPage() {
                           {t("saving_rate")}
                         </div>
                         <div
-                          className={`text-xl font-bold ${monthlyComparison.savingRate.current >= 0
+                          className={`num text-xl font-bold ${monthlyComparison.savingRate.current >= 0
                             ? "text-green-500"
                             : "text-red-500"
                             }`}
@@ -753,8 +864,8 @@ export function StatisticsPage() {
                   </CardContent>
                 </Card>
 
-                {/* Category Comparison */}
-                {categoryComparison.length > 0 && (
+                {/* Category Comparison - Trend tab */}
+                {viewTab === "trend" && categoryComparison.length > 0 && (
                   <Card className="min-w-0">
                     <CardHeader>
                       <CardTitle>{t("category_comparison")}</CardTitle>
@@ -847,7 +958,7 @@ export function StatisticsPage() {
             ) : (
               <div className="space-y-4">
                 {/* Radar Charts Row */}
-                <div className="grid gap-4 md:grid-cols-3 min-w-0">
+                <div className={`grid gap-4 md:grid-cols-3 min-w-0 ${viewTab !== "breakdown" ? "hidden" : ""}`}>
                   {/* Expenses Radar Chart */}
                   <Card className="flex flex-col min-w-0">
                     <CardHeader className="items-center pb-4">
@@ -990,7 +1101,7 @@ export function StatisticsPage() {
                 </div>
 
                 {/* Category Distribution & Expense Breakdown Row */}
-                <div className="grid gap-4 md:grid-cols-2 min-w-0">
+                <div className={`grid gap-4 md:grid-cols-2 min-w-0 ${viewTab !== "breakdown" ? "hidden" : ""}`}>
                   {/* Category Distribution - Hybrid Component (Yearly) */}
                   <StatsCategoryDistribution
                     categoryData={yearlyCategoryPercentages.map(c => ({ ...c, amount: c.amount, fill: c.color }))}
@@ -1006,7 +1117,7 @@ export function StatisticsPage() {
                 </div>
 
                 {/* Period Comparison Section - Yearly */}
-                <Card className="min-w-0">
+                <Card className={`min-w-0 ${viewTab !== "trend" ? "hidden" : ""}`}>
                   <CardHeader>
                     <CardTitle>{t("yearly_comparison")}</CardTitle>
                     <CardDescription>
@@ -1055,7 +1166,7 @@ export function StatisticsPage() {
                         <div className="text-sm text-muted-foreground">
                           {t("income")}
                         </div>
-                        <div className="text-xl font-bold">
+                        <div className="num text-xl font-bold">
                           {yearlyComparison.income.current === 0
                             ? "-"
                             : `€${yearlyComparison.income.current.toFixed(0)}`
@@ -1086,7 +1197,7 @@ export function StatisticsPage() {
                         <div className="text-sm text-muted-foreground">
                           {t("expense")}
                         </div>
-                        <div className="text-xl font-bold">
+                        <div className="num text-xl font-bold">
                           €{yearlyComparison.expense.current.toFixed(0)}
                         </div>
                         <div
@@ -1116,7 +1227,7 @@ export function StatisticsPage() {
                           {t("balance")}
                         </div>
                         <div
-                          className={`text-xl font-bold ${yearlyComparison.balance.current >= 0
+                          className={`num text-xl font-bold ${yearlyComparison.balance.current >= 0
                             ? "text-green-500"
                             : "text-red-500"
                             }`}
@@ -1149,7 +1260,7 @@ export function StatisticsPage() {
                           {t("saving_rate")}
                         </div>
                         <div
-                          className={`text-xl font-bold ${yearlyComparison.savingRate.current >= 0
+                          className={`num text-xl font-bold ${yearlyComparison.savingRate.current >= 0
                             ? "text-green-500"
                             : "text-red-500"
                             }`}
@@ -1290,7 +1401,7 @@ export function StatisticsPage() {
             {/* === NEW CHARTS SECTION === */}
 
             {/* Temporal Trend Chart (Line/Area) */}
-            {activeTab === "yearly" && (
+            {activeTab === "yearly" && viewTab === "trend" && (
               <Card className="min-w-0">
                 <CardHeader>
                   <CardTitle>{t("temporal_trend")}</CardTitle>
@@ -1430,7 +1541,7 @@ export function StatisticsPage() {
             )}
 
             {/* Cash Flow Chart (Stacked Bar) */}
-            {activeTab === "yearly" && (
+            {activeTab === "yearly" && viewTab === "trend" && (
               <Card className="min-w-0">
                 <CardHeader>
                   <CardTitle>{t("cash_flow")}</CardTitle>
@@ -1490,8 +1601,10 @@ export function StatisticsPage() {
               </Card>
             )}
 
-            {/* Context Analytics - using extracted component */}
-            <StatsContextAnalytics contextStats={contextStats} />
+            {/* Context Analytics - contexts tab (monthly + yearly) */}
+            {viewTab === "contexts" && (
+              <StatsContextAnalytics contextStats={contextStats} />
+            )}
 
 
 
@@ -1504,7 +1617,7 @@ export function StatisticsPage() {
             )}
 
             {/* Context Trend Chart - Yearly Only */}
-            {activeTab === "yearly" && (
+            {activeTab === "yearly" && viewTab === "contexts" && (
               <StatsContextTrends
                 data={monthlyContextTrends}
                 contexts={contexts}
@@ -1512,13 +1625,13 @@ export function StatisticsPage() {
               />
             )}
 
-            {/* Budget Health - Monthly Only */}
-            {activeTab === "monthly" && monthlyBudgetHealth.length > 0 && (
+            {/* Budget Health - breakdown tab (monthly + yearly) */}
+            {viewTab === "breakdown" && monthlyBudgetHealth.length > 0 && (
               <StatsBudgetHealth data={monthlyBudgetHealth} />
             )}
 
             {/* Burn Rate / Spending Projection Card - Yearly */}
-            {activeTab === "yearly" && settings?.monthly_budget && settings.monthly_budget > 0 && (
+            {activeTab === "yearly" && viewTab === "trend" && settings?.monthly_budget && settings.monthly_budget > 0 && (
               <StatsBurnRateCard
                 spending={yearlyStats.expense}
                 budget={settings.monthly_budget * 12}

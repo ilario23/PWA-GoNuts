@@ -1,9 +1,24 @@
 import * as React from 'react';
-import {Check, ChevronsUpDown, ChevronRight, Search, Users} from 'lucide-react';
+import {
+  Ban,
+  Check,
+  ChevronsUpDown,
+  ChevronRight,
+  Search,
+  Users,
+  X,
+} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import {
   Drawer,
   DrawerContent,
@@ -30,6 +45,10 @@ interface CategorySelectorProps {
   triggerClassName?: string;
   showSkipOption?: boolean;
   usageFrequency?: Record<string, number>;
+  customTrigger?: React.ReactNode;
+  /** External open control — when provided, no trigger button is rendered */
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
 // Helper to get descendant IDs (defined outside to avoid recursion issues)
@@ -52,6 +71,9 @@ export function CategorySelector({
   triggerClassName,
   showSkipOption = false,
   usageFrequency,
+  customTrigger,
+  externalOpen,
+  onExternalOpenChange,
 }: CategorySelectorProps) {
   // Fetch ALL categories first, then filter strictly in memory for responsiveness
   // Or should we trust the hook? Let's filter in memory to be sure.
@@ -59,7 +81,9 @@ export function CategorySelector({
   const {groups} = useGroups();
   const {t} = useTranslation();
 
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = onExternalOpenChange !== undefined ? onExternalOpenChange : setInternalOpen;
   const [isMobile, setIsMobile] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [expandedRoots, setExpandedRoots] = React.useState<Set<string>>(
@@ -143,6 +167,16 @@ export function CategorySelector({
     return filteredCategories.filter((c) => c.parent_id === parentId);
   };
 
+  // Top categories the user actually reaches for — a one-tap strip that keeps
+  // the most common picks a thumb away (Entry is sacred).
+  const frequentCategories = React.useMemo(() => {
+    if (!usageFrequency || isSearching) return [];
+    return filteredCategories
+      .filter((c) => (usageFrequency[c.id] || 0) > 0)
+      .sort((a, b) => (usageFrequency[b.id] || 0) - (usageFrequency[a.id] || 0))
+      .slice(0, 6);
+  }, [filteredCategories, usageFrequency, isSearching]);
+
   const selectedCategory = categories?.find((c) => c.id === value);
   const selectedGroupName = selectedCategory?.group_id
     ? groups.find((g) => g.id === selectedCategory.group_id)?.name
@@ -159,17 +193,29 @@ export function CategorySelector({
     }
   }, [open, selectedCategory]);
 
-  const renderCategoryIcon = (iconName: string, color: string) => {
+  const renderCategoryIcon = (
+    iconName: string,
+    color: string,
+    size: 'sm' | 'md' = 'md',
+  ) => {
     const Icon = getIconComponent(iconName);
+    const box = size === 'sm' ? 'h-7 w-7' : 'h-10 w-10';
+    const glyph = size === 'sm' ? 'h-3.5 w-3.5' : 'h-[18px] w-[18px]';
     return (
       <div
-        className='flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0'
-        style={{backgroundColor: `${color}20`, color: color}}
+        className={cn(
+          'flex items-center justify-center rounded-full shrink-0 ring-1 ring-inset ring-foreground/[0.05]',
+          box,
+        )}
+        style={{
+          backgroundColor: color ? `${color}1f` : 'hsl(var(--muted))',
+          color: color || 'hsl(var(--muted-foreground))',
+        }}
       >
         {Icon ? (
-          <Icon className='h-3.5 w-3.5' />
+          <Icon className={glyph} />
         ) : (
-          <div className='h-3.5 w-3.5 rounded-full bg-current opacity-50' />
+          <div className={cn('rounded-full bg-current opacity-50', glyph)} />
         )}
       </div>
     );
@@ -193,7 +239,11 @@ export function CategorySelector({
     });
   };
 
-  const renderCategoryNode = (category: Category, depth = 0) => {
+  const renderCategoryNode = (
+    category: Category,
+    depth = 0,
+    isFirst = false,
+  ) => {
     const children = isSearching ? [] : getChildren(category.id);
     const hasChildren = children.length > 0;
     const isExpanded = expandedRoots.has(category.id);
@@ -201,107 +251,132 @@ export function CategorySelector({
     const groupName = category.group_id
       ? groups.find((g) => g.id === category.group_id)?.name
       : null;
+    const parentName =
+      isSearching && category.parent_id
+        ? categories?.find((c) => c.id === category.parent_id)?.name
+        : null;
 
     return (
-      <div key={category.id} className='mb-px'>
+      <div key={category.id}>
         <div
+          role='button'
+          tabIndex={0}
+          aria-pressed={isSelected}
           onClick={(e) => {
             if (hasChildren && !isSearching) {
-              // Expand if has children (Drill-down behavior)
               toggleExpand(category.id, e);
             } else {
-              // Select if leaf
               handleSelect(category.id);
             }
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (hasChildren && !isSearching) {
+                toggleExpand(category.id);
+              } else {
+                handleSelect(category.id);
+              }
+            }
+          }}
           className={cn(
-            'flex items-center w-full p-2 rounded-md cursor-pointer transition-colors relative min-h-[48px]',
-            isSelected
-              ? 'bg-accent/50 text-accent-foreground'
-              : 'hover:bg-muted/50 text-foreground',
+            'group relative flex items-center gap-3 px-2.5 py-2 min-h-[52px] cursor-pointer rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+            isSelected ? 'bg-muted' : 'hover:bg-muted/50 active:bg-muted',
+            !isFirst &&
+              'before:absolute before:inset-x-2.5 before:top-0 before:h-px before:bg-border/45',
           )}
-          style={{paddingLeft: `${depth * 12 + 8}px`}}
         >
-          {/* Expand Toggle */}
-          {hasChildren && !isSearching && (
-            <div
-              className='absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center z-10'
-              onClick={(e) => toggleExpand(category.id, e)}
-            >
-              <ChevronRight
-                className={cn(
-                  'h-4 w-4 text-muted-foreground transition-transform duration-200',
-                  isExpanded && 'rotate-90',
-                )}
-              />
-            </div>
-          )}
-
-          {/* Spacer if no children */}
-          {(!hasChildren || isSearching) && <div className='w-2' />}
-          {hasChildren && !isSearching && <div className='w-6' />}
-
           {renderCategoryIcon(category.icon, category.color)}
 
-          <div className='flex-1 min-w-0 flex flex-col items-start gap-0.5'>
-            <span className='truncate font-medium text-sm'>
-              {category.name}
-            </span>
-            {groupName && (
-              <Badge
-                variant='outline'
-                className='text-[10px] h-4 px-1 py-0 flex items-center gap-1 text-muted-foreground'
+          <div className='flex-1 min-w-0'>
+            <div className='flex items-center gap-2 min-w-0'>
+              <span
+                className={cn(
+                  'truncate text-[15px] leading-tight',
+                  isSelected ? 'font-bold' : 'font-semibold',
+                )}
               >
-                <Users className='h-2 w-2' />
-                {groupName}
-              </Badge>
-            )}
-            {/* Show parent path in search */}
-            {isSearching && category.parent_id && (
-              <span className='text-xs text-muted-foreground'>
-                {t('in_category_name', {
-                  name: categories?.find((c) => c.id === category.parent_id)
-                    ?.name,
-                })}
+                {category.name}
+              </span>
+              {groupName && (
+                <Badge
+                  variant='outline'
+                  className='shrink-0 text-[10px] h-4 px-1.5 py-0 flex items-center gap-1 border-primary/40 text-primary'
+                >
+                  <Users className='h-2.5 w-2.5' />
+                  {groupName}
+                </Badge>
+              )}
+            </div>
+            {parentName && (
+              <span className='mt-0.5 block truncate text-[12px] text-muted-foreground'>
+                {t('in_category_name', {name: parentName})}
               </span>
             )}
           </div>
 
           {isSelected && (
-            <Check className='ml-auto h-4 w-4 shrink-0 text-primary' />
+            <Check className='h-[18px] w-[18px] shrink-0 text-[hsl(var(--gonuts-orange))]' />
+          )}
+
+          {hasChildren && !isSearching && (
+            <div
+              className='flex items-center justify-end gap-1 shrink-0 -mr-1 pl-2 pr-1 min-h-[44px] min-w-[44px] rounded-lg hover:bg-foreground/[0.04]'
+              onClick={(e) => toggleExpand(category.id, e)}
+              role='button'
+              aria-label={t('expand') || 'Expand'}
+              aria-expanded={isExpanded}
+            >
+              <Badge
+                variant='secondary'
+                className='num text-[10px] px-1.5 py-0 h-[18px] tabular-nums font-bold'
+              >
+                {children.length}
+              </Badge>
+              <ChevronRight
+                className={cn(
+                  'h-[18px] w-[18px] text-muted-foreground transition-transform duration-200',
+                  isExpanded && 'rotate-90',
+                )}
+              />
+            </div>
           )}
         </div>
 
-        {/* Children and Parent Selection */}
+        {/* Children, on a tinted ledger track */}
         {hasChildren && isExpanded && !isSearching && (
-          <div className='flex flex-col relative border-l border-border/40 ml-[19px] my-1 space-y-1'>
+          <div className='ml-5 rounded-xl bg-muted/30'>
             {/* Option to select the parent itself */}
             <div
+              role='button'
+              tabIndex={0}
+              aria-pressed={isSelected}
               onClick={() => handleSelect(category.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelect(category.id);
+                }
+              }}
               className={cn(
-                'flex items-center w-full p-2 rounded-md cursor-pointer transition-colors h-10 bg-muted/30 SelectParentOption',
-                'hover:bg-accent hover:text-accent-foreground',
-                value === category.id
-                  ? 'bg-accent text-accent-foreground font-medium'
-                  : 'text-muted-foreground',
+                'flex items-center gap-2 w-full px-2.5 py-2 min-h-[44px] cursor-pointer rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                isSelected ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              <div className='flex items-center min-w-0 flex-1'>
-                <div className='w-5 mr-3 flex justify-center'>
-                  <Check
-                    className={cn(
-                      'h-3 w-3',
-                      value === category.id ? 'opacity-100' : 'opacity-0',
-                    )}
-                  />
-                </div>
-                <span className='truncate italic text-sm'>
-                  {t('select_category_name', {name: category.name})}
-                </span>
-              </div>
+              <Check
+                className={cn(
+                  'h-3.5 w-3.5 shrink-0 text-[hsl(var(--gonuts-orange))]',
+                  isSelected ? 'opacity-100' : 'opacity-0',
+                )}
+              />
+              <span className='truncate text-[13px] italic'>
+                {t('select_category_name', {name: category.name})}
+              </span>
             </div>
 
-            {children.map((child) => renderCategoryNode(child, depth + 1))}
+            {children.map((child, i) =>
+              renderCategoryNode(child, depth + 1, i === 0),
+            )}
           </div>
         )}
       </div>
@@ -310,45 +385,96 @@ export function CategorySelector({
 
   const Content = (
     <div className='flex flex-col min-h-0 bg-background w-full'>
-      <div className='flex items-center px-3 py-2 border-b gap-2'>
-        <Search className='h-4 w-4 text-muted-foreground shrink-0' />
-        <Input
-          placeholder={t('search_categories')}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className='border-0 shadow-none focus-visible:ring-0 px-0 h-9'
-          data-testid='category-search'
-        />
+      <div className='px-3 py-2.5 border-b'>
+        <div className='flex items-center gap-2 rounded-[var(--radius-md)] bg-muted px-3 h-11'>
+          <Search className='h-4 w-4 text-muted-foreground shrink-0' />
+          <Input
+            placeholder={t('search_categories')}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className='border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 h-9 text-[15px] placeholder:text-foreground/55'
+            data-testid='category-search'
+          />
+          {searchTerm && (
+            <button
+              type='button'
+              onClick={() => setSearchTerm('')}
+              aria-label={t('clear') || 'Clear'}
+              className='-mr-1 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground shrink-0'
+            >
+              <X className='h-4 w-4' />
+            </button>
+          )}
+        </div>
       </div>
 
       <div
         className='flex-1 min-h-0 overflow-y-auto p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] w-full'
         data-vaul-no-drag
       >
+        {/* Frequently used — one-tap picks */}
+        {frequentCategories.length > 0 && (
+          <div className='mb-2 px-0.5'>
+            <div className='px-1 pb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/55'>
+              {t('frequent', {defaultValue: 'Frequent'})}
+            </div>
+            <div className='flex flex-wrap gap-1.5'>
+              {frequentCategories.map((c) => {
+                const isSel = value === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type='button'
+                    onClick={() => handleSelect(c.id)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 text-[13px] font-semibold transition-colors',
+                      isSel
+                        ? 'border-transparent bg-foreground text-background'
+                        : 'border-border/60 bg-card text-foreground hover:bg-muted',
+                    )}
+                  >
+                    {renderCategoryIcon(c.icon, c.color, 'sm')}
+                    <span className='max-w-[140px] truncate'>{c.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className='mt-2.5 h-px bg-border/50' />
+          </div>
+        )}
         {showSkipOption && !isSearching && (
-          <div className='mb-1 pb-1 border-b border-border/40'>
+          <div className='mb-1 pb-1 border-b border-border/45'>
             <div
+              role='button'
+              tabIndex={0}
+              aria-pressed={value === 'SKIP'}
               onClick={() => handleSelect('SKIP')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelect('SKIP');
+                }
+              }}
               className={cn(
-                'flex items-center w-full p-2 rounded-md cursor-pointer transition-colors relative min-h-[48px]',
+                'flex items-center gap-3 w-full px-2.5 py-2 min-h-[52px] cursor-pointer rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                 value === 'SKIP'
-                  ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                  ? 'bg-[hsl(var(--gonuts-bad)/0.12)] text-[hsl(var(--gonuts-bad))]'
                   : 'hover:bg-muted/50 text-foreground',
               )}
             >
-              <div className='flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'>
-                <div className='h-2 w-3 bg-current rounded-sm' />
+              <div className='flex h-10 w-10 items-center justify-center rounded-full shrink-0 ring-1 ring-inset ring-foreground/[0.05] bg-[hsl(var(--gonuts-bad)/0.12)] text-[hsl(var(--gonuts-bad))]'>
+                <Ban className='h-[18px] w-[18px]' />
               </div>
-              <div className='flex-1 min-w-0 flex flex-col items-start gap-0.5'>
-                <span className='truncate font-medium text-sm'>
-                  {t('import.skip_ignore', '⛔ Ignore / Skip')}
+              <div className='flex-1 min-w-0'>
+                <span className='block truncate text-[15px] font-semibold leading-tight'>
+                  {t('import.skip_ignore', 'Ignore / Skip')}
                 </span>
-                <span className='text-[10px] text-muted-foreground'>
+                <span className='mt-0.5 block truncate text-[12px] text-muted-foreground'>
                   {t('import.skip_desc', 'Transaction will be skipped')}
                 </span>
               </div>
               {value === 'SKIP' && (
-                <Check className='ml-auto h-4 w-4 shrink-0 text-red-600 dark:text-red-400' />
+                <Check className='h-[18px] w-[18px] shrink-0 text-[hsl(var(--gonuts-bad))]' />
               )}
             </div>
           </div>
@@ -362,8 +488,10 @@ export function CategorySelector({
         )}
 
         {/* List */}
-        <div className='space-y-1'>
-          {rootCategories.map((root) => renderCategoryNode(root))}
+        <div>
+          {rootCategories.map((root, i) =>
+            renderCategoryNode(root, 0, i === 0 && !showSkipOption),
+          )}
         </div>
       </div>
     </div>
@@ -372,7 +500,11 @@ export function CategorySelector({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
+        {externalOpen === undefined && (
         <DrawerTrigger asChild>
+          {customTrigger ? (
+            <span>{customTrigger}</span>
+          ) : (
           <Button
             variant='outline'
             role='combobox'
@@ -392,10 +524,11 @@ export function CategorySelector({
                 </div>
               </div>
             ) : selectedCategory ? (
-              <div className='flex items-center min-w-0'>
+              <div className='flex items-center gap-2.5 min-w-0'>
                 {renderCategoryIcon(
                   selectedCategory.icon,
                   selectedCategory.color,
+                  'sm',
                 )}
                 <div className='flex flex-col items-start text-left min-w-0 flex-1'>
                   <span className='truncate leading-none'>
@@ -413,7 +546,9 @@ export function CategorySelector({
             )}
             <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
           </Button>
+          )}
         </DrawerTrigger>
+        )}
         <DrawerContent className='h-[85dvh] max-h-[85lvh] flex flex-col overflow-hidden fixed bottom-0 left-0 right-0 z-50'>
           <DrawerHeader className='border-b px-4 py-3 shrink-0 text-left'>
             <DrawerTitle>{t('select_category')}</DrawerTitle>
@@ -427,9 +562,31 @@ export function CategorySelector({
     );
   }
 
+  // Desktop headless mode: no trigger is rendered, so a Popover would have no
+  // anchor to position against and never appears. Use a centered Dialog instead.
+  if (externalOpen !== undefined) {
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className='p-0 gap-0 max-w-[360px] overflow-hidden'>
+          <DialogHeader className='border-b px-4 py-3 text-left'>
+            <DialogTitle>{t('select_category')}</DialogTitle>
+            <DialogDescription className='sr-only'>
+              {t('select_category')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className='h-[400px] flex flex-col'>{Content}</div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen} modal={modal}>
+      {externalOpen === undefined && (
       <PopoverTrigger asChild>
+        {customTrigger ? (
+          <span>{customTrigger}</span>
+        ) : (
         <Button
           variant='outline'
           role='combobox'
@@ -459,7 +616,9 @@ export function CategorySelector({
           )}
           <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
         </Button>
+        )}
       </PopoverTrigger>
+      )}
       <PopoverContent className='w-[300px] p-0 shadow-xl' align='start'>
         <div className='h-[400px] flex flex-col'>{Content}</div>
       </PopoverContent>

@@ -28,3 +28,6 @@ dist-ssr
 .env*
 .agent*
 .gemini
+.claude
+.cursor
+.impeccable

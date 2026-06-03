@@ -5,9 +5,9 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, MotionConfig } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, type ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthPage } from "@/pages/AuthPage";
 import { AuthProvider, useAuth } from "@/contexts/AuthProvider";
@@ -51,6 +51,9 @@ const GroupsPage = lazy(() =>
 const GroupDetailPage = lazy(() =>
   import("@/pages/GroupDetail").then((m) => ({ default: m.GroupDetailPage }))
 );
+const GroupBalancePage = lazy(() =>
+  import("@/pages/GroupBalance").then((m) => ({ default: m.GroupBalancePage }))
+);
 const StatisticsPage = lazy(() =>
   import("@/pages/Statistics").then((m) => ({ default: m.StatisticsPage }))
 );
@@ -72,6 +75,9 @@ const UpdatePasswordPage = lazy(() =>
 );
 const ChangelogPage = lazy(() =>
   import("@/pages/Changelog").then((m) => ({ default: m.ChangelogPage }))
+);
+const MorePage = lazy(() =>
+  import("@/pages/More").then((m) => ({ default: m.MorePage }))
 );
 
 /**
@@ -256,6 +262,27 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// PageTransition must wrap Suspense, not the other way around. If a lazy route
+// chunk suspends *inside* the motion element, framer-motion's enter animation
+// gets stranded at its initial keyframe (opacity 0) when the chunk resolves, and
+// the page ships blank. With Suspense nested inside, the motion element mounts
+// once and animates reliably while the fallback swaps to real content beneath it.
+function AnimatedPage({
+  section,
+  children,
+}: {
+  section: string;
+  children: ReactNode;
+}) {
+  return (
+    <ErrorBoundary section={section} minimal>
+      <PageTransition>
+        <Suspense fallback={<PageLoadingFallback />}>{children}</Suspense>
+      </PageTransition>
+    </ErrorBoundary>
+  );
+}
+
 function AppRoutes() {
   const location = useLocation();
   useVersionCheck();
@@ -263,138 +290,19 @@ function AppRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route
-          path="/"
-          element={
-            <ErrorBoundary section="Dashboard" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <Dashboard />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/transactions"
-          element={
-            <ErrorBoundary section="Transazioni" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <TransactionsPage />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/recurring"
-          element={
-            <ErrorBoundary section="Transazioni Ricorrenti" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <RecurringTransactionsPage />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/categories"
-          element={
-            <ErrorBoundary section="Categorie" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <CategoriesPage />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/contexts"
-          element={
-            <ErrorBoundary section="Contesti" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <ContextsPage />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/groups"
-          element={
-            <ErrorBoundary section="Gruppi" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <GroupsPage />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/groups/:groupId"
-          element={
-            <ErrorBoundary section="Dettaglio Gruppo" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <GroupDetailPage />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/statistics"
-          element={
-            <ErrorBoundary section="Statistiche" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <StatisticsPage />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ErrorBoundary section="Impostazioni" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <SettingsPage />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ErrorBoundary section="Profilo" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <ProfilePage />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/changelog"
-          element={
-            <ErrorBoundary section="Changelog" minimal>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <PageTransition>
-                  <ChangelogPage />
-                </PageTransition>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
+        <Route path="/" element={<AnimatedPage section="Dashboard"><Dashboard /></AnimatedPage>} />
+        <Route path="/transactions" element={<AnimatedPage section="Transazioni"><TransactionsPage /></AnimatedPage>} />
+        <Route path="/recurring" element={<AnimatedPage section="Transazioni Ricorrenti"><RecurringTransactionsPage /></AnimatedPage>} />
+        <Route path="/categories" element={<AnimatedPage section="Categorie"><CategoriesPage /></AnimatedPage>} />
+        <Route path="/contexts" element={<AnimatedPage section="Contesti"><ContextsPage /></AnimatedPage>} />
+        <Route path="/groups" element={<AnimatedPage section="Gruppi"><GroupsPage /></AnimatedPage>} />
+        <Route path="/groups/:groupId" element={<AnimatedPage section="Dettaglio Gruppo"><GroupDetailPage /></AnimatedPage>} />
+        <Route path="/groups/:groupId/balance" element={<AnimatedPage section="Saldo Gruppo"><GroupBalancePage /></AnimatedPage>} />
+        <Route path="/statistics" element={<AnimatedPage section="Statistiche"><StatisticsPage /></AnimatedPage>} />
+        <Route path="/settings" element={<AnimatedPage section="Impostazioni"><SettingsPage /></AnimatedPage>} />
+        <Route path="/profile" element={<AnimatedPage section="Profilo"><ProfilePage /></AnimatedPage>} />
+        <Route path="/changelog" element={<AnimatedPage section="Changelog"><ChangelogPage /></AnimatedPage>} />
+        <Route path="/more" element={<AnimatedPage section="More"><MorePage /></AnimatedPage>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
@@ -407,6 +315,9 @@ function App() {
       <Router>
         <AuthProvider>
           <ThemeProvider>
+            {/* Honor the OS "reduce motion" setting across every framer-motion
+                animation in the app (framer does not do this automatically). */}
+            <MotionConfig reducedMotion="user">
             <Toaster />
             <PWAUpdateNotification />
             <PWAInstallPrompt />
@@ -440,6 +351,7 @@ function App() {
                 }
               />
             </Routes>
+            </MotionConfig>
           </ThemeProvider>
         </AuthProvider>
       </Router>

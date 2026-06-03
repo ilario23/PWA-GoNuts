@@ -13,6 +13,7 @@ import {
     Squirrel,
     ChevronUp,
     User2,
+    MoreHorizontal,
 } from "lucide-react"
 
 import {
@@ -56,6 +57,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         { name: t("groups"), href: "/groups", icon: Users },
         { name: t("statistics"), href: "/statistics", icon: PieChart },
         { name: t("settings"), href: "/settings", icon: Settings },
+        { name: t("more_options"), href: "/more", icon: MoreHorizontal },
     ]
 
     const handleProfileClick = () => {

@@ -1,18 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useGroups } from "@/hooks/useGroups";
+import { useGroups, calculateSettlement } from "@/hooks/useGroups";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useSync } from "@/hooks/useSync";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -28,10 +23,10 @@ import {
 import {
   ArrowLeft,
   Plus,
-  Users,
-  TrendingUp,
-  TrendingDown,
   RefreshCw,
+  ArrowRight,
+  CheckCircle2,
+  HandCoins,
 } from "lucide-react";
 import { TransactionList } from "@/components/TransactionList";
 import { getIconComponent } from "@/lib/icons";
@@ -39,7 +34,7 @@ import {
   TransactionDialog,
   TransactionFormData,
 } from "@/components/TransactionDialog";
-import { Transaction, GroupMember } from "@/lib/db";
+import { Transaction } from "@/lib/db";
 
 export function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -63,20 +58,9 @@ export function GroupDetailPage() {
     return null;
   }, [groups, groupId]);
 
-  const [balance, setBalance] = useState<{
-    totalExpenses: number;
-    balances: Record<
-      string,
-      {
-        userId: string;
-        share: number;
-        shouldPay: number;
-        hasPaid: number;
-        balance: number;
-      }
-    >;
-    members: GroupMember[];
-  } | null>(null);
+  const [balance, setBalance] = useState<Awaited<
+    ReturnType<typeof getGroupBalance>
+  > | null>(null);
 
   const [isTxDialogOpen, setIsTxDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] =
@@ -154,6 +138,25 @@ export function GroupDetailPage() {
 
   const myBalance = balance?.balances[user?.id || ""];
 
+  // Compute settle-up suggestions
+  const settlements = useMemo(() => {
+    if (!balance) return [];
+    return calculateSettlement(
+      Object.fromEntries(
+        Object.values(balance.balances).map((b) => [
+          b.memberId,
+          {
+            userId: b.memberId,
+            share: b.share,
+            shouldPay: b.shouldPay,
+            hasPaid: b.hasPaid,
+            balance: b.balance,
+          } as { userId: string; share: number; shouldPay: number; hasPaid: number; balance: number },
+        ])
+      )
+    );
+  }, [balance]);
+
   if (!group) {
     return (
       <div className="space-y-4">
@@ -175,39 +178,41 @@ export function GroupDetailPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{group.name}</h1>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/groups")}
+          className="h-9 w-9 shrink-0"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold leading-tight truncate">{group.name}</h1>
           {group.description && (
-            <p className="text-sm text-muted-foreground">{group.description}</p>
+            <p className="text-xs text-muted-foreground truncate">{group.description}</p>
           )}
         </div>
-        {/* Refresh Button */}
         <Button
           onClick={() => sync()}
           disabled={isSyncing}
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="md:w-auto md:px-4 md:h-10"
+          className="h-9 w-9 text-muted-foreground shrink-0"
           title={t("sync_now") || "Sync now"}
         >
-          <RefreshCw
-            className={`h-4 w-4 md:mr-2 ${isSyncing ? "animate-spin" : ""}`}
-          />
-          <span className="hidden md:inline">
-            {isSyncing ? t("syncing") || "Syncing..." : t("sync_now") || "Sync"}
-          </span>
+          <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
         </Button>
         <Button
-          size="icon"
-          className="md:w-auto md:px-4 md:h-10"
+          size="sm"
+          className="gap-1.5 bg-[hsl(var(--gonuts-orange))] hover:bg-[hsl(var(--gonuts-orange))]/90 text-white shrink-0"
           onClick={() => {
             setEditingTransaction(null);
             setIsTxDialogOpen(true);
           }}
         >
-          <Plus className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline">{t("add_transaction")}</span>
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">{t("add_transaction")}</span>
         </Button>
         <TransactionDialog
           open={isTxDialogOpen}
@@ -223,65 +228,111 @@ export function GroupDetailPage() {
         />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* KPI strip */}
+      <div className="grid grid-cols-3 gap-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+          <CardContent className="p-3 md:p-4">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">
               {t("total_expenses")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              €{(balance?.totalExpenses || 0).toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("your_share")}
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{group.myShare}%</div>
-            <p className="text-xs text-muted-foreground">
-              {t("should_pay_amount", { amount: (myBalance?.shouldPay || 0).toFixed(2) })}
+            </p>
+            <p className="num text-xl font-bold">
+              €{Math.round(balance?.totalExpenses || 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+          <CardContent className="p-3 md:p-4">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">
+              {t("your_share")}
+            </p>
+            <p className="num text-xl font-bold">{group.myShare}%</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              €{(myBalance?.shouldPay || 0).toFixed(0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 md:p-4">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">
               {t("balance")}
-            </CardTitle>
-            {(myBalance?.balance || 0) >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-500" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div
-              className={`text-2xl font-bold ${(myBalance?.balance || 0) >= 0
-                ? "text-green-600"
-                : "text-red-600"
-                }`}
+            </p>
+            <p
+              className={`num text-xl font-bold ${
+                (myBalance?.balance || 0) >= 0
+                  ? "text-[hsl(var(--gonuts-good))]"
+                  : "text-[hsl(var(--gonuts-bad))]"
+              }`}
             >
-              {(myBalance?.balance || 0) >= 0
-                ? t("balance_amount_positive", { amount: (myBalance?.balance || 0).toFixed(2) })
-                : t("balance_amount_negative", { amount: (myBalance?.balance || 0).toFixed(2) })
-              }
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t("has_paid_amount", { amount: (myBalance?.hasPaid || 0).toFixed(2) })}
+              {(myBalance?.balance || 0) >= 0 ? "+" : ""}
+              €{Math.abs(myBalance?.balance || 0).toFixed(0)}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {t("has_paid_amount", { amount: (myBalance?.hasPaid || 0).toFixed(0) })}
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Settle-up suggestions */}
+      {balance && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t("settlement_plan")}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 text-xs"
+                onClick={() => navigate(`/groups/${groupId}/balance`)}
+              >
+                <HandCoins className="h-3.5 w-3.5" />
+                {t("settle_up")}
+              </Button>
+            </div>
+            {settlements.length === 0 ? (
+              <div className="flex items-center gap-2 text-[hsl(var(--gonuts-good))]">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <p className="text-sm font-medium">{t("no_payments_needed")}</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {settlements.map((s, i) => {
+                  const fromEntry = Object.values(balance.balances).find(
+                    (b) => b.memberId === s.from
+                  );
+                  const toEntry = Object.values(balance.balances).find(
+                    (b) => b.memberId === s.to
+                  );
+                  const fromName = fromEntry?.displayName ?? t("unknown");
+                  const toName = toEntry?.displayName ?? t("unknown");
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 py-1.5 px-3 rounded-[var(--radius-sm)] bg-muted/50"
+                    >
+                      <span className="text-sm font-medium min-w-0 truncate flex-1">
+                        {fromName}
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="num text-sm font-bold text-[hsl(var(--gonuts-orange))]">
+                          €{s.amount.toFixed(2)}
+                        </span>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm font-medium min-w-0 truncate flex-1 text-right">
+                        {toName}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="transactions" className="space-y-4">

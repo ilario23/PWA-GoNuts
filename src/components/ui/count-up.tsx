@@ -52,5 +52,5 @@ export function CountUp({
         });
     }, [springValue, decimals, prefix, suffix, motionValue]);
 
-    return <span className={`tabular-nums ${className || ''}`} ref={ref} />;
+    return <span className={`num ${className || ''}`} ref={ref} />;
 }

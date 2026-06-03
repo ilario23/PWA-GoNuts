@@ -1,268 +1,195 @@
-import { ChartConfig } from "@/components/ui/chart";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useStatistics } from "@/hooks/useStatistics";
 import { useSettings } from "@/hooks/useSettings";
+import { useCategories } from "@/hooks/useCategories";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, TrendingUp, ChevronRight, Plus } from "lucide-react";
 import {
   TransactionDialog,
   TransactionFormData,
 } from "@/components/TransactionDialog";
-import { useState, useCallback, useMemo } from "react";
-import { createPortal } from "react-dom";
-import { useCategories } from "@/hooks/useCategories";
-import { useGroups } from "@/hooks/useGroups";
-import { useContexts } from "@/hooks/useContexts";
-import { FlipCard, type SwipeDirection } from "@/components/ui/flip-card";
-import { Button } from "@/components/ui/button";
+import { createElement, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
+import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { getIconComponent } from "@/lib/icons";
+import { Button } from "@/components/ui/button";
 import { Transaction } from "@/lib/db";
-import {
-  DashboardChartCard,
-  DashboardChartContent,
-  DashboardTransactionsContent,
-  DashboardBudgetContent,
-} from "@/components/dashboard/DashboardChartCard";
-import { DashboardStatCard } from "@/components/dashboard/DashboardStatCard";
-import { DashboardSummaryCards } from "@/components/dashboard/DashboardSummaryCards";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Currency symbol from code (€, $, £, etc.)
+function getCurrencySymbol(code: string): string {
+  return (
+    new Intl.NumberFormat("en", { style: "currency", currency: code })
+      .formatToParts(0)
+      .find((p) => p.type === "currency")?.value ?? code
+  );
+}
+
+// Transaction row for the "Recent" section
+function RecentTxRow({
+  tx,
+  catName,
+  catColor,
+  catIcon,
+  currencySymbol,
+  onEdit,
+}: {
+  tx: Transaction;
+  catName: string;
+  catColor: string;
+  catIcon: string;
+  currencySymbol: string;
+  onEdit: (tx: Transaction) => void;
+}) {
+  const IconComponent = getIconComponent(catIcon);
+  const sign = tx.type === "income" ? "+" : tx.type === "investment" ? "↗" : "−";
+  const amountColor =
+    tx.type === "income"
+      ? "text-[hsl(var(--gonuts-good))]"
+      : tx.type === "investment"
+      ? "text-[hsl(var(--color-investment))]"
+      : "text-foreground";
+
+  return (
+    <button
+      onClick={() => onEdit(tx)}
+      className="flex items-center gap-3 w-full py-3 text-left"
+    >
+      <span
+        className="flex items-center justify-center w-10 h-10 rounded-[14px] shrink-0"
+        style={{ backgroundColor: catColor, color: "#fff" }}
+      >
+        {IconComponent ? (
+          createElement(IconComponent, { className: "w-5 h-5" })
+        ) : (
+          <span className="text-xs font-bold">{catName[0]}</span>
+        )}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-[15px] truncate leading-tight">
+          {tx.description || catName}
+        </div>
+        <div className="text-xs text-muted-foreground mt-0.5 truncate">{catName}</div>
+      </div>
+      <span className={cn("num font-bold text-[15px] whitespace-nowrap", amountColor)}>
+        {sign}
+        {currencySymbol}
+        {tx.amount.toFixed(2)}
+      </span>
+    </button>
+  );
+}
 
 export function Dashboard() {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+  const { transactions, addTransaction, updateTransaction } =
+    useTransactions();
   const { categories } = useCategories();
-  const { groups } = useGroups();
-  const { contexts } = useContexts();
   const { settings } = useSettings();
   const { user } = useAuth();
   const { t } = useTranslation();
+
   const now = new Date();
   const currentMonth = format(now, "yyyy-MM");
+  const monthName = format(now, "MMMM");
 
-  // Chart config - memoized since it depends on translation
-  const chartConfig = useMemo(
-    () =>
-    ({
-      cumulative: {
-        label: t("cumulative_expenses"),
-        color: "hsl(0 84.2% 60.2%)",
-      },
-      projection: {
-        label: t("projection"),
-        color: "#eb630fff",
-      },
-    } satisfies ChartConfig),
-    [t]
+  const {
+    monthlyStats,
+    dailyCumulativeExpenses,
+    isLoading,
+    monthlyBudgetHealth,
+  } = useStatistics({ selectedMonth: currentMonth, userId: user?.id });
+
+  const currencySymbol = getCurrencySymbol(settings?.currency ?? "EUR");
+
+  // Category lookup map for icons
+  const catMap = useMemo(
+    () => new Map((categories ?? []).map((c) => [c.id, c])),
+    [categories]
   );
 
-  // Get current month statistics
-  const { monthlyStats, dailyCumulativeExpenses, isLoading: isStatsLoading, insights } = useStatistics({
-    selectedMonth: currentMonth,
-    userId: user?.id,
-  });
-
-  // Memoize expensive calculations
-  const { totalIncome, totalExpense, balance } = useMemo(
+  // Stats
+  const { totalIncome, totalExpense, totalInvestment } = useMemo(
     () => ({
       totalIncome: monthlyStats.income,
       totalExpense: monthlyStats.expense,
-      balance: monthlyStats.income - monthlyStats.expense,
+      totalInvestment: monthlyStats.investment,
     }),
-    [monthlyStats.income, monthlyStats.expense]
+    [monthlyStats.income, monthlyStats.expense, monthlyStats.investment]
   );
 
-  // Budget calculations - memoized
-  const budgetData = useMemo(() => {
-    const monthlyBudget = settings?.monthly_budget;
-    if (!monthlyBudget) {
+  // Hero number — integer and cents
+  const heroInt = Math.floor(totalExpense);
+  const heroCents = (totalExpense % 1).toFixed(2).slice(1); // ".XX"
+
+  // Expense count this month
+  const expenseCount = (transactions ?? []).filter(
+    (tx) =>
+      !tx.deleted_at &&
+      tx.type === "expense" &&
+      tx.year_month === currentMonth
+  ).length;
+
+  // Top categories for "Where it went" (top 4 by value, expenses only)
+  const topCategories = useMemo(() => {
+    const sorted = [...monthlyStats.byCategory]
+      .filter((c) => c.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 4);
+    return sorted.map((c) => {
+      const fullCat = (categories ?? []).find((cat) => cat.name === c.name);
+      return { ...c, icon: fullCat?.icon ?? "Folder" };
+    });
+  }, [monthlyStats.byCategory, categories]);
+
+  // Daily amounts derived from cumulative (for bar chart)
+  const dailyAmounts = useMemo(() => {
+    return dailyCumulativeExpenses.map((d, i) => {
+      const hasData = d.cumulative !== undefined;
+      const prev =
+        i > 0 ? dailyCumulativeExpenses[i - 1].cumulative ?? 0 : 0;
+      const curr = d.cumulative ?? 0;
       return {
-        monthlyBudget: null,
-        budgetUsedPercentage: 0,
-        budgetRemaining: 0,
-        isOverBudget: false,
+        day: Number(d.day),
+        value: hasData ? Math.max(0, curr - prev) : 0,
+        hasData,
       };
-    }
-    return {
-      monthlyBudget,
-      budgetUsedPercentage: (totalExpense / monthlyBudget) * 100,
-      budgetRemaining: monthlyBudget - totalExpense,
-      isOverBudget: totalExpense > monthlyBudget,
-    };
-  }, [settings?.monthly_budget, totalExpense]);
+    });
+  }, [dailyCumulativeExpenses]);
 
-  const { monthlyBudget, budgetUsedPercentage, budgetRemaining, isOverBudget } =
-    budgetData;
-
-  // Recent transactions - memoized to avoid filtering on every render
-  const recentTransactions = useMemo(
-    () => transactions?.filter((t) => !t.deleted_at).slice(0, 25),
-    [transactions]
+  const maxDailyAmount = useMemo(
+    () => Math.max(...dailyAmounts.map((d) => d.value), 1),
+    [dailyAmounts]
   );
 
-  // Mobile stats carousel state - MUST be declared before use
-  const [statsRotation, setStatsRotation] = useState(0);
-  const [chartRotation, setChartRotation] = useState(0);
+  const hasDailyData = useMemo(
+    () => dailyAmounts.some((d) => d.value > 0),
+    [dailyAmounts]
+  );
 
-  // Build a SINGLE deck structure: Expense -> Income -> Insight (placeholder) -> Balance -> (Budget)
-  // The insight shown will rotate each time we complete a full cycle through the deck.
-  const baseDeckLength = 3 + (monthlyBudget ? 1 : 0) + (insights && insights.length > 0 ? 1 : 0);
+  const today = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
-  // Calculate which "round" we are in based on rotation (each card flip is 180deg, full deck cycle = baseDeckLength flips)
-  // We use Math.abs to handle negative rotations and Math.floor to get the round.
-  const flipCount = Math.abs(statsRotation) / 180;
-  const currentRound = Math.floor(flipCount / baseDeckLength);
+  // Recent transactions (last 4, current month, not deleted)
+  const recentTransactions = (transactions ?? [])
+    .filter((tx) => !tx.deleted_at && tx.year_month === currentMonth)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 4);
 
-  // Pick insight index based on round (cycles through available insights)
-  const currentInsightIndex = insights && insights.length > 0 ? currentRound % insights.length : 0;
-  const currentInsight = insights ? insights[currentInsightIndex] : undefined;
-
-  // Construct card deck based on user preference and data availability
-  const cards: Array<{
-    type: "expense" | "income" | "balance" | "budget" | "insight";
-    insight?: any;
-  }> = useMemo(() => {
-    const deck: any[] = [
-      { type: "expense" as const },
-      { type: "income" as const },
-    ];
-
-    // Add single insight slot if available (actual insight is picked dynamically)
-    if (insights && insights.length > 0) {
-      deck.push({ type: "insight" as const, insight: currentInsight });
-    }
-
-    deck.push({ type: "balance" as const });
-
-    if (monthlyBudget) {
-      deck.push({ type: "budget" as const });
-    }
-
-    return deck;
-  }, [monthlyBudget, insights, currentInsight]);
-
-  const statsCount = cards.length;
-
-  // Chart Card Flip State
-  const [chartFaceAIndex, setChartFaceAIndex] = useState(0);
-  const [chartFaceBIndex, setChartFaceBIndex] = useState(1);
-  const chartViewsCount = 3; // Chart, Transactions, Budget (if exists) -> actually logic below handles this separately?
-  // Only handling stats deck logic here first.
-
-  // Derive flip state from rotation (odd multiples of 180 are flipped)
-  const isChartFlipped = (Math.abs(chartRotation / 180) % 2) === 1;
-  const isStatsFlipped = (Math.abs(statsRotation / 180) % 2) === 1;
-
-  const currentChartVisibleIndex = isChartFlipped
-    ? chartFaceBIndex
-    : chartFaceAIndex;
-
-  // Handle chart flip with direction (circular navigation)
-  const handleChartSwipe = useCallback((direction: SwipeDirection) => {
-    const isForward = direction === "left" || direction === "up";
-    const newRotation = isForward ? chartRotation - 180 : chartRotation + 180;
-    setChartRotation(newRotation);
-
-    // Chart has its own index logic (views count), separate from stats deck
-    // Re-calculating views count locally for chart
-    const viewsCount = monthlyBudget ? 3 : 2;
-
-    const nextIndex = !isForward
-      ? (currentChartVisibleIndex - 1 + viewsCount) % viewsCount
-      : (currentChartVisibleIndex + 1) % viewsCount;
-
-    const afterNextIndex = !isForward
-      ? (nextIndex - 1 + viewsCount) % viewsCount
-      : (nextIndex + 1) % viewsCount;
-
-    if (isChartFlipped) {
-      setChartFaceAIndex(nextIndex);
-      setTimeout(() => {
-        setChartFaceBIndex(afterNextIndex);
-      }, 350);
-    } else {
-      setChartFaceBIndex(nextIndex);
-      setTimeout(() => {
-        setChartFaceAIndex(afterNextIndex);
-      }, 350);
-    }
-  }, [currentChartVisibleIndex, isChartFlipped, chartRotation, monthlyBudget]);
-
-  // Track which card index is on which face
-  const [faceAIndex, setFaceAIndex] = useState(0);
-  const [faceBIndex, setFaceBIndex] = useState(1);
-
-  // Current visible index (for dot indicators)
-  const currentVisibleIndex = isStatsFlipped ? faceBIndex : faceAIndex;
-
-  // Handle stat flip with direction (circular navigation)
-  const handleStatSwipe = useCallback((direction: SwipeDirection) => {
-    const newRotation = direction === "left" ? statsRotation - 180 : statsRotation + 180;
-    setStatsRotation(newRotation);
-
-    const nextIndex = direction === "right"
-      ? (currentVisibleIndex - 1 + statsCount) % statsCount
-      : (currentVisibleIndex + 1) % statsCount;
-
-    const afterNextIndex = direction === "right"
-      ? (nextIndex - 1 + statsCount) % statsCount
-      : (nextIndex + 1) % statsCount;
-
-    if (isStatsFlipped) {
-      setFaceAIndex(nextIndex);
-      setTimeout(() => {
-        setFaceBIndex(afterNextIndex);
-      }, 350);
-    } else {
-      setFaceBIndex(nextIndex);
-      setTimeout(() => {
-        setFaceAIndex(afterNextIndex);
-      }, 350);
-    }
-  }, [currentVisibleIndex, isStatsFlipped, statsRotation, statsCount]);
-
-  // shared props without statsCount which is now dynamic
-  const baseStatCardProps = {
-    totalExpense,
-    totalIncome,
-    balance,
-    monthlyBudget,
-    isOverBudget,
-    budgetUsedPercentage,
-    isStatsLoading,
-  };
-
-  // Helper to render card with correct data
-  const renderCard = (index: number) => {
-    const card = cards[index];
-    if (!card) return null;
-
-    return (
-      <DashboardStatCard
-        index={index}
-        statsCount={statsCount}
-        type={card.type}
-        insight={card.insight}
-        {...baseStatCardProps}
-      />
-    );
-  };
-
-  // Transaction dialog state
+  // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
 
-  const handleEdit = useCallback((transaction: Transaction) => {
-    setEditingTransaction(transaction);
+  const handleEdit = useCallback((tx: Transaction) => {
+    setEditingTransaction(tx);
     setIsDialogOpen(true);
   }, []);
-
-  const handleDelete = useCallback(async (id: string) => {
-    await deleteTransaction(id);
-  }, [deleteTransaction]);
 
   const handleSubmit = useCallback(
     async (data: TransactionFormData) => {
       if (!user) return;
-
       if (editingTransaction) {
         await updateTransaction(editingTransaction.id, {
           amount: data.amount,
@@ -289,161 +216,374 @@ export function Dashboard() {
           paid_by_member_id: data.paid_by_member_id || undefined,
         });
       }
-
       setIsDialogOpen(false);
       setEditingTransaction(null);
     },
     [user, addTransaction, updateTransaction, editingTransaction]
   );
 
-  const handleOpenChange = (open: boolean) => {
+  const handleOpenChange = useCallback((open: boolean) => {
     setIsDialogOpen(open);
     if (!open) setEditingTransaction(null);
-  };
-
-  // Shared props for chart cards
-  const chartCardProps = {
-    chartViewsCount,
-    dailyCumulativeExpenses,
-    chartConfig,
-    isStatsLoading,
-    monthlyBudget,
-    totalExpense,
-    isOverBudget,
-    budgetUsedPercentage,
-    budgetRemaining,
-    recentTransactions,
-    categories,
-    groups,
-    contexts,
-    transactions,
-    onEdit: handleEdit,
-    onDelete: handleDelete,
-  };
+  }, []);
 
   return (
-    <div className="flex flex-col md:block h-[calc(100dvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] min-h-[calc(100lvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:h-auto gap-4 md:space-y-4">
-      <h1 className="text-2xl font-bold shrink-0">{t("dashboard")}</h1>
-
-      {/* Mobile Summary Stats - Smart FlipCard Carousel */}
-      <div className="md:hidden shrink-0">
-        <FlipCard
-          className="h-[12vh] min-h-[80px]"
-          isFlipped={isStatsFlipped}
-          onSwipe={handleStatSwipe}
-          rotation={statsRotation}
-          disableGlobalClick
-          frontContent={renderCard(faceAIndex)}
-          backContent={renderCard(faceBIndex)}
-        />
-      </div>
-
-      {/* Chart and Summary Cards Layout */}
-      {/* Mobile: Grid showing FlipCard for Chart/Tx and hidden summary cards */}
-      {/* Desktop: Grid showing Chart (left), Tx (right) and Summary cards (top) */}
-
-      {/* Mobile Layout */}
-      <div className="flex-1 min-h-0 md:hidden">
-        <FlipCard
-          className="h-full"
-          isFlipped={isChartFlipped}
-          onSwipe={handleChartSwipe}
-          rotation={chartRotation}
-          swipeAxis="horizontal"
-          flipDirection="right"
-          disableGlobalClick
-          frontContent={<DashboardChartCard index={chartFaceAIndex} {...chartCardProps} dailyCumulativeExpenses={chartCardProps.dailyCumulativeExpenses.map(d => ({ ...d, day: d.day.toString() }))} />}
-          backContent={<DashboardChartCard index={chartFaceBIndex} {...chartCardProps} dailyCumulativeExpenses={chartCardProps.dailyCumulativeExpenses.map(d => ({ ...d, day: d.day.toString() }))} />}
-        />
-      </div>
-
-      {/* Desktop Layout */}
-      <div className="hidden md:flex flex-col gap-6">
-        {/* Top Summary Cards */}
-        <DashboardSummaryCards
-          totalExpense={totalExpense}
-          totalIncome={totalIncome}
-          balance={balance}
-          isStatsLoading={isStatsLoading}
-          monthlyBudget={monthlyBudget}
-          budgetUsedPercentage={budgetUsedPercentage}
-          isOverBudget={isOverBudget}
-          budgetRemaining={budgetRemaining}
-          insight={cards.find(c => c.type === "insight")?.insight}
-        />
-
-        {/* Main Grid: Chart + Transactions */}
-        <div className="grid grid-cols-12 gap-6 h-[700px]" data-testid="desktop-dashboard-grid">
-          {/* Main Chart + Budget (Left 1/2) */}
-          <div className="col-span-6 h-full min-h-0 flex flex-col gap-6">
-            <div className="flex-1 min-h-0">
-              <DashboardChartContent
-                dailyCumulativeExpenses={dailyCumulativeExpenses}
-                chartConfig={chartConfig}
-                isStatsLoading={isStatsLoading}
-              />
-            </div>
-            {/* Budget Card (if exists) */}
-            {monthlyBudget && (
-              <div className="shrink-0 h-[280px]">
-                <DashboardBudgetContent
-                  monthlyBudget={monthlyBudget}
-                  totalExpense={totalExpense}
-                  isOverBudget={isOverBudget}
-                  budgetUsedPercentage={budgetUsedPercentage}
-                  budgetRemaining={budgetRemaining}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Side Panel: Transactions (Right 1/2) */}
-          <div className="col-span-6 h-full min-h-0">
-            <DashboardTransactionsContent
-              recentTransactions={recentTransactions}
-              categories={categories}
-              groups={groups}
-              contexts={contexts}
-              transactions={transactions}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              headerRightContent={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="hidden md:flex gap-2"
-                  onClick={() => {
-                    setEditingTransaction(null);
-                    setIsDialogOpen(true);
-                  }}
-                  data-testid="add-transaction-desktop"
-                >
-                  <Plus className="h-4 w-4" />
-                  {t("add_transaction")}
-                </Button>
-              }
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Floating Action Button */}
-      {/* Floating Action Button - Rendered in Portal to avoid transform context issues */}
-      {typeof document !== "undefined" &&
-        createPortal(
+    <div className="pb-4">
+      {/* ── Hero ───────────────────────────────────────────── */}
+      <div className="px-0 pt-2 pb-5">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            {monthName} · {t("so_far")}
+          </p>
+          {/* Desktop add button */}
           <Button
-            size="icon"
-            className="fixed bottom-8 right-4 h-14 w-14 rounded-full shadow-lg md:hidden z-50 animate-glow"
+            variant="outline"
+            size="sm"
+            className="hidden md:flex gap-1.5"
             onClick={() => {
               setEditingTransaction(null);
               setIsDialogOpen(true);
             }}
-            data-testid="add-transaction-fab"
+            data-testid="add-transaction-desktop"
           >
-            <Plus className="h-6 w-6 shrink-0" />
-          </Button>,
-          document.body
+            <Plus className="h-4 w-4" />
+            {t("add_transaction")}
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-14 w-48" />
+            <Skeleton className="h-4 w-36" />
+          </div>
+        ) : (
+          <>
+            <div className="flex items-baseline gap-1">
+              <span className="num font-extrabold leading-none tracking-tight"
+                style={{ fontSize: "clamp(2.5rem,8vw,3.5rem)" }}>
+                {currencySymbol}{heroInt.toLocaleString()}
+              </span>
+              <span className="num text-2xl text-muted-foreground font-bold">{heroCents}</span>
+            </div>
+            <p className="text-[13px] text-muted-foreground mt-1.5">
+              {t("spent_on_transactions", { count: expenseCount })}
+            </p>
+          </>
         )}
+
+        {/* Mini stat cards */}
+        <div className="grid grid-cols-3 gap-2.5 mt-4">
+          {[
+            {
+              label: t("income"),
+              val: totalIncome,
+              Icon: ArrowDownLeft,
+              color: "hsl(var(--gonuts-good))",
+            },
+            {
+              label: t("expense"),
+              val: totalExpense,
+              Icon: ArrowUpRight,
+              color: "hsl(var(--foreground))",
+            },
+            {
+              label: t("invested"),
+              val: totalInvestment,
+              Icon: TrendingUp,
+              color: "hsl(var(--color-investment))",
+            },
+          ].map((m) => (
+            <div
+              key={m.label}
+              className="rounded-[var(--radius)] border border-border/50 bg-card
+                shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]
+                dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]
+                p-3"
+            >
+              <div className="flex items-center gap-1.5 mb-2" style={{ color: m.color }}>
+                <m.Icon className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-bold uppercase tracking-wide">{m.label}</span>
+              </div>
+              {isLoading ? (
+                <Skeleton className="h-5 w-14" />
+              ) : (
+                <span className="num font-bold text-base">
+                  {currencySymbol}{Math.round(m.val).toLocaleString()}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Where it went ──────────────────────────────────── */}
+      {(topCategories.length > 0 || isLoading) && (
+        <section className="mb-5">
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="text-lg font-bold">{t("where_it_went")}</h2>
+            <Link
+              to="/statistics"
+              className="flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t("see_all")}
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="rounded-[var(--radius)] border border-border/50 bg-card p-4
+            shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]
+            dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]">
+            {isLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-3 w-full rounded-full" />
+                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-8 w-full" />)}
+              </div>
+            ) : (
+              <>
+                {/* Segmented bar */}
+                <div className="flex h-3 rounded-full overflow-hidden mb-4">
+                  {topCategories.map((c) => (
+                    <div
+                      key={c.name}
+                      style={{
+                        width: `${(c.value / totalExpense) * 100}%`,
+                        backgroundColor: c.color,
+                      }}
+                      title={c.name}
+                    />
+                  ))}
+                  <div className="flex-1 bg-muted" />
+                </div>
+                {/* Category rows */}
+                <div className="space-y-0">
+                  {topCategories.map((c, i) => {
+                    const IconComp = getIconComponent(c.icon);
+                    const pct = totalExpense > 0 ? ((c.value / totalExpense) * 100).toFixed(0) : "0";
+                    return (
+                      <div
+                        key={c.name}
+                        className={cn(
+                          "flex items-center justify-between py-2.5",
+                          i > 0 && "border-t border-border/40"
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="flex items-center justify-center w-8 h-8 rounded-[10px] shrink-0"
+                            style={{ backgroundColor: c.color, color: "#fff" }}
+                          >
+                            {IconComp ? (
+                              <IconComp className="w-4 h-4" />
+                            ) : (
+                              <span className="text-xs font-bold">{c.name[0]}</span>
+                            )}
+                          </span>
+                          <span className="font-semibold text-sm">{c.name}</span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-[11px] text-muted-foreground">{pct}%</span>
+                          <span className="num font-bold text-sm">
+                            {currencySymbol}{c.value.toFixed(0)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── Budgets ────────────────────────────────────────── */}
+      {(monthlyBudgetHealth.length > 0 || isLoading) && (
+        <section className="mb-5">
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="text-lg font-bold">{t("budget")}</h2>
+            <Link
+              to="/settings"
+              className="flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t("manage")}
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="rounded-[var(--radius)] border border-border/50 bg-card
+            shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]
+            dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]">
+            {isLoading ? (
+              <div className="p-4 space-y-4">
+                {[1, 2].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+              </div>
+            ) : (
+              monthlyBudgetHealth.slice(0, 3).map((b, i) => {
+                const catObj = catMap.get(b.categoryId);
+                const IconComp = catObj ? getIconComponent(catObj.icon) : null;
+                const over = b.isOverBudget;
+                const warn = b.percentage >= 80 && !over;
+                const barColor = over
+                  ? "hsl(var(--gonuts-bad))"
+                  : warn
+                  ? "hsl(var(--chart-5))"
+                  : b.categoryColor;
+                return (
+                  <div
+                    key={b.id}
+                    className={cn(
+                      "px-4 py-3",
+                      i > 0 && "border-t border-border/40"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="flex items-center justify-center w-8 h-8 rounded-[10px] shrink-0"
+                          style={{ backgroundColor: b.categoryColor, color: "#fff" }}
+                        >
+                          {IconComp ? (
+                            <IconComp className="w-4 h-4" />
+                          ) : (
+                            <span className="text-xs font-bold">{b.categoryName[0]}</span>
+                          )}
+                        </span>
+                        <span className="font-semibold text-sm">{b.categoryName}</span>
+                      </div>
+                      <div className="num text-sm font-bold">
+                        <span style={{ color: over ? "hsl(var(--gonuts-bad))" : undefined }}>
+                          {currencySymbol}{b.spent.toFixed(0)}
+                        </span>
+                        <span className="text-muted-foreground font-normal">
+                          {" "}/ {currencySymbol}{b.limit.toFixed(0)}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${Math.min(100, b.percentage)}%`,
+                          backgroundColor: barColor,
+                        }}
+                      />
+                    </div>
+                    {(over || warn) && (
+                      <p
+                        className="text-xs font-semibold mt-1.5"
+                        style={{ color: barColor }}
+                      >
+                        {over
+                          ? t("over_by", {
+                              amount: `${currencySymbol}${(b.spent - b.limit).toFixed(0)}`,
+                            })
+                          : t("budget_getting_tight", {
+                              pct: b.percentage.toFixed(0),
+                            })}
+                      </p>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── Daily rhythm ───────────────────────────────────── */}
+      <section className="mb-5">
+        <h2 className="text-lg font-bold mb-2.5">{t("daily_rhythm")}</h2>
+        <div className="rounded-[var(--radius)] border border-border/50 bg-card p-4
+          shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]
+          dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]">
+          {isLoading ? (
+            <Skeleton className="h-[84px] w-full" />
+          ) : !hasDailyData ? (
+            <div className="flex items-center justify-center h-[84px] text-sm text-muted-foreground">
+              {t("no_spending_this_month")}
+            </div>
+          ) : (
+            <>
+              <div className="flex items-end gap-[3px] h-[84px]">
+                {dailyAmounts.map((d) => {
+                  const h = d.hasData
+                    ? Math.max(3, (d.value / maxDailyAmount) * 80)
+                    : 3;
+                  const isToday = d.day === today;
+                  const bg = isToday
+                    ? "hsl(var(--gonuts-orange))"
+                    : d.value > 0
+                    ? "hsl(var(--foreground))"
+                    : "hsl(var(--muted))";
+                  return (
+                    <div
+                      key={d.day}
+                      className="flex-1 rounded-[3px] transition-all"
+                      style={{ height: h, backgroundColor: bg }}
+                    />
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between mt-2.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                <span>1 {monthName}</span>
+                <span>
+                  {t("today")}
+                </span>
+                <span>
+                  {daysInMonth} {monthName}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* ── Recent ─────────────────────────────────────────── */}
+      <section className="mb-5">
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-lg font-bold">{t("recent")}</h2>
+          <Link
+            to="/transactions"
+            className="flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {t("see_all")}
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+        <div className="rounded-[var(--radius)] border border-border/50 bg-card px-4
+          shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]
+          dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]">
+          {isLoading ? (
+            <div className="py-3 space-y-3">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+            </div>
+          ) : recentTransactions.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              {t("no_transactions")}
+            </p>
+          ) : (
+            <div>
+              {recentTransactions.map((tx, i) => {
+                const cat = catMap.get(tx.category_id ?? "");
+                return (
+                  <div
+                    key={tx.id}
+                    className={cn(i > 0 && "border-t border-border/40")}
+                  >
+                    <RecentTxRow
+                      tx={tx}
+                      catName={cat?.name ?? t("uncategorized", { defaultValue: "Uncategorized" })}
+                      catColor={cat?.color ?? "#888"}
+                      catIcon={cat?.icon ?? "Folder"}
+                      currencySymbol={currencySymbol}
+                      onEdit={handleEdit}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
 
       <TransactionDialog
         open={isDialogOpen}

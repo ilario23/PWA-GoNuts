@@ -1,7 +1,7 @@
-import { useTranslation } from "react-i18next";
-import { Transaction, Category, Context, Group } from "@/lib/db";
-import { GroupWithMembers } from "@/hooks/useGroups";
-import { useAuth } from "@/hooks/useAuth";
+import {useTranslation} from 'react-i18next';
+import {Transaction, Category, Context, Group} from '@/lib/db';
+import {GroupWithMembers} from '@/hooks/useGroups';
+import {useAuth} from '@/hooks/useAuth';
 import {
   Drawer,
   DrawerContent,
@@ -9,27 +9,24 @@ import {
   DrawerTitle,
   DrawerDescription,
   DrawerClose,
-} from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
-import { getIconComponent } from "@/lib/icons";
-import { format, parseISO } from "date-fns";
-import { it, enUS } from "date-fns/locale";
+} from '@/components/ui/drawer';
+import {Button} from '@/components/ui/button';
+import {format, parseISO} from 'date-fns';
+import {it, enUS} from 'date-fns/locale';
+import {CloudOff, Cloud, X} from 'lucide-react';
+import {DetailDrawerActions} from '@/components/ui/DetailDrawerActions';
 import {
-  Tag,
-  Users,
-  Calendar,
-  Wallet,
-  RefreshCw,
-  User,
-  PieChart,
-  Cloud,
-  Calculator,
-  X,
-
-} from "lucide-react";
-import { SyncStatusBadge } from "@/components/SyncStatus";
-import { Badge } from "@/components/ui/badge";
-import { createElement } from "react";
+  DetailHeader,
+  DetailEyebrow,
+  DetailIcon,
+  DetailAmount,
+  DetailTitle,
+  TypePill,
+  MetaPill,
+  DetailGrid,
+  DetailCell,
+  DetailMeta,
+} from '@/components/ui/DetailDrawerLayout';
 
 interface TransactionDetailDrawerProps {
   transaction: Transaction | null;
@@ -38,7 +35,9 @@ interface TransactionDetailDrawerProps {
   group?: Group | GroupWithMembers;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-
+  onEdit?: (transaction: Transaction) => void;
+  onDelete?: (id: string) => void;
+  onDuplicate?: (transaction: Transaction) => void;
 }
 
 export function TransactionDetailDrawer({
@@ -48,47 +47,44 @@ export function TransactionDetailDrawer({
   group,
   open,
   onOpenChange,
-
+  onEdit,
+  onDelete,
+  onDuplicate,
 }: TransactionDetailDrawerProps) {
-  const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const {t, i18n} = useTranslation();
+  const {user} = useAuth();
 
   if (!transaction) return null;
 
-  const IconComp = category?.icon ? getIconComponent(category.icon) : null;
   const dateObj = parseISO(transaction.date);
-  const formattedDate = format(dateObj, "EEEE d MMMM yyyy", {
-    locale: i18n.language === "it" ? it : enUS,
+  const formattedDate = format(dateObj, 'EEEE d MMMM yyyy', {
+    locale: i18n.language === 'it' ? it : enUS,
   });
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "expense":
-        return "text-red-500";
-      case "income":
-        return "text-green-500";
-      case "investment":
-        return "text-blue-500";
-      default:
-        return "text-foreground";
-    }
-  };
+  const sign =
+    transaction.type === 'expense'
+      ? '-'
+      : transaction.type === 'investment'
+        ? ''
+        : '+';
 
   // Group logic
   const isGroupTransaction = !!group && !!transaction.group_id;
-  let payerName = "";
+  let payerName = '';
   let myShareAmount = 0;
   let mySharePercentage = 0;
 
-  if (isGroupTransaction && user && "members" in group) {
+  if (isGroupTransaction && user && 'members' in group) {
     if (transaction.paid_by_member_id) {
-      const payer = group.members.find((m) => m.id === transaction.paid_by_member_id);
-      payerName = payer?.displayName || t("unknown_user");
+      const payer = group.members.find(
+        (m) => m.id === transaction.paid_by_member_id,
+      );
+      payerName = payer?.displayName || t('unknown_user');
     } else {
       // Fallback for old transactions or edge cases
       const payerId = transaction.user_id;
       const payer = group.members.find((m) => m.user_id === payerId);
-      payerName = payer?.displayName || t("unknown_user");
+      payerName = payer?.displayName || t('unknown_user');
     }
 
     const myMemberInfo = group.members.find((m) => m.user_id === user.id);
@@ -101,191 +97,106 @@ export function TransactionDetailDrawer({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader className="text-center pt-8 pb-4 relative">
-            <div className="absolute right-4 top-4 flex gap-2">
-              <DrawerClose asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full opacity-70 hover:opacity-100"
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">{t("close")}</span>
-                </Button>
-              </DrawerClose>
-            </div>
-            <div className="flex justify-center mb-4">
-              <div
-                className="h-16 w-16 rounded-full flex items-center justify-center"
-                style={{
-                  backgroundColor: category?.color
-                    ? `${category.color}20`
-                    : "#f3f4f6",
-                  color: category?.color || "#6b7280",
-                }}
-              >
-                {IconComp ? (
-                  createElement(IconComp, { className: "h-8 w-8" })
-                ) : (
-                  <div className="h-8 w-8 rounded-full bg-muted" />
-                )}
-              </div>
-            </div>
-            <div className="flex items-center justify-center px-4 w-full">
-              <div className="relative flex items-center justify-center min-w-0 w-full max-w-[calc(100%-6rem)]">
-                <DrawerTitle className="text-2xl font-bold text-center w-full break-all">
-                  {transaction.description}
-                </DrawerTitle>
-
-              </div>
-            </div>
-            <DrawerDescription asChild>
-              <div className="text-lg font-medium mt-1">
-                <span className={getTypeColor(transaction.type)}>
-                  {transaction.type === "expense"
-                    ? "-"
-                    : transaction.type === "investment"
-                      ? ""
-                      : "+"}
-                  €{isGroupTransaction && myShareAmount > 0 ? myShareAmount.toFixed(2) : transaction.amount.toFixed(2)}
-                </span>
-                {isGroupTransaction && myShareAmount > 0 && (
-                  <div className="flex flex-col items-center gap-1 mt-2">
-                    <Badge variant="secondary" className="font-normal text-xs px-2 py-0.5">
-                      {t("your_share")}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            </DrawerDescription>
+        <div className='mx-auto w-full max-w-sm pb-2'>
+          <DrawerHeader className='sr-only'>
+            <DrawerTitle>{transaction.description}</DrawerTitle>
+            <DrawerDescription>{t('type')}</DrawerDescription>
           </DrawerHeader>
 
-          <div className="px-4 py-4 space-y-6 pb-12">
-            {/* Details Grid */}
-            <div className="grid gap-4">
-              {/* Type */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center text-muted-foreground">
-                  <Tag className="h-4 w-4 mr-2" />
-                  <span className="text-sm">{t("type")}</span>
-                </div>
-                <span
-                  className={`text-sm font-medium capitalize ${getTypeColor(
-                    transaction.type
-                  )}`}
-                >
-                  {t(transaction.type)}
-                </span>
-              </div>
+          <DrawerClose asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='absolute right-3 top-3 z-10 h-8 w-8 rounded-full opacity-60 hover:opacity-100'
+            >
+              <X className='h-4 w-4' />
+              <span className='sr-only'>{t('close')}</span>
+            </Button>
+          </DrawerClose>
 
-              {/* Date */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center text-muted-foreground">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <span className="text-sm">{t("date")}</span>
-                </div>
-                <span className="text-sm font-medium capitalize">
-                  {formattedDate}
-                </span>
-              </div>
-
-              {/* Category */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center text-muted-foreground">
-                  <Wallet className="h-4 w-4 mr-2" />
-                  <span className="text-sm">{t("category")}</span>
-                </div>
-                <span className="text-sm font-medium">
-                  {category?.name || "-"}
-                </span>
-              </div>
-
-              {/* Context */}
-              {context && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-muted-foreground">
-                    <Tag className="h-4 w-4 mr-2" />
-                    <span className="text-sm">{t("context")}</span>
-                  </div>
-                  <div className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-xs font-medium">
-                    {context.name}
-                  </div>
-                </div>
+          <DetailHeader>
+            <DetailEyebrow>
+              <DetailIcon iconName={category?.icon} color={category?.color} />
+              <TypePill type={transaction.type} label={t(transaction.type)} />
+              {isGroupTransaction && myShareAmount > 0 && (
+                <MetaPill label={t('your_share')} />
               )}
+            </DetailEyebrow>
 
-              {/* Group */}
-              {group && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-muted-foreground">
-                    <Users className="h-4 w-4 mr-2" />
-                    <span className="text-sm">{t("group")}</span>
-                  </div>
-                  <div className="flex items-center gap-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded text-xs font-medium">
-                    {group.name}
-                  </div>
-                </div>
-              )}
+            <DetailAmount type={transaction.type}>
+              {sign}€
+              {isGroupTransaction && myShareAmount > 0
+                ? myShareAmount.toFixed(2)
+                : transaction.amount.toFixed(2)}
+            </DetailAmount>
 
-              {/* Group Details (Paid By & Share) */}
-              {isGroupTransaction && "members" in group && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-muted-foreground">
-                      <User className="h-4 w-4 mr-2" />
-                      <span className="text-sm">{t("paid_by")}</span>
-                    </div>
-                    <span className="text-sm font-medium">{payerName}</span>
-                  </div>
+            <DetailTitle>{transaction.description}</DetailTitle>
+          </DetailHeader>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-muted-foreground">
-                      <PieChart className="h-4 w-4 mr-2" />
-                      <span className="text-sm">{t("your_share")}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm font-medium block">
-                        €{myShareAmount.toFixed(2)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        ({mySharePercentage}%)
-                      </span>
-                    </div>
-                  </div>
+          <DetailGrid>
+            <DetailCell label={t('date')} valueClassName='capitalize'>
+              {formattedDate}
+            </DetailCell>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-muted-foreground">
-                      <Calculator className="h-4 w-4 mr-2" />
-                      <span className="text-sm">{t("total")}</span>
-                    </div>
-                    <span className="text-sm font-medium">
-                      €{transaction.amount.toFixed(2)}
-                    </span>
-                  </div>
-                </>
-              )}
+            <DetailCell label={t('category')}>
+              {category?.name || '-'}
+            </DetailCell>
 
-              {/* Sync Status */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center text-muted-foreground">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  <span className="text-sm">{t("status")}</span>
-                </div>
-                {transaction.pendingSync === 1 ? (
-                  <SyncStatusBadge isPending={true} />
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="border-green-500 text-green-600 bg-green-50 dark:bg-green-950/30"
-                  >
-                    <Cloud className="mr-1 h-3 w-3" />
-                    {t("synced")}
-                  </Badge>
-                )}
-              </div>
+            {context && (
+              <DetailCell label={t('context')} valueClassName='text-primary'>
+                {context.name}
+              </DetailCell>
+            )}
 
-            </div>
-          </div>
+            {group && (
+              <DetailCell
+                label={t('group')}
+                valueClassName='text-[hsl(var(--color-investment))]'
+              >
+                {group.name}
+              </DetailCell>
+            )}
+
+            {isGroupTransaction && 'members' in group && (
+              <>
+                <DetailCell label={t('paid_by')}>{payerName}</DetailCell>
+                <DetailCell label={t('your_share')} mono>
+                  €{myShareAmount.toFixed(2)}
+                  <span className='ml-1 text-xs font-normal text-muted-foreground'>
+                    ({mySharePercentage}%)
+                  </span>
+                </DetailCell>
+                <DetailCell label={t('total')} mono>
+                  €{transaction.amount.toFixed(2)}
+                </DetailCell>
+              </>
+            )}
+          </DetailGrid>
+
+          <DetailMeta>
+            {transaction.pendingSync === 1 ? (
+              <>
+                <CloudOff className='h-3.5 w-3.5' />
+                {t('pending_sync') || t('status')}
+              </>
+            ) : (
+              <>
+                <Cloud className='h-3.5 w-3.5 text-[hsl(var(--gonuts-good))]' />
+                {t('synced')}
+              </>
+            )}
+          </DetailMeta>
+
+          {(onEdit || onDelete) && (
+            <DetailDrawerActions
+              onClose={() => onOpenChange(false)}
+              onEdit={() => onEdit?.(transaction)}
+              onDelete={() => onDelete?.(transaction.id)}
+              onDuplicate={
+                onDuplicate ? () => onDuplicate(transaction) : undefined
+              }
+            />
+          )}
         </div>
       </DrawerContent>
     </Drawer>

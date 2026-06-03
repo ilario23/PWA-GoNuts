@@ -5,7 +5,6 @@ import { SmoothLoader } from "@/components/ui/smooth-loader";
 import { ContentLoader } from "@/components/ui/content-loader";
 import { useTranslation } from "react-i18next";
 import type { Category, Group } from "@/lib/db";
-import { cn } from "@/lib/utils";
 
 interface CategoryMobileListProps {
     categories: Category[] | undefined;
@@ -14,8 +13,6 @@ interface CategoryMobileListProps {
     setExpandedCategoryIds: React.Dispatch<React.SetStateAction<Set<string>>>;
     groups: Group[];
     getBudgetForCategory: (categoryId: string) => { amount: number; spent: number; percentage: number; period: "monthly" | "yearly" } | null | undefined;
-    onEdit: (category: Category) => void;
-    onDelete: (id: string) => void;
     onCategoryClick: (category: Category) => void;
     isLoading: boolean;
 }
@@ -27,8 +24,6 @@ export function CategoryMobileList({
     setExpandedCategoryIds,
     groups,
     getBudgetForCategory,
-    onEdit,
-    onDelete,
     onCategoryClick,
     isLoading,
 }: CategoryMobileListProps) {
@@ -50,7 +45,8 @@ export function CategoryMobileList({
     const renderCategoryNode = (
         category: Category,
         categoriesOfType: Category[],
-        depth: number = 0
+        depth: number = 0,
+        isFirst: boolean = false
     ) => {
         const children = categoriesOfType.filter(
             (c) => c.parent_id === category.id
@@ -64,122 +60,65 @@ export function CategoryMobileList({
                 ? getBudgetForCategory(category.id)
                 : null;
 
-        // Root Level Styling (Depth 0)
+        const row = (
+            <MobileCategoryRow
+                category={category}
+                onClick={onCategoryClick}
+                childCount={children.length}
+                budget={budget ? {
+                    amount: budget.amount,
+                    spent: budget.spent,
+                    percentage: budget.percentage,
+                    period: budget.period
+                } : null}
+                isExpanded={isExpanded}
+                isFirst={isFirst}
+                groupName={
+                    category.group_id
+                        ? groups?.find((g) => g.id === category.group_id)?.name
+                        : undefined
+                }
+                onToggleExpand={
+                    hasChildren
+                        ? () => toggleExpand(category.id)
+                        : undefined
+                }
+            />
+        );
+
+        const expandedChildren = (
+            <AnimatePresence initial={false}>
+                {hasChildren && isExpanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden bg-muted/30"
+                    >
+                        {children.map((child, i) =>
+                            renderCategoryNode(child, categoriesOfType, depth + 1, i === 0)
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        );
+
+        // Root level: contiguous ledger line within the type sheet.
         if (depth === 0) {
             return (
-                <div key={category.id} className="mb-3">
-                    <MobileCategoryRow
-                        category={category}
-                        onEdit={onEdit}
-                        onDelete={onDelete}
-                        onClick={onCategoryClick}
-                        childCount={children.length}
-                        budget={budget ? {
-                            amount: budget.amount,
-                            spent: budget.spent,
-                            percentage: budget.percentage,
-                            period: budget.period
-                        } : null}
-                        isExpanded={isExpanded}
-
-                        groupName={
-                            category.group_id
-                                ? groups?.find((g) => g.id === category.group_id)?.name
-                                : undefined
-                        }
-                        onToggleExpand={
-                            hasChildren
-                                ? () => toggleExpand(category.id)
-                                : undefined
-                        }
-                        className={cn(
-                            "z-10 relative font-medium shadow-sm transition-colors",
-                            hasChildren && isExpanded ? "mb-1 ring-1 ring-border/50" : "mb-0",
-                            "border-l-4 border-l-transparent",
-                            category.color && { borderColor: category.color }
-                        )}
-                        style={{
-                            borderLeftColor: category.color
-                        }}
-                    />
-
-                    <AnimatePresence>
-                        {hasChildren && isExpanded && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="overflow-hidden pl-4 flex flex-col relative"
-                            >
-                                {/* Tree Guide Line for Level 1 */}
-                                <div className="absolute left-[22px] top-0 bottom-4 w-px bg-border/60" />
-
-                                {children.map((child) =>
-                                    renderCategoryNode(child, categoriesOfType, depth + 1)
-                                )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                <div key={category.id}>
+                    {row}
+                    {expandedChildren}
                 </div>
             );
         }
 
-        // Child Level Styling (Depth >= 1)
+        // Nested level: indented ledger line on a tinted track.
         return (
-            <div key={category.id} className="relative pl-4 mt-1">
-                {/* Horizontal connector to parent's vertical line */}
-                <div className="absolute left-0 top-[36px] w-4 h-px bg-border/60" />
-
-                <MobileCategoryRow
-                    category={category}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onClick={onCategoryClick}
-                    childCount={children.length}
-                    budget={budget ? {
-                        amount: budget.amount,
-                        spent: budget.spent,
-                        percentage: budget.percentage,
-                        period: budget.period
-                    } : null}
-                    isExpanded={isExpanded}
-                    groupName={
-                        category.group_id
-                            ? groups?.find((g) => g.id === category.group_id)?.name
-                            : undefined
-                    }
-                    onToggleExpand={
-                        hasChildren
-                            ? () => toggleExpand(category.id)
-                            : undefined
-                    }
-                    className={cn(
-                        "bg-muted/10 border-muted rounded-md mb-1 shadow-none transition-colors",
-                        // Differentiate nested items? Maybe slightly lighter background or just indentation
-                        hasChildren && isExpanded && "bg-muted/20"
-                    )}
-                />
-
-                {/* Recursive Children for Depth > 0 */}
-                <AnimatePresence>
-                    {hasChildren && isExpanded && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden pl-4 flex flex-col relative"
-                        >
-                            {/* Inner Tree Guide Line */}
-                            <div className="absolute left-[22px] top-0 bottom-4 w-px bg-border/60" />
-
-                            {children.map((child) =>
-                                renderCategoryNode(child, categoriesOfType, depth + 1)
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+            <div key={category.id} className="pl-5">
+                {row}
+                {expandedChildren}
             </div>
         );
     };
@@ -214,13 +153,18 @@ export function CategoryMobileList({
 
                             return (
                                 <div key={type} className="mb-6 relative z-0">
-                                    <h3 className="text-sm font-medium text-muted-foreground mb-3 px-1 sticky top-0 bg-background/95 backdrop-blur py-2 z-20">
-                                        {t(type)}
-                                    </h3>
+                                    <div className="flex items-baseline justify-between px-1 mb-2 sticky top-0 bg-background/95 backdrop-blur py-2 z-20">
+                                        <h3 className="text-[13px] font-bold uppercase tracking-wide text-foreground/70">
+                                            {t(type)}
+                                        </h3>
+                                        <span className="num text-[12px] font-semibold tabular-nums text-muted-foreground/80">
+                                            {rootCategories.length}
+                                        </span>
+                                    </div>
 
-                                    <div className="space-y-2">
-                                        {rootCategories.map((category) =>
-                                            renderCategoryNode(category, categoriesOfType)
+                                    <div className="rounded-[22px] border border-border/50 bg-card shadow-card overflow-hidden">
+                                        {rootCategories.map((category, i) =>
+                                            renderCategoryNode(category, categoriesOfType, 0, i === 0)
                                         )}
                                     </div>
                                 </div>

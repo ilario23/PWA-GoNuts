@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-06-03
+
+A major visual release: GoNuts gets a complete v2 redesign across every screen.
+
+### Added
+- **v2 visual redesign**: Warm ink-on-paper palette and Bricolage Grotesque typography for a calmer, more expressive feel throughout the app.
+- **Bottom tab navigation**: New bottom tab bar plus a dedicated **More** hub page that gathers contexts, recurring transactions, settings, and the rest in one place.
+- **Daily rhythm visualization**: Statistics now shows how spending flows across the days of the month.
+- **In-dialog calculator**: A calculator built into the add-transaction dialog for quick math without leaving the flow.
+- **Group balance page**: Group balances and settlement plans moved from a cramped drawer into a full, scrollable page.
+- **Design & product docs**: Added `DESIGN.md` and `PRODUCT.md` to capture the v2 design language and product direction.
+
+### Changed
+- **Redesigned pages**: Dashboard, Transactions, Statistics, Groups, Group Detail, Contexts, Recurring, and Settings all reworked to match the v2 look and feel.
+- **Ledger-style lists**: Transaction and category lists reworked into consistent "ledger sheet" layouts with ruled lines.
+- **Detail drawers**: Transaction, category, context, and recurring detail drawers unified around a shared `DetailDrawerLayout` and `DetailDrawerActions`, replacing the old swipe-based interactions.
+
+### Fixed
+- **Accessibility**: Improvements across dialogs, category and date pickers, and navigation, with updated IT/EN translations.
+
+## [1.0.12] - 2026-05-06
+
+### Changed
+- **Add transaction dialog**: Clearer labels, visible helper text, and better defaults for group payer selection.
+
+### Fixed
+- **Add transaction regressions**: Category selection stays stable and now resets only when the selected group changes.
+
 ## [1.0.11] - 2026-05-06
 
 ### Added

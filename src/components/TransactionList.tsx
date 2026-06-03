@@ -24,6 +24,7 @@ import { SmoothLoader } from "@/components/ui/smooth-loader";
 import { motion, Variants } from "framer-motion";
 import { FadeIn } from "@/components/ui/fade-in";
 import { getIconComponent } from "@/lib/icons";
+import { getTypeTextColor, GROUP_CHIP_CLASSES } from "@/lib/typeColors";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { UI_DEFAULTS, UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { Copy } from "lucide-react"; // Import Copy icon
@@ -54,13 +55,13 @@ interface TransactionListProps {
 }
 
 // Row heights for virtualization
-export const MOBILE_ROW_HEIGHT = 80; // Reduced height for compact row + margin
-export const MOBILE_HEADER_HEIGHT = 40;
+export const MOBILE_ROW_HEIGHT = 64; // Full-bleed ledger line, no inter-row gap
+export const MOBILE_HEADER_HEIGHT = 48;
 export const DESKTOP_ROW_HEIGHT = 53;
 
 type GroupedItem =
-  | { type: "header"; date: string; label: string }
-  | { type: "transaction"; data: Transaction };
+  | { type: "header"; date: string; label: string; total: number; count: number; isToday: boolean }
+  | { type: "transaction"; data: Transaction; isFirst: boolean };
 
 export function TransactionList({
   transactions,
@@ -153,42 +154,43 @@ export function TransactionList({
     return (transaction.amount * (group as GroupWithMembers).myShare) / 100;
   };
 
-  const getTypeTextColor = (type: string) => {
-    switch (type) {
-      case "expense":
-        return "text-red-500";
-      case "income":
-        return "text-green-500";
-      case "investment":
-        return "text-blue-500";
-      default:
-        return "";
-    }
-  };
-
   // Group transactions by date
   const groupedItems = useMemo(() => {
     if (!transactions) return [];
     const items: GroupedItem[] = [];
     let lastDate = "";
+    let currentHeader: Extract<GroupedItem, { type: "header" }> | null = null;
 
     transactions.forEach((transaction) => {
-      if (transaction.date !== lastDate) {
+      const isNewGroup = transaction.date !== lastDate;
+      if (isNewGroup) {
         const dateObj = parseISO(transaction.date);
         let label = format(dateObj, "d MMMM yyyy", {
           locale: i18n.language === "it" ? it : enUS,
         });
 
-        if (isToday(dateObj)) {
+        const today = isToday(dateObj);
+        if (today) {
           label = t("today");
         } else if (isYesterday(dateObj)) {
           label = t("yesterday");
         }
 
-        items.push({ type: "header", date: transaction.date, label });
+        currentHeader = { type: "header", date: transaction.date, label, total: 0, count: 0, isToday: today };
+        items.push(currentHeader);
         lastDate = transaction.date;
       }
-      items.push({ type: "transaction", data: transaction });
+      // Net daily cash flow: income adds, expense/investment are money out.
+      if (currentHeader) {
+        currentHeader.count += 1;
+        if (!isSettlementTransaction(transaction)) {
+          currentHeader.total +=
+            transaction.type === "income"
+              ? transaction.amount
+              : -transaction.amount;
+        }
+      }
+      items.push({ type: "transaction", data: transaction, isFirst: isNewGroup });
     });
 
     return items;
@@ -309,7 +311,7 @@ export function TransactionList({
               <TooltipProvider>
                 <Tooltip delayDuration={300}>
                   <TooltipTrigger asChild>
-                    <div className="inline-flex items-center gap-1 text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-md cursor-default">
+                    <div className={`inline-flex items-center gap-1 text-xs ${GROUP_CHIP_CLASSES} px-2 py-1 rounded-md cursor-default`}>
                       <Users className="h-3 w-3" aria-hidden="true" />
                       {group.name}
                     </div>
@@ -449,13 +451,38 @@ export function TransactionList({
 
     // Mobile view
     if (isMobile) {
+      // Ledger section header: date label + net daily flow, coral marker for today.
+      const renderMobileHeader = (
+        item: Extract<GroupedItem, { type: "header" }>
+      ) => (
+        <div className="flex h-full items-center justify-between gap-2 px-4 pt-3 pb-1.5">
+          <span className="flex items-center gap-1.5 min-w-0">
+            {item.isToday && (
+              <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+            )}
+            <span
+              className={`text-[13px] font-bold uppercase tracking-wide truncate ${
+                item.isToday ? "text-primary" : "text-foreground/70"
+              }`}
+            >
+              {item.label}
+            </span>
+          </span>
+          {item.count > 1 && (
+            <span className="num text-[12px] font-semibold tabular-nums text-muted-foreground/80 shrink-0">
+              {item.total >= 0 ? "+" : "−"}€{Math.abs(item.total).toFixed(2)}
+            </span>
+          )}
+        </div>
+      );
+
       // Virtualized mobile list for large datasets
       if (shouldVirtualize) {
         return (
           <>
             <div
               ref={parentRef}
-              className="overflow-auto"
+              className="overflow-auto rounded-[22px] border border-border/50 bg-card shadow-card"
               style={{ height: height ?? 'calc(100vh - 280px)', minHeight: '450px' }}
             >
               <div
@@ -479,11 +506,10 @@ export function TransactionList({
                           width: "100%",
                           height: `${virtualRow.size}px`,
                           transform: `translateY(${virtualRow.start}px)`,
-                          padding: "8px 4px",
                         }}
-                        className="font-semibold text-sm text-muted-foreground sticky z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+                        className="z-10 sticky bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
                       >
-                        {item.label}
+                        {renderMobileHeader(item)}
                       </div>
                     );
                   }
@@ -498,23 +524,20 @@ export function TransactionList({
                         width: "100%",
                         height: `${virtualRow.size}px`,
                         transform: `translateY(${virtualRow.start}px)`,
-                        padding: "0 4px",
                       }}
                     >
-                      <FadeIn delay={0} duration={200}>
+                      <FadeIn delay={0} duration={200} className="h-full">
                         <MobileTransactionRow
                           transaction={item.data}
                           category={getCategory(item.data.category_id)}
                           context={getContext(item.data.context_id)}
                           group={getGroup(item.data.group_id)}
-                          onEdit={onEdit}
-                          onDelete={onDelete}
-                          onDuplicate={onDuplicate}
                           onClick={() => handleRowClick(item.data)}
                           isVirtual={true}
                           hideContext={hideContext}
                           personalAmount={getPersonalAmount(item.data)}
                           isGroupShare={!!item.data.group_id}
+                          isFirst={item.isFirst}
                         />
                       </FadeIn>
                     </div>
@@ -529,7 +552,9 @@ export function TransactionList({
               group={getGroup(selectedTransaction?.group_id)}
               open={isDrawerOpen}
               onOpenChange={setIsDrawerOpen}
-
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onDuplicate={onDuplicate}
             />
           </>
         );
@@ -538,7 +563,7 @@ export function TransactionList({
       // Non-virtualized mobile list for small datasets
       return (
         <>
-          <div className="space-y-1">
+          <div className="rounded-[22px] border border-border/50 bg-card shadow-card overflow-hidden">
             {groupedItems.map((item, index) => {
               if (item.type === "header") {
                 return (
@@ -547,9 +572,10 @@ export function TransactionList({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.2 }}
-                    className="font-semibold text-sm text-muted-foreground pt-4 pb-2 px-1 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+                    className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
+                    style={{ height: MOBILE_HEADER_HEIGHT }}
                   >
-                    {item.label}
+                    {renderMobileHeader(item)}
                   </motion.div>
                 );
               }
@@ -563,20 +589,19 @@ export function TransactionList({
                   // Add a small delay based on index to stagger the animation manually
                   // This is more robust than staggerChildren which can sometimes fail if parent state updates too quickly
                   transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                  style={{ height: MOBILE_ROW_HEIGHT }}
                 >
                   <MobileTransactionRow
                     transaction={item.data}
                     category={getCategory(item.data.category_id)}
                     context={getContext(item.data.context_id)}
                     group={getGroup(item.data.group_id)}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onDuplicate={onDuplicate}
                     onClick={() => handleRowClick(item.data)}
                     isVirtual={false}
                     hideContext={hideContext}
                     personalAmount={getPersonalAmount(item.data)}
                     isGroupShare={!!item.data.group_id}
+                    isFirst={item.isFirst}
                   />
                 </motion.div>
               );
@@ -589,7 +614,9 @@ export function TransactionList({
             group={getGroup(selectedTransaction?.group_id)}
             open={isDrawerOpen}
             onOpenChange={setIsDrawerOpen}
-
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onDuplicate={onDuplicate}
           />
         </>
       );

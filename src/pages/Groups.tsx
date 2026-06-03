@@ -3,10 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   useGroups,
-  calculateSettlement,
   GroupWithMembers,
 } from "@/hooks/useGroups";
-import { useTransactions } from "@/hooks/useTransactions";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +35,6 @@ import {
 import { toast } from "sonner";
 import { GroupCard } from "@/components/GroupCard";
 import { ManageMembersDrawer } from "@/components/ManageMembersDrawer";
-import { GroupBalanceDrawer } from "@/components/GroupBalanceDrawer";
 import { GroupFormDialog } from "@/components/groups/GroupFormDialog";
 import { GroupDesktopTable } from "@/components/groups/GroupDesktopTable";
 import { GroupFormValues } from "@/lib/schemas";
@@ -57,9 +54,6 @@ export function GroupsPage() {
     deleteGroup,
     getGroupBalance,
   } = useGroups();
-  const { recordGroupSettlement, recordPairSettlement, undoSettlementPayment } =
-    useTransactions();
-
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<GroupWithMembers | null>(
     null
@@ -69,13 +63,8 @@ export function GroupsPage() {
   );
   const [deleteTransactions, setDeleteTransactions] = useState(false);
   const [managingGroupId, setManagingGroupId] = useState<string | null>(null);
-  const [viewingBalance, setViewingBalance] = useState<GroupWithMembers | null>(
-    null
-  );
-  const [balanceData, setBalanceData] = useState<Awaited<
-    ReturnType<typeof getGroupBalance>
-  > | null>(null);
   const [copiedUserId, setCopiedUserId] = useState(false);
+  const [groupBalanceMap, setGroupBalanceMap] = useState<Record<string, number>>({});
 
   const [searchQuery, setSearchQuery] = useState("");
   // Derive managingGroup from groups list to ensure reactivity
@@ -83,17 +72,22 @@ export function GroupsPage() {
     return groups?.find((g) => g.id === managingGroupId) || null;
   }, [groups, managingGroupId]);
 
-  // Auto-refresh balance data when drawer is open and data might have changed
+  // Load per-group balance for the card list
   useEffect(() => {
-    if (!viewingBalance) return;
-
-    const refreshBalance = async () => {
-      const data = await getGroupBalance(viewingBalance.id);
-      setBalanceData(data);
+    if (!groups || !user) return;
+    let cancelled = false;
+    const loadAll = async () => {
+      const results: Record<string, number> = {};
+      for (const group of groups) {
+        const data = await getGroupBalance(group.id);
+        const myBal = data.balances[user.id];
+        results[group.id] = myBal?.balance ?? 0;
+      }
+      if (!cancelled) setGroupBalanceMap(results);
     };
-
-    refreshBalance();
-  }, [viewingBalance, groups, getGroupBalance]);
+    loadAll();
+    return () => { cancelled = true; };
+  }, [groups, user, getGroupBalance]);
 
 
   const handleFormSubmit = async (data: GroupFormValues) => {
@@ -122,90 +116,8 @@ export function GroupsPage() {
     toast.success(t("group_deleted"));
   };
 
-  const handleViewBalance = async (group: GroupWithMembers) => {
-    setViewingBalance(group);
-    const data = await getGroupBalance(group.id);
-    setBalanceData(data);
-  };
-
-  const handleRecordSettlement = async (note: string) => {
-    if (!user || !viewingBalance || !balanceData) return;
-    const settlements = calculateSettlement(
-      Object.fromEntries(
-        Object.values(balanceData.balances).map((balance) => [
-          balance.memberId,
-          {
-            userId: balance.memberId,
-            share: balance.share,
-            shouldPay: balance.shouldPay,
-            hasPaid: balance.hasPaid,
-            balance: balance.balance,
-          },
-        ])
-      )
-    );
-
-    if (settlements.length === 0) {
-      toast.info(t("no_payments_needed"));
-      return;
-    }
-
-    await recordGroupSettlement({
-      userId: user.id,
-      groupId: viewingBalance.id,
-      note,
-      settlements: settlements.map((settlement) => ({
-        fromMemberId: settlement.from,
-        toMemberId: settlement.to,
-        amount: settlement.amount,
-      })),
-    });
-
-    const refreshed = await getGroupBalance(viewingBalance.id);
-    setBalanceData(refreshed);
-    toast.success(t("settlement_recorded_reset"));
-  };
-
-  const handleMarkPaid = async ({
-    from,
-    to,
-    amount,
-    note,
-  }: {
-    from: string;
-    to: string;
-    amount: number;
-    note?: string;
-  }) => {
-    if (!user || !viewingBalance || !balanceData) return;
-    const fromBalance = balanceData.balances[from];
-    const toBalance = balanceData.balances[to];
-
-    if (!fromBalance || !toBalance) {
-      toast.error(t("unable_to_record_settlement"));
-      return;
-    }
-
-    await recordPairSettlement({
-      userId: user.id,
-      groupId: viewingBalance.id,
-      fromMemberId: fromBalance.memberId,
-      toMemberId: toBalance.memberId,
-      amount,
-      note,
-    });
-
-    const refreshed = await getGroupBalance(viewingBalance.id);
-    setBalanceData(refreshed);
-    toast.success(t("payment_marked_paid_success"));
-  };
-
-  const handleUndoSettlement = async (settlementPaymentId: string) => {
-    if (!viewingBalance) return;
-    await undoSettlementPayment(settlementPaymentId);
-    const refreshed = await getGroupBalance(viewingBalance.id);
-    setBalanceData(refreshed);
-    toast.success(t("settlement_undo_success"));
+  const handleViewBalance = (group: GroupWithMembers) => {
+    navigate(`/groups/${group.id}/balance`);
   };
 
   const copyUserId = async () => {
@@ -272,12 +184,12 @@ export function GroupsPage() {
               setEditingGroup(null);
               setIsCreateDialogOpen(true);
             }}
-            size="icon"
-            className="md:w-auto md:px-4 md:h-10"
+            size="sm"
+            className="gap-1.5 bg-[hsl(var(--gonuts-orange))] hover:bg-[hsl(var(--gonuts-orange))]/90 text-white"
             data-testid="create-group-button"
           >
-            <Plus className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">{t("add_group")}</span>
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("add_group")}</span>
           </Button>
         </div>
       </div>
@@ -316,7 +228,7 @@ export function GroupsPage() {
         ) : (
           <>
             {/* Mobile Grid View */}
-            <div className="md:hidden grid gap-4 grid-cols-1">
+            <div className="md:hidden grid gap-3 grid-cols-1 sm:grid-cols-2">
               {filteredGroups.map((group) => (
                 <GroupCard
                   key={group.id}
@@ -327,6 +239,7 @@ export function GroupsPage() {
                   onBalance={handleViewBalance}
                   onMembers={openManageMembers}
                   onStatistics={handleViewStatistics}
+                  myBalance={groupBalanceMap[group.id]}
                 />
               ))}
             </div>
@@ -412,22 +325,6 @@ export function GroupsPage() {
         group={managingGroup}
         open={!!managingGroupId}
         onOpenChange={(open: boolean) => !open && setManagingGroupId(null)}
-      />
-
-      {/* Group Balance Drawer (Mobile-First) */}
-      <GroupBalanceDrawer
-        group={viewingBalance}
-        balanceData={balanceData}
-        open={!!viewingBalance}
-        onOpenChange={(open) => {
-          if (!open) {
-            setViewingBalance(null);
-          }
-        }}
-        currentUserId={user?.id || ""}
-        onMarkPaid={handleMarkPaid}
-        onUndoSettlement={handleUndoSettlement}
-        onRecordSettlement={handleRecordSettlement}
       />
     </div >
   );
