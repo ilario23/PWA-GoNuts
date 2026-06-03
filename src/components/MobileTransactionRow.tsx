@@ -22,6 +22,8 @@ interface MobileTransactionRowProps {
   hideContext?: boolean;
   personalAmount?: number;
   isGroupShare?: boolean;
+  /** Hide the top hairline ruler (first line in a ledger section). */
+  isFirst?: boolean;
 }
 
 export function MobileTransactionRow({
@@ -34,6 +36,7 @@ export function MobileTransactionRow({
   hideContext,
   personalAmount,
   isGroupShare,
+  isFirst,
 }: MobileTransactionRowProps) {
   const { t } = useTranslation();
   const IconComp = category?.icon ? getIconComponent(category.icon) : null;
@@ -42,10 +45,19 @@ export function MobileTransactionRow({
     ? extractSettlementNote(transaction.description)
     : "";
 
+  const sign =
+    transaction.type === "expense"
+      ? "−"
+      : transaction.type === "investment"
+        ? ""
+        : "+";
+
   return (
-    <div className="mb-2" style={style}>
+    <div className="h-full px-1.5" style={style}>
       <div
-        className="group bg-card p-3 rounded-lg border border-border/60 shadow-card flex items-center gap-3 h-[72px] cursor-pointer transition-all duration-200 ease-out active:scale-[0.99] hover:-translate-y-0.5 hover:shadow-card-hover hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className={`group relative flex h-full items-center gap-3 rounded-xl px-2.5 cursor-pointer transition-colors duration-150 hover:bg-muted/50 active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset ${
+          isFirst ? "" : "before:absolute before:inset-x-2.5 before:top-0 before:h-px before:bg-border/45"
+        }`}
         role={onClick ? "button" : undefined}
         tabIndex={onClick ? 0 : undefined}
         onClick={onClick}
@@ -61,9 +73,9 @@ export function MobileTransactionRow({
         }
         aria-label={`${transaction.description}, ${(personalAmount ?? transaction.amount).toFixed(2)}`}
       >
-        {/* Icon */}
+        {/* Category icon */}
         <div
-          className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 ring-1 ring-inset ring-foreground/[0.04] transition-transform duration-200 ease-out group-hover:scale-105"
+          className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 ring-1 ring-inset ring-foreground/[0.05] transition-transform duration-150 ease-out group-active:scale-95"
           style={{
             backgroundColor: category?.color
               ? `${category.color}1f`
@@ -73,78 +85,69 @@ export function MobileTransactionRow({
           aria-hidden="true"
         >
           {IconComp ? (
-            createElement(IconComp, { className: "h-5 w-5" })
+            createElement(IconComp, { className: "h-[18px] w-[18px]" })
           ) : (
-            <div className="h-5 w-5 rounded-full bg-muted" />
+            <div className="h-[18px] w-[18px] rounded-full bg-muted-foreground/30" />
           )}
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <div className="font-medium text-sm truncate flex items-center gap-1">
-            {transaction.description || t("transaction")}
+        {/* Description + meta */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+          <div className="font-semibold text-[15px] leading-tight truncate flex items-center gap-1.5">
+            <span className="truncate">
+              {transaction.description || t("transaction")}
+            </span>
             {isSettlement && (
-              <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-1.5 py-0.5 text-[9px] font-medium">
+              <span className="shrink-0 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide">
                 {t("group_settlement_reset")}
               </span>
             )}
             {transaction.category_id === UNCATEGORIZED_CATEGORY.ID && (
-              <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" aria-hidden="true" />
+              <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" aria-hidden="true" />
             )}
           </div>
-          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground min-w-0">
             <span className={`truncate ${!category && transaction.category_id === UNCATEGORIZED_CATEGORY.ID ? "text-amber-500" : ""}`}>
               {isSettlement
                 ? settlementNote || t("group_settlement_reset")
                 : category?.name || (transaction.category_id === UNCATEGORIZED_CATEGORY.ID ? (t("needs_review") || "Needs Review") : "-")}
             </span>
-            {(group || (context && !hideContext)) && (
-              <div className="flex items-center gap-1 flex-wrap">
-                {group && (
-                  <div className={`flex items-center gap-0.5 ${GROUP_CHIP_CLASSES} px-1.5 py-0.5 rounded text-[10px]`}>
-                    <Users className="h-3 w-3" />
-                    <span className="truncate max-w-[80px]">{group.name}</span>
-                  </div>
-                )}
-                {context && !hideContext && (
-                  <div className="flex items-center gap-0.5 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px]">
-                    <Tag className="h-3 w-3" />
-                    <span className="truncate max-w-[80px]">{context.name}</span>
-                  </div>
-                )}
-              </div>
+            {group && (
+              <span className={`shrink-0 flex items-center gap-0.5 ${GROUP_CHIP_CLASSES} pl-1 pr-1.5 py-0.5 rounded-full text-[10px] font-medium`}>
+                <Users className="h-2.5 w-2.5" />
+                <span className="truncate max-w-[72px]">{group.name}</span>
+              </span>
+            )}
+            {context && !hideContext && (
+              <span className="shrink-0 flex items-center gap-0.5 bg-primary/10 text-primary pl-1 pr-1.5 py-0.5 rounded-full text-[10px] font-medium">
+                <Tag className="h-2.5 w-2.5" />
+                <span className="truncate max-w-[72px]">{context.name}</span>
+              </span>
             )}
           </div>
         </div>
 
-        {/* Amount & Status */}
-        <div className="text-right shrink-0 flex flex-col items-end justify-center">
+        {/* Amount (the focal figure) */}
+        <div className="shrink-0 flex flex-col items-end justify-center gap-0.5">
           <div
-            className={`num font-bold text-sm tracking-tight ${getTypeTextColor(
+            className={`num font-bold text-[17px] leading-none tracking-tight tabular-nums ${getTypeTextColor(
               transaction.type
             )}`}
           >
             {isSettlement
               ? t("settlement_history_amount_placeholder")
-              : (
-                <>
-                  {transaction.type === "expense"
-                    ? "-"
-                    : transaction.type === "investment"
-                      ? ""
-                      : "+"}
-                  €{(personalAmount ?? transaction.amount).toFixed(2)}
-                </>
-              )}
+              : `${sign}€${(personalAmount ?? transaction.amount).toFixed(2)}`}
           </div>
           {isGroupShare && !isSettlement && (
-            <div className="text-[10px] text-muted-foreground">
+            <div className="text-[10px] text-muted-foreground leading-none">
               {t("your_share")}
             </div>
           )}
-          <div className="mt-1">
-            <SyncStatusBadge isPending={transaction.pendingSync === 1} />
-          </div>
+          {transaction.pendingSync === 1 && (
+            <div className="leading-none">
+              <SyncStatusBadge isPending={true} />
+            </div>
+          )}
         </div>
       </div>
     </div>
