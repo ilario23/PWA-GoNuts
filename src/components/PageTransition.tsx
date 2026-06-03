@@ -6,25 +6,27 @@ interface PageTransitionProps {
     className?: string;
 }
 
+// Motion is enhancement, not a visibility gate. We animate transform only and
+// never opacity: if the enter animation never runs (hidden tab, headless
+// renderer, reduced-motion, an interrupted route handoff), the page still shows
+// at full opacity instead of shipping blank. The subtle slide/scale is the
+// polish; the content underneath is always visible.
 const pageVariants = {
     initial: {
-        opacity: 0,
         y: 8,
-        scale: 0.98,
+        scale: 0.99,
     },
     animate: {
-        opacity: 1,
         y: 0,
         scale: 1,
         transition: {
-            duration: 0.3,
-            ease: [0.22, 1, 0.36, 1], // Custom easeOutQuint-like curve for "professional" feel
+            duration: 0.25, // product register: keep transitions in the 150-250ms band
+            ease: [0.22, 1, 0.36, 1], // easeOutQuint-like curve
         },
     },
     exit: {
-        opacity: 0,
         y: -8,
-        scale: 0.98,
+        scale: 0.99,
         transition: {
             duration: 0.2,
             ease: "easeIn",

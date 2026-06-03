@@ -181,6 +181,7 @@ A 64px coral rounded-square, raised above the nav pill, owning the new-transacti
 ## 6. Do's and Don'ts
 
 ### Do:
+- **Do** reserve hue for *meaning*: money direction (income/expense/investment), state (over-budget, success, error), data-viz categories, and user-chosen category colors. Everything else stays on the warm neutral system.
 - **Do** carry warmth through the ink/paper/coral palette, the 22px radii, and Bricolage Grotesque — not through a tinted near-white standing in for design.
 - **Do** keep coral for the one primary action per screen (The One Coral Rule).
 - **Do** set every currency value in `.num` (JetBrains Mono, tabular).
@@ -189,6 +190,7 @@ A 64px coral rounded-square, raised above the nav pill, owning the new-transacti
 - **Do** protect the entry path: never add a tap, a hidden field, or a clipped control to logging a transaction.
 
 ### Don't:
+- **Don't** color utility/navigation surfaces for decoration (e.g. a different pastel per More-hub tile). If color carries no meaning there, use the neutral system; the icon and label already differentiate.
 - **Don't** ship the generic blue-gradient SaaS dashboard, the cold navy-and-gold fintech look, or the generic-AI pastel-tile / cream-default aesthetic.
 - **Don't** hardcode Tailwind palette colors (`text-violet-600`, `bg-blue-100`, `#D08A1E`). Use tokens; one-off colors break theming and dilute the brand.
 - **Don't** use a colored `border-left`/`border-right` greater than 1px as an accent stripe on rows or cards. Use a leading color dot, a full tint, or nothing.

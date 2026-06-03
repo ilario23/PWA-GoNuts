@@ -780,7 +780,7 @@ export function HelpSystemWrapper({
                     <div className="px-6 pt-6 pb-2 shrink-0 z-10 flex items-center justify-between">
                         {!selectedTopic ? (
                             <div>
-                                <DrawerTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+                                <DrawerTitle className="text-2xl font-bold text-foreground">
                                     {t("help.title", "Help Center")}
                                 </DrawerTitle>
                                 <DrawerDescription className="text-muted-foreground font-medium">

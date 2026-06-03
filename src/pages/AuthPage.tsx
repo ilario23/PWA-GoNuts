@@ -25,6 +25,7 @@ export function AuthPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -33,12 +34,13 @@ export function AuthPage() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
 
     try {
       if (isSignUp) {
         if (password !== confirmPassword) {
-          toast.error(t("passwords_mismatch"));
+          setError(t("passwords_mismatch"));
           setLoading(false);
           return;
         }
@@ -66,7 +68,7 @@ export function AuthPage() {
         navigate("/");
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("auth_error"));
+      setError(error instanceof Error ? error.message : t("auth_error"));
     } finally {
       setLoading(false);
     }
@@ -77,7 +79,18 @@ export function AuthPage() {
       <div className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-[calc(1rem+env(safe-area-inset-right))]">
         <LanguageSwitcher />
       </div>
-      <Card className="w-full max-w-md">
+      <div className="w-full max-w-md flex flex-col items-center gap-6">
+      <div className="flex items-center gap-3">
+        <img
+          src="/icons/icon-192x192.png"
+          alt=""
+          className="h-11 w-11 rounded-[14px] shadow-sm"
+        />
+        <span className="text-3xl font-extrabold tracking-tight">
+          Go<span className="text-[hsl(var(--gonuts-orange))]">Nuts</span>
+        </span>
+      </div>
+      <Card className="w-full">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">
             {isSignUp ? t("sign_up") : t("sign_in")}
@@ -141,18 +154,16 @@ export function AuthPage() {
               <div className="space-y-2 pt-1 transition-all animate-in fade-in slide-in-from-top-1">
                 <div className="flex h-2 w-full overflow-hidden rounded-full bg-secondary">
                   <div
-                    className={`h-full transition-all duration-500 ease-out ${strengthScore <= 1 ? "bg-red-500 w-[25%]" :
-                        strengthScore === 2 ? "bg-orange-500 w-[50%]" :
-                          strengthScore === 3 ? "bg-yellow-500 w-[75%]" :
-                            "bg-green-500 w-full"
+                    className={`h-full transition-all duration-500 ease-out ${strengthScore <= 1 ? "bg-[hsl(var(--gonuts-bad))] w-[25%]" :
+                        strengthScore === 2 ? "bg-[hsl(var(--chart-5))] w-[50%]" :
+                          strengthScore === 3 ? "bg-[hsl(var(--gonuts-good))] w-[75%]" :
+                            "bg-[hsl(var(--gonuts-good))] w-full"
                       }`}
                   />
                 </div>
-                <p className={`text-xs font-medium ${strengthScore <= 1 ? "text-red-500" :
-                    strengthScore === 2 ? "text-orange-500" :
-                      strengthScore === 3 ? "text-yellow-500" :
-                        "text-green-500"
-                  }`}>
+                {/* Label is the accessible signal (the bar's color reinforces it);
+                    use full-contrast ink text rather than low-contrast colored text. */}
+                <p className="text-xs font-medium text-foreground">
                   {strengthFeedback.warning || strengthFeedback.suggestions[0] ||
                     (strengthScore <= 1 ? t("strength_weak") :
                       strengthScore === 2 ? t("strength_fair") :
@@ -211,13 +222,24 @@ export function AuthPage() {
                 </div>
               </div>
             )}
+            {error && (
+              <p
+                role="alert"
+                className="text-sm font-medium text-destructive bg-destructive/10 rounded-[14px] px-3 py-2.5"
+              >
+                {error}
+              </p>
+            )}
             <Button type="submit" className="w-full" disabled={loading} data-testid="auth-submit-button">
               {loading ? t("loading") : isSignUp ? t("sign_up") : t("sign_in")}
             </Button>
             <div className="text-center text-sm">
               <button
                 type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError(null);
+                }}
                 className="underline hover:text-primary"
               >
                 {isSignUp
@@ -228,6 +250,7 @@ export function AuthPage() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

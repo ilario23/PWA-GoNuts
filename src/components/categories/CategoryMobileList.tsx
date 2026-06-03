@@ -94,13 +94,8 @@ export function CategoryMobileList({
                         }
                         className={cn(
                             "z-10 relative font-medium shadow-sm transition-colors",
-                            hasChildren && isExpanded ? "mb-1 ring-1 ring-border/50" : "mb-0",
-                            "border-l-4 border-l-transparent",
-                            category.color && { borderColor: category.color }
+                            hasChildren && isExpanded ? "mb-1 ring-1 ring-border/50" : "mb-0"
                         )}
-                        style={{
-                            borderLeftColor: category.color
-                        }}
                     />
 
                     <AnimatePresence>

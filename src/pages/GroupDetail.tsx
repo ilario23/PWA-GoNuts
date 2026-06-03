@@ -26,6 +26,7 @@ import {
   RefreshCw,
   ArrowRight,
   CheckCircle2,
+  HandCoins,
 } from "lucide-react";
 import { TransactionList } from "@/components/TransactionList";
 import { getIconComponent } from "@/lib/icons";
@@ -276,9 +277,20 @@ export function GroupDetailPage() {
       {balance && (
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-              {t("settlement_plan")}
-            </p>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t("settlement_plan")}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 text-xs"
+                onClick={() => navigate(`/groups/${groupId}/balance`)}
+              >
+                <HandCoins className="h-3.5 w-3.5" />
+                {t("settle_up")}
+              </Button>
+            </div>
             {settlements.length === 0 ? (
               <div className="flex items-center gap-2 text-[hsl(var(--gonuts-good))]">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />

@@ -30,16 +30,19 @@ export function BudgetHealthChart() {
             .sort((a, b) => b.percentage - a.percentage); // Sort by highest percentage spent
     }, [budgetsWithSpent, categories, t]);
 
+    // Budget-health colors mirror the Dashboard exactly: over = bad, getting
+    // tight = amber (chart-5), on track = good. Tokens so it stays on-brand and
+    // theme-aware instead of drifting per screen.
     const getProgressColor = (percentage: number) => {
-        if (percentage >= 100) return "bg-red-500";
-        if (percentage >= 80) return "bg-amber-500";
-        return "bg-green-500";
+        if (percentage >= 100) return "bg-[hsl(var(--gonuts-bad))]";
+        if (percentage >= 80) return "bg-[hsl(var(--chart-5))]";
+        return "bg-[hsl(var(--gonuts-good))]";
     };
 
     const getStatusIcon = (percentage: number) => {
-        if (percentage >= 100) return <AlertTriangle className="h-4 w-4 text-red-500" />;
-        if (percentage >= 80) return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        if (percentage >= 100) return <AlertTriangle className="h-4 w-4 text-[hsl(var(--gonuts-bad))]" />;
+        if (percentage >= 80) return <AlertTriangle className="h-4 w-4 text-[hsl(var(--chart-5))]" />;
+        return <CheckCircle2 className="h-4 w-4 text-[hsl(var(--gonuts-good))]" />;
     };
 
 

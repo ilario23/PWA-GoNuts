@@ -575,3 +575,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Global reduced-motion safety net: neutralizes every CSS animation/transition
+   (Radix, tw-animate-css, custom keyframes) for users who ask for it. Uses a
+   tiny non-zero duration so transitionend/animationend still fire and reveal
+   animations resolve to their visible end state instead of getting stuck. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

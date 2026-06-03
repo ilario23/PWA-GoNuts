@@ -53,7 +53,7 @@ export function BottomNav() {
         className={cn(
           "md:hidden fixed z-50",
           "left-3 right-3 bottom-[max(1.125rem,env(safe-area-inset-bottom))]",
-          "bg-foreground dark:bg-[hsl(25_13%_12%)]",
+          "bg-[hsl(25_15%_22%)] dark:bg-[hsl(25_13%_18%)]",
           "rounded-[28px] h-16",
           "shadow-[0_8px_32px_-4px_rgba(26,23,20,0.36),0_2px_8px_-2px_rgba(26,23,20,0.24)]",
           "flex items-center justify-around px-2"
@@ -114,13 +114,13 @@ function NavTab({ href, icon: Icon, label, active }: {
       <Icon
         className={cn(
           "w-5 h-5 transition-colors duration-150",
-          active ? "text-[hsl(var(--gonuts-orange))]" : "text-white/55"
+          active ? "text-[hsl(var(--gonuts-orange))]" : "text-white/75"
         )}
       />
       <span
         className={cn(
           "text-[10px] font-semibold leading-none transition-colors duration-150",
-          active ? "text-[hsl(var(--gonuts-orange))]" : "text-white/55"
+          active ? "text-[hsl(var(--gonuts-orange))]" : "text-white/75"
         )}
       >
         {label}

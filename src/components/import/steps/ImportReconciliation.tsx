@@ -129,7 +129,7 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className={`h-9 w-9 ${tx.category_id && tx.category_id !== "UNCATEGORIZED" ? "text-purple-500 bg-purple-500/10" : "text-slate-300"}`}
+                                    className={`h-9 w-9 ${tx.category_id && tx.category_id !== "UNCATEGORIZED" ? "text-purple-500 bg-purple-500/10" : "text-muted-foreground/40"}`}
                                     onClick={() => {
                                         if (tx.category_id) onCreateRule(tx, tx.category_id);
                                     }}

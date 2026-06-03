@@ -9,7 +9,7 @@ import {
   TransactionDialog,
   TransactionFormData,
 } from "@/components/TransactionDialog";
-import { useState, useCallback, useMemo } from "react";
+import { createElement, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,7 @@ function RecentTxRow({
     tx.type === "income"
       ? "text-[hsl(var(--gonuts-good))]"
       : tx.type === "investment"
-      ? "text-violet-600 dark:text-violet-400"
+      ? "text-[hsl(var(--color-investment))]"
       : "text-foreground";
 
   return (
@@ -62,7 +62,7 @@ function RecentTxRow({
         style={{ backgroundColor: catColor, color: "#fff" }}
       >
         {IconComponent ? (
-          <IconComponent className="w-5 h-5" />
+          createElement(IconComponent, { className: "w-5 h-5" })
         ) : (
           <span className="text-xs font-bold">{catName[0]}</span>
         )}
@@ -124,16 +124,12 @@ export function Dashboard() {
   const heroCents = (totalExpense % 1).toFixed(2).slice(1); // ".XX"
 
   // Expense count this month
-  const expenseCount = useMemo(
-    () =>
-      (transactions ?? []).filter(
-        (tx) =>
-          !tx.deleted_at &&
-          tx.type === "expense" &&
-          tx.year_month === currentMonth
-      ).length,
-    [transactions, currentMonth]
-  );
+  const expenseCount = (transactions ?? []).filter(
+    (tx) =>
+      !tx.deleted_at &&
+      tx.type === "expense" &&
+      tx.year_month === currentMonth
+  ).length;
 
   // Top categories for "Where it went" (top 4 by value, expenses only)
   const topCategories = useMemo(() => {
@@ -176,18 +172,10 @@ export function Dashboard() {
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
   // Recent transactions (last 4, current month, not deleted)
-  const recentTransactions = useMemo(
-    () =>
-      (transactions ?? [])
-        .filter(
-          (tx) =>
-            !tx.deleted_at &&
-            tx.year_month === currentMonth
-        )
-        .sort((a, b) => b.date.localeCompare(a.date))
-        .slice(0, 4),
-    [transactions, currentMonth]
-  );
+  const recentTransactions = (transactions ?? [])
+    .filter((tx) => !tx.deleted_at && tx.year_month === currentMonth)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 4);
 
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -302,7 +290,7 @@ export function Dashboard() {
               label: t("invested"),
               val: totalInvestment,
               Icon: TrendingUp,
-              color: "hsl(270 76% 58%)",
+              color: "hsl(var(--color-investment))",
             },
           ].map((m) => (
             <div
@@ -436,7 +424,7 @@ export function Dashboard() {
                 const barColor = over
                   ? "hsl(var(--gonuts-bad))"
                   : warn
-                  ? "#D08A1E"
+                  ? "hsl(var(--chart-5))"
                   : b.categoryColor;
                 return (
                   <div

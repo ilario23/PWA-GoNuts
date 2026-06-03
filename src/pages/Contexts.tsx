@@ -233,9 +233,9 @@ export function ContextsPage() {
                   onClick={() => handleOpenDetail(c)}
                 >
                   <CardContent className="p-0 flex items-center gap-3">
-                    {/* Colored left bar */}
+                    {/* Leading color dot (replaces the old side-stripe) */}
                     <div
-                      className="w-2 self-stretch shrink-0 rounded-l-[var(--radius)]"
+                      className="ml-4 w-3 h-3 rounded-full shrink-0"
                       style={{ backgroundColor: color }}
                     />
 

@@ -396,8 +396,8 @@ export function TransactionDialog({
             </div>
 
             {/* Meta tiles */}
-            <div className='px-5 pb-4 overflow-x-auto shrink-0' style={{scrollbarWidth: 'none'}}>
-              <div className='flex gap-2 min-w-min'>
+            <div className='px-5 pb-4 shrink-0'>
+              <div className='flex flex-wrap gap-2'>
                 {/* Category tile */}
                 <button
                   type='button'

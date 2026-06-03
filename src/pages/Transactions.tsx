@@ -591,7 +591,8 @@ export function TransactionsPage() {
           </Badge>
         </div>
         <div className="flex gap-2">
-          {/* Desktop Add button */}
+          {/* Desktop Add button. On mobile the BottomNav FAB owns add-transaction,
+              so no header button here (avoids a duplicate add affordance). */}
           <Button
             onClick={openNew}
             size="sm"
@@ -599,14 +600,6 @@ export function TransactionsPage() {
           >
             <Plus className="h-4 w-4" />
             {t("add_transaction")}
-          </Button>
-          {/* Mobile Add button (shown because BottomNav FAB is hidden on this page variant) */}
-          <Button
-            onClick={openNew}
-            size="icon"
-            className="md:hidden"
-          >
-            <Plus className="h-4 w-4" />
           </Button>
         </div>
       </div>
