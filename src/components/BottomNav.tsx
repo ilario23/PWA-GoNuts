@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LayoutDashboard, Receipt, PieChart, MoreHorizontal, Plus } from "lucide-react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/hooks/useSettings";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAuth } from "@/contexts/AuthProvider";
 import { TransactionDialog, TransactionFormData } from "@/components/TransactionDialog";
+import { THEME_COLORS } from "@/lib/theme-colors";
 
 function isSecondaryRoute(pathname: string): boolean {
   return ["/groups", "/categories", "/contexts", "/recurring",
@@ -18,7 +21,18 @@ export function BottomNav() {
   const location = useLocation();
   const { user } = useAuth();
   const { addTransaction } = useTransactions();
+  const { settings } = useSettings();
+  const { resolvedTheme } = useTheme();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const accentColorValue = useMemo(() => {
+    if (!settings?.accentColor) return "24.6 95% 53.1%";
+    const theme = THEME_COLORS[settings.accentColor];
+    if (!theme) return "24.6 95% 53.1%";
+
+    const isDark = resolvedTheme === "dark";
+    return isDark ? theme.dark.primary : theme.light.primary;
+  }, [settings?.accentColor, resolvedTheme]);
 
   const handleSubmit = async (data: TransactionFormData) => {
     if (!user) return;
@@ -53,16 +67,17 @@ export function BottomNav() {
         className={cn(
           "md:hidden fixed z-50",
           "left-3 right-3 bottom-[max(1.125rem,env(safe-area-inset-bottom))]",
-          "bg-[hsl(25_15%_22%)] dark:bg-[hsl(25_13%_18%)]",
+          "bg-foreground",
           "rounded-[28px] h-16",
           "shadow-[0_8px_32px_-4px_rgba(26,23,20,0.36),0_2px_8px_-2px_rgba(26,23,20,0.24)]",
           "flex items-center justify-around px-2"
         )}
+        style={{ "--accent-color": accentColorValue } as React.CSSProperties}
         role="navigation"
         aria-label={t("main_navigation", { defaultValue: "Main navigation" })}
       >
-        <NavTab {...tabs[0]} />
-        <NavTab {...tabs[1]} />
+        <NavTab {...tabs[0]} accentColor={accentColorValue} />
+        <NavTab {...tabs[1]} accentColor={accentColorValue} />
 
         <button
           onClick={() => setIsDialogOpen(true)}
@@ -70,17 +85,20 @@ export function BottomNav() {
           className={cn(
             "flex items-center justify-center",
             "w-16 h-16 -translate-y-1.5 shrink-0",
-            "bg-[hsl(var(--gonuts-orange))] text-white",
+            "text-white",
             "rounded-[24px]",
-            "shadow-[0_4px_16px_-2px_rgba(230,106,60,0.50)]",
             "transition-transform duration-150 active:scale-95"
           )}
+          style={{
+            backgroundColor: `hsl(${accentColorValue})`,
+            boxShadow: `0 4px 16px -2px hsl(${accentColorValue} / 0.5)`
+          }}
         >
           <Plus className="w-7 h-7" strokeWidth={2.5} />
         </button>
 
-        <NavTab {...tabs[2]} />
-        <NavTab {...tabs[3]} />
+        <NavTab {...tabs[2]} accentColor={accentColorValue} />
+        <NavTab {...tabs[3]} accentColor={accentColorValue} />
       </nav>
 
       <TransactionDialog
@@ -93,11 +111,12 @@ export function BottomNav() {
   );
 }
 
-function NavTab({ href, icon: Icon, label, active }: {
+function NavTab({ href, icon: Icon, label, active, accentColor }: {
   href: string;
   icon: React.ElementType;
   label: string;
   active: boolean;
+  accentColor: string;
 }) {
   return (
     <Link
@@ -108,20 +127,21 @@ function NavTab({ href, icon: Icon, label, active }: {
       <span
         className={cn(
           "absolute top-1 w-6 h-0.5 rounded-full transition-opacity duration-200",
-          active ? "bg-[hsl(var(--gonuts-orange))] opacity-100" : "opacity-0"
+          active ? "opacity-100" : "opacity-0"
         )}
+        style={{ backgroundColor: active ? `hsl(${accentColor})` : undefined }}
       />
       <Icon
-        className={cn(
-          "w-5 h-5 transition-colors duration-150",
-          active ? "text-[hsl(var(--gonuts-orange))]" : "text-white/75"
-        )}
+        className="w-5 h-5 transition-colors duration-150"
+        style={{
+          color: active ? `hsl(${accentColor})` : "rgba(255, 255, 255, 0.75)"
+        }}
       />
       <span
-        className={cn(
-          "text-[10px] font-semibold leading-none transition-colors duration-150",
-          active ? "text-[hsl(var(--gonuts-orange))]" : "text-white/75"
-        )}
+        className="text-[10px] font-semibold leading-none transition-colors duration-150"
+        style={{
+          color: active ? `hsl(${accentColor})` : "rgba(255, 255, 255, 0.75)"
+        }}
       >
         {label}
       </span>

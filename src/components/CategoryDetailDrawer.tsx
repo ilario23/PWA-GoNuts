@@ -16,14 +16,15 @@ import {
 } from "@/components/ui/dialog";
 import { Cloud, CloudOff } from "lucide-react";
 import { DetailDrawerActions } from "@/components/ui/DetailDrawerActions";
-import { GROUP_CHIP_CLASSES } from "@/lib/typeColors";
 import {
-  DetailHero,
-  DetailPills,
+  DetailHeader,
+  DetailEyebrow,
+  DetailIcon,
+  DetailHeadline,
   TypePill,
-  DetailFacts,
-  DetailFact,
-  DetailChip,
+  StatePill,
+  DetailGrid,
+  DetailCell,
   DetailMeta,
 } from "@/components/ui/DetailDrawerLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -68,102 +69,96 @@ export function CategoryDetailDrawer({
 
   const Content = (
     <div className="mx-auto w-full max-w-sm pb-2">
-      <DetailHero
-        iconName={category.icon}
-        color={category.color}
-        title={category.name}
-      >
-        <DetailPills>
+      <DetailHeader>
+        <DetailEyebrow>
+          <DetailIcon iconName={category.icon} color={category.color} />
           <TypePill type={category.type} label={t(category.type)} />
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.08em] ${
-              isActive
-                ? "bg-[hsl(var(--gonuts-good))]/10 text-[hsl(var(--gonuts-good))]"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {isActive ? t("active") : t("inactive")}
-          </span>
-        </DetailPills>
-      </DetailHero>
+          <StatePill
+            active={isActive}
+            activeLabel={t("active")}
+            inactiveLabel={t("inactive")}
+          />
+        </DetailEyebrow>
 
-      <DetailFacts className="mt-1">
-        <DetailFact label={t("parent_category")}>
+        <DetailHeadline>{category.name}</DetailHeadline>
+      </DetailHeader>
+
+      <DetailGrid>
+        <DetailCell label={t("parent_category")}>
           {parentCategory ? (
             parentCategory.name
           ) : (
             <span className="text-muted-foreground">{t("none") || "—"}</span>
           )}
-        </DetailFact>
+        </DetailCell>
 
         {childrenCount > 0 && (
-          <DetailFact label={t("subcategories")} valueClassName="num">
+          <DetailCell label={t("subcategories")} mono>
             {childrenCount}
-          </DetailFact>
+          </DetailCell>
         )}
 
         {groupName && (
-          <DetailFact label={t("group")}>
-            <DetailChip className={GROUP_CHIP_CLASSES}>{groupName}</DetailChip>
-          </DetailFact>
+          <DetailCell
+            label={t("group")}
+            valueClassName="text-[hsl(var(--color-investment))]"
+          >
+            {groupName}
+          </DetailCell>
         )}
-      </DetailFacts>
 
-      {/* Budget (Expense Only) */}
-      {category.type === "expense" && (
-        <div className="mx-5 mt-4 rounded-[18px] bg-muted/40 p-4">
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm text-muted-foreground">{t("budget")}</span>
-            {budgetInfo && (
-              <span
-                className={`text-sm font-bold ${
-                  overBudget ? "text-[hsl(var(--gonuts-bad))]" : ""
-                }`}
-              >
-                {budgetInfo.percentage.toFixed(0)}%
+        {/* Budget (Expense Only) */}
+        {category.type === "expense" && (
+          <DetailCell label={t("budget")} wide>
+            {budgetInfo ? (
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <span className="num text-[15px] font-medium">
+                    €{budgetInfo.spent.toFixed(2)}
+                    <span className="text-muted-foreground">
+                      {" "}
+                      / €{budgetInfo.amount.toFixed(0)}
+                    </span>
+                  </span>
+                  <span
+                    className={`num text-[13px] font-bold ${
+                      overBudget ? "text-[hsl(var(--gonuts-bad))]" : "text-muted-foreground"
+                    }`}
+                  >
+                    {budgetInfo.percentage.toFixed(0)}%
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full transition-all ${
+                      overBudget
+                        ? "bg-[hsl(var(--gonuts-bad))]"
+                        : nearBudget
+                          ? "bg-yellow-500"
+                          : "bg-primary"
+                    }`}
+                    style={{ width: `${Math.min(budgetInfo.percentage, 100)}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <span className="font-normal text-muted-foreground">
+                {t("budget_not_set")}
               </span>
             )}
-          </div>
-
-          {budgetInfo ? (
-            <div className="mt-2.5 space-y-2">
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={`h-full transition-all ${
-                    overBudget
-                      ? "bg-[hsl(var(--gonuts-bad))]"
-                      : nearBudget
-                        ? "bg-yellow-500"
-                        : "bg-primary"
-                  }`}
-                  style={{ width: `${Math.min(budgetInfo.percentage, 100)}%` }}
-                />
-              </div>
-              <div className="num text-sm font-medium">
-                €{budgetInfo.spent.toFixed(2)}
-                <span className="text-muted-foreground">
-                  {" "}
-                  / €{budgetInfo.amount.toFixed(0)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-1 text-sm text-muted-foreground">
-              {t("budget_not_set")}
-            </div>
-          )}
-        </div>
-      )}
+          </DetailCell>
+        )}
+      </DetailGrid>
 
       <DetailMeta>
         {category.pendingSync === 1 ? (
           <>
-            <CloudOff className="mr-1.5 h-3.5 w-3.5" />
+            <CloudOff className="h-3.5 w-3.5" />
             {t("pending_sync") || t("status")}
           </>
         ) : (
           <>
-            <Cloud className="mr-1.5 h-3.5 w-3.5 text-[hsl(var(--gonuts-good))]" />
+            <Cloud className="h-3.5 w-3.5 text-[hsl(var(--gonuts-good))]" />
             {t("synced")}
           </>
         )}

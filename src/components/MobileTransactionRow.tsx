@@ -45,7 +45,7 @@ export function MobileTransactionRow({
   return (
     <div className="mb-2" style={style}>
       <div
-        className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] cursor-pointer transition-transform duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="group bg-card p-3 rounded-lg border border-border/60 shadow-card flex items-center gap-3 h-[72px] cursor-pointer transition-all duration-200 ease-out active:scale-[0.99] hover:-translate-y-0.5 hover:shadow-card-hover hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         role={onClick ? "button" : undefined}
         tabIndex={onClick ? 0 : undefined}
         onClick={onClick}
@@ -63,12 +63,12 @@ export function MobileTransactionRow({
       >
         {/* Icon */}
         <div
-          className="h-10 w-10 rounded-full flex items-center justify-center shrink-0"
+          className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 ring-1 ring-inset ring-foreground/[0.04] transition-transform duration-200 ease-out group-hover:scale-105"
           style={{
             backgroundColor: category?.color
-              ? `${category.color}20`
-              : "#f3f4f6",
-            color: category?.color || "#6b7280",
+              ? `${category.color}1f`
+              : "hsl(var(--muted))",
+            color: category?.color || "hsl(var(--muted-foreground))",
           }}
           aria-hidden="true"
         >
@@ -120,7 +120,7 @@ export function MobileTransactionRow({
         {/* Amount & Status */}
         <div className="text-right shrink-0 flex flex-col items-end justify-center">
           <div
-            className={`font-bold text-sm ${getTypeTextColor(
+            className={`num font-bold text-sm tracking-tight ${getTypeTextColor(
               transaction.type
             )}`}
           >

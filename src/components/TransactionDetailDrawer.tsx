@@ -15,15 +15,17 @@ import { format, parseISO } from "date-fns";
 import { it, enUS } from "date-fns/locale";
 import { CloudOff, Cloud, X } from "lucide-react";
 import { DetailDrawerActions } from "@/components/ui/DetailDrawerActions";
-import { GROUP_CHIP_CLASSES } from "@/lib/typeColors";
 import {
-  DetailHero,
+  DetailHeader,
+  DetailEyebrow,
+  DetailIcon,
   DetailAmount,
+  DetailTitle,
   DetailPills,
   TypePill,
-  DetailFacts,
-  DetailFact,
-  DetailChip,
+  MetaPill,
+  DetailGrid,
+  DetailCell,
   DetailMeta,
 } from "@/components/ui/DetailDrawerLayout";
 
@@ -111,71 +113,72 @@ export function TransactionDetailDrawer({
             </Button>
           </DrawerClose>
 
-          <DetailHero
-            iconName={category?.icon}
-            color={category?.color}
-            title={transaction.description}
-          >
+          <DetailHeader>
+            <DetailEyebrow>
+              <DetailIcon iconName={category?.icon} color={category?.color} />
+              <TypePill type={transaction.type} label={t(transaction.type)} />
+              {isGroupTransaction && myShareAmount > 0 && (
+                <MetaPill label={t("your_share")} />
+              )}
+            </DetailEyebrow>
+
             <DetailAmount type={transaction.type}>
               {sign}€
               {isGroupTransaction && myShareAmount > 0
                 ? myShareAmount.toFixed(2)
                 : transaction.amount.toFixed(2)}
             </DetailAmount>
-            <DetailPills>
-              <TypePill type={transaction.type} label={t(transaction.type)} />
-              {isGroupTransaction && myShareAmount > 0 && (
-                <TypePill type="" label={t("your_share")} />
-              )}
-            </DetailPills>
-          </DetailHero>
 
-          <DetailFacts className="mt-1">
-            <DetailFact label={t("date")} valueClassName="capitalize">
+            <DetailTitle>{transaction.description}</DetailTitle>
+          </DetailHeader>
+
+          <DetailGrid>
+            <DetailCell label={t("date")} valueClassName="capitalize">
               {formattedDate}
-            </DetailFact>
+            </DetailCell>
 
-            <DetailFact label={t("category")}>{category?.name || "-"}</DetailFact>
+            <DetailCell label={t("category")}>{category?.name || "-"}</DetailCell>
 
             {context && (
-              <DetailFact label={t("context")}>
-                <DetailChip className="bg-primary/10 text-primary">
-                  {context.name}
-                </DetailChip>
-              </DetailFact>
+              <DetailCell label={t("context")} valueClassName="text-primary">
+                {context.name}
+              </DetailCell>
             )}
 
             {group && (
-              <DetailFact label={t("group")}>
-                <DetailChip className={GROUP_CHIP_CLASSES}>{group.name}</DetailChip>
-              </DetailFact>
+              <DetailCell
+                label={t("group")}
+                valueClassName="text-[hsl(var(--color-investment))]"
+              >
+                {group.name}
+              </DetailCell>
             )}
 
             {isGroupTransaction && "members" in group && (
               <>
-                <DetailFact label={t("paid_by")}>{payerName}</DetailFact>
-                <DetailFact label={t("your_share")}>
-                  <span className="num">€{myShareAmount.toFixed(2)}</span>
+                <DetailCell label={t("paid_by")}>{payerName}</DetailCell>
+                <DetailCell label={t("your_share")} mono>
+                  €{myShareAmount.toFixed(2)}
                   <span className="ml-1 text-xs font-normal text-muted-foreground">
                     ({mySharePercentage}%)
                   </span>
-                </DetailFact>
-                <DetailFact label={t("total")} valueClassName="num">
+                </DetailCell>
+                <DetailCell label={t("total")} mono>
                   €{transaction.amount.toFixed(2)}
-                </DetailFact>
+                </DetailCell>
               </>
             )}
-          </DetailFacts>
+          </DetailGrid>
 
           <DetailMeta>
             {transaction.pendingSync === 1 ? (
               <>
-                <CloudOff className="mr-1.5 h-3.5 w-3.5" />
+                <CloudOff className="h-3.5 w-3.5" />
                 {t("pending_sync") || t("status")}
               </>
             ) : (
               <>
-                <Cloud className="mr-1.5 h-3.5 w-3.5 text-[hsl(var(--gonuts-good))]" />
+                <Cloud className="h-3.5 w-3.5 text-[hsl(var(--gonuts-good))]" />
                 {t("synced")}
               </>
             )}

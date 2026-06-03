@@ -477,6 +477,20 @@
     font-feature-settings: "tnum";
   }
 
+  /* Soft, warm-tinted card elevation (see DESIGN.md "The Soft-Shadow Rule").
+     Lift comes from blur + spread tinted with ink, never a hard dark drop. */
+  .shadow-card {
+    box-shadow:
+      0 1px 0 hsl(var(--foreground) / 0.04),
+      0 6px 16px -8px hsl(var(--foreground) / 0.12);
+  }
+
+  .shadow-card-hover {
+    box-shadow:
+      0 1px 0 hsl(var(--foreground) / 0.05),
+      0 12px 28px -10px hsl(var(--foreground) / 0.2);
+  }
+
   /* Shimmer animation utility */
   .animate-shimmer {
     animation: shimmer 2s cubic-bezier(0.4, 0.0, 0.6, 1) infinite;

@@ -17,11 +17,20 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DetailDrawerActions } from "@/components/ui/DetailDrawerActions";
-import { Tag, Receipt, X, Hash, Calendar } from "lucide-react";
+import {
+    DetailHeader,
+    DetailEyebrow,
+    DetailIcon,
+    DetailHeadline,
+    StatePill,
+    MetaPill,
+    DetailGrid,
+    DetailCell,
+} from "@/components/ui/DetailDrawerLayout";
+import { Tag, Receipt, X } from "lucide-react";
 import { useMobile } from "@/hooks/useMobile";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 import { parseISO, startOfMonth, startOfYear } from "date-fns";
 
 interface ContextDetailDrawerProps {
@@ -79,70 +88,43 @@ export function ContextDetailDrawer({
         onOpenChange(false);
     };
 
+    const isActive = context.active !== 0;
+
     const Content = (
-        <div className="w-full max-w-sm mx-auto">
-            {/* Header Section */}
-            <div className="text-center pt-8 pb-4 relative">
-                <div className="flex justify-center mb-4">
-                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Tag className="h-8 w-8 text-primary" />
-                    </div>
-                </div>
-                <div className="px-4">
-                    <h2 className="text-2xl font-bold truncate">{context.name}</h2>
-                    {context.description && (
-                        <p className="text-muted-foreground mt-1">{context.description}</p>
-                    )}
-                </div>
-                {/* Status Badge & Count */}
-                <div className="mt-3 flex justify-center gap-2 items-center">
-                    {context.active === 0 && (
-                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
-                            {t("archived") || "Archived"}
-                        </Badge>
-                    )}
-                    {context.active !== 0 && (
-                        <Badge variant="outline" className="border-[hsl(var(--gonuts-good))]/40 text-[hsl(var(--gonuts-good))] bg-[hsl(var(--gonuts-good))]/10">
-                            {t("active")}
-                        </Badge>
-                    )}
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                        <Hash className="h-3 w-3" />
-                        {stats?.count || 0}
-                    </Badge>
-                </div>
-            </div>
+        <div className="w-full max-w-sm mx-auto pb-2">
+            <DetailHeader>
+                <DetailEyebrow>
+                    <DetailIcon fallbackIcon={Tag} />
+                    <StatePill
+                        active={isActive}
+                        activeLabel={t("active")}
+                        inactiveLabel={t("archived") || "Archived"}
+                    />
+                    <MetaPill label={`${stats?.count || 0} ${t("transactions")}`} />
+                </DetailEyebrow>
 
-            {/* Stats Grid */}
-            <div className="px-4 py-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-muted/30 p-3 rounded-lg border flex flex-col items-center justify-center text-center">
-                        <div className="flex items-center text-muted-foreground text-xs mb-1">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            {t("current_month")}
-                        </div>
-                        <div className="text-xl font-bold text-[hsl(var(--gonuts-bad))]">
-                            {(stats?.expensesMonth || 0).toFixed(2)} €
-                        </div>
-                    </div>
-                    <div className="bg-muted/30 p-3 rounded-lg border flex flex-col items-center justify-center text-center">
-                        <div className="flex items-center text-muted-foreground text-xs mb-1">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            {t("current_year")}
-                        </div>
-                        <div className="text-xl font-bold text-[hsl(var(--gonuts-bad))]">
-                            {(stats?.expensesYear || 0).toFixed(2)} €
-                        </div>
-                    </div>
-                </div>
+                <DetailHeadline>{context.name}</DetailHeadline>
+                {context.description && (
+                    <p className="mt-1.5 break-words text-sm leading-snug text-muted-foreground">
+                        {context.description}
+                    </p>
+                )}
+            </DetailHeader>
 
-                {/* Actions */}
-                <div className="space-y-2 pt-2">
-                    <Button variant="outline" className="w-full justify-start h-12" onClick={handleViewTransactions}>
-                        <Receipt className="mr-3 h-5 w-5" />
-                        <span className="flex-1 text-left">{t("view_transactions_context")}</span>
-                    </Button>
-                </div>
+            <DetailGrid>
+                <DetailCell label={t("current_month")} mono valueClassName="text-[hsl(var(--gonuts-bad))] text-lg font-bold">
+                    €{(stats?.expensesMonth || 0).toFixed(2)}
+                </DetailCell>
+                <DetailCell label={t("current_year")} mono valueClassName="text-[hsl(var(--gonuts-bad))] text-lg font-bold">
+                    €{(stats?.expensesYear || 0).toFixed(2)}
+                </DetailCell>
+            </DetailGrid>
+
+            <div className="px-5 pt-4">
+                <Button variant="outline" className="w-full justify-start h-12" onClick={handleViewTransactions}>
+                    <Receipt className="mr-3 h-5 w-5" />
+                    <span className="flex-1 text-left">{t("view_transactions_context")}</span>
+                </Button>
             </div>
 
             {(onEdit || onDelete) && (

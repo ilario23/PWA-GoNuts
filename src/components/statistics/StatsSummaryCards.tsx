@@ -59,7 +59,7 @@ export function StatsSummaryCards({
         if (value === 0) {
             const symbol = prefix.replace(/[+-]/g, "");
             return (
-                <span className="text-muted-foreground">
+                <span className="num text-muted-foreground">
                     {symbol}
                     {(0).toFixed(decimals)}
                     {suffix}

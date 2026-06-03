@@ -438,8 +438,8 @@ export function StatisticsPage() {
             </section>
           )}
 
-          {/* View pill tabs (monthly only) */}
-          {activeTab === "monthly" && (
+          {/* View pill tabs (monthly + yearly) */}
+          {(
             <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
               {(["breakdown", "trend", "contexts"] as const).map((tab) => (
                 <button
@@ -643,7 +643,7 @@ export function StatisticsPage() {
                         <div className="text-sm text-muted-foreground">
                           {t("income")}
                         </div>
-                        <div className="text-xl font-bold">
+                        <div className="num text-xl font-bold">
                           {monthlyComparison.income.current === 0
                             ? "-"
                             : `€${monthlyComparison.income.current.toFixed(0)}`
@@ -674,7 +674,7 @@ export function StatisticsPage() {
                         <div className="text-sm text-muted-foreground">
                           {t("expense")}
                         </div>
-                        <div className="text-xl font-bold">
+                        <div className="num text-xl font-bold">
                           €{monthlyComparison.expense.current.toFixed(0)}
                         </div>
                         <div
@@ -704,7 +704,7 @@ export function StatisticsPage() {
                           {t("balance")}
                         </div>
                         <div
-                          className={`text-xl font-bold ${monthlyComparison.balance.current >= 0
+                          className={`num text-xl font-bold ${monthlyComparison.balance.current >= 0
                             ? "text-green-500"
                             : "text-red-500"
                             }`}
@@ -737,7 +737,7 @@ export function StatisticsPage() {
                           {t("saving_rate")}
                         </div>
                         <div
-                          className={`text-xl font-bold ${monthlyComparison.savingRate.current >= 0
+                          className={`num text-xl font-bold ${monthlyComparison.savingRate.current >= 0
                             ? "text-green-500"
                             : "text-red-500"
                             }`}
@@ -958,7 +958,7 @@ export function StatisticsPage() {
             ) : (
               <div className="space-y-4">
                 {/* Radar Charts Row */}
-                <div className="grid gap-4 md:grid-cols-3 min-w-0">
+                <div className={`grid gap-4 md:grid-cols-3 min-w-0 ${viewTab !== "breakdown" ? "hidden" : ""}`}>
                   {/* Expenses Radar Chart */}
                   <Card className="flex flex-col min-w-0">
                     <CardHeader className="items-center pb-4">
@@ -1101,7 +1101,7 @@ export function StatisticsPage() {
                 </div>
 
                 {/* Category Distribution & Expense Breakdown Row */}
-                <div className="grid gap-4 md:grid-cols-2 min-w-0">
+                <div className={`grid gap-4 md:grid-cols-2 min-w-0 ${viewTab !== "breakdown" ? "hidden" : ""}`}>
                   {/* Category Distribution - Hybrid Component (Yearly) */}
                   <StatsCategoryDistribution
                     categoryData={yearlyCategoryPercentages.map(c => ({ ...c, amount: c.amount, fill: c.color }))}
@@ -1117,7 +1117,7 @@ export function StatisticsPage() {
                 </div>
 
                 {/* Period Comparison Section - Yearly */}
-                <Card className="min-w-0">
+                <Card className={`min-w-0 ${viewTab !== "trend" ? "hidden" : ""}`}>
                   <CardHeader>
                     <CardTitle>{t("yearly_comparison")}</CardTitle>
                     <CardDescription>
@@ -1166,7 +1166,7 @@ export function StatisticsPage() {
                         <div className="text-sm text-muted-foreground">
                           {t("income")}
                         </div>
-                        <div className="text-xl font-bold">
+                        <div className="num text-xl font-bold">
                           {yearlyComparison.income.current === 0
                             ? "-"
                             : `€${yearlyComparison.income.current.toFixed(0)}`
@@ -1197,7 +1197,7 @@ export function StatisticsPage() {
                         <div className="text-sm text-muted-foreground">
                           {t("expense")}
                         </div>
-                        <div className="text-xl font-bold">
+                        <div className="num text-xl font-bold">
                           €{yearlyComparison.expense.current.toFixed(0)}
                         </div>
                         <div
@@ -1227,7 +1227,7 @@ export function StatisticsPage() {
                           {t("balance")}
                         </div>
                         <div
-                          className={`text-xl font-bold ${yearlyComparison.balance.current >= 0
+                          className={`num text-xl font-bold ${yearlyComparison.balance.current >= 0
                             ? "text-green-500"
                             : "text-red-500"
                             }`}
@@ -1260,7 +1260,7 @@ export function StatisticsPage() {
                           {t("saving_rate")}
                         </div>
                         <div
-                          className={`text-xl font-bold ${yearlyComparison.savingRate.current >= 0
+                          className={`num text-xl font-bold ${yearlyComparison.savingRate.current >= 0
                             ? "text-green-500"
                             : "text-red-500"
                             }`}
@@ -1401,7 +1401,7 @@ export function StatisticsPage() {
             {/* === NEW CHARTS SECTION === */}
 
             {/* Temporal Trend Chart (Line/Area) */}
-            {activeTab === "yearly" && (
+            {activeTab === "yearly" && viewTab === "trend" && (
               <Card className="min-w-0">
                 <CardHeader>
                   <CardTitle>{t("temporal_trend")}</CardTitle>
@@ -1541,7 +1541,7 @@ export function StatisticsPage() {
             )}
 
             {/* Cash Flow Chart (Stacked Bar) */}
-            {activeTab === "yearly" && (
+            {activeTab === "yearly" && viewTab === "trend" && (
               <Card className="min-w-0">
                 <CardHeader>
                   <CardTitle>{t("cash_flow")}</CardTitle>
@@ -1601,8 +1601,8 @@ export function StatisticsPage() {
               </Card>
             )}
 
-            {/* Context Analytics - contexts tab (monthly) or always visible (yearly) */}
-            {(activeTab === "yearly" || viewTab === "contexts") && (
+            {/* Context Analytics - contexts tab (monthly + yearly) */}
+            {viewTab === "contexts" && (
               <StatsContextAnalytics contextStats={contextStats} />
             )}
 
@@ -1617,7 +1617,7 @@ export function StatisticsPage() {
             )}
 
             {/* Context Trend Chart - Yearly Only */}
-            {activeTab === "yearly" && (
+            {activeTab === "yearly" && viewTab === "contexts" && (
               <StatsContextTrends
                 data={monthlyContextTrends}
                 contexts={contexts}
@@ -1625,13 +1625,13 @@ export function StatisticsPage() {
               />
             )}
 
-            {/* Budget Health - breakdown tab (monthly) or yearly */}
-            {(activeTab === "yearly" || (activeTab === "monthly" && viewTab === "breakdown")) && monthlyBudgetHealth.length > 0 && (
+            {/* Budget Health - breakdown tab (monthly + yearly) */}
+            {viewTab === "breakdown" && monthlyBudgetHealth.length > 0 && (
               <StatsBudgetHealth data={monthlyBudgetHealth} />
             )}
 
             {/* Burn Rate / Spending Projection Card - Yearly */}
-            {activeTab === "yearly" && settings?.monthly_budget && settings.monthly_budget > 0 && (
+            {activeTab === "yearly" && viewTab === "trend" && settings?.monthly_budget && settings.monthly_budget > 0 && (
               <StatsBurnRateCard
                 spending={yearlyStats.expense}
                 budget={settings.monthly_budget * 12}

@@ -21,15 +21,16 @@ import {
 import { it, enUS } from "date-fns/locale";
 import { Cloud, CloudOff } from "lucide-react";
 import { DetailDrawerActions } from "@/components/ui/DetailDrawerActions";
-import { GROUP_CHIP_CLASSES } from "@/lib/typeColors";
 import {
-  DetailHero,
+  DetailHeader,
+  DetailEyebrow,
+  DetailIcon,
   DetailAmount,
-  DetailPills,
+  DetailTitle,
   TypePill,
-  DetailFacts,
-  DetailFact,
-  DetailChip,
+  MetaPill,
+  DetailGrid,
+  DetailCell,
   DetailMeta,
 } from "@/components/ui/DetailDrawerLayout";
 
@@ -108,59 +109,60 @@ export function RecurringTransactionDetailDrawer({
             <DrawerDescription>{t("frequency")}</DrawerDescription>
           </DrawerHeader>
 
-          <DetailHero
-            iconName={category?.icon}
-            color={category?.color}
-            title={transaction.description}
-          >
+          <DetailHeader>
+            <DetailEyebrow>
+              <DetailIcon iconName={category?.icon} color={category?.color} />
+              <TypePill type={transaction.type} label={t(transaction.type)} />
+              <MetaPill label={t(transaction.frequency)} />
+            </DetailEyebrow>
+
             <DetailAmount type={transaction.type}>
               {sign}€{transaction.amount.toFixed(2)}
             </DetailAmount>
-            <DetailPills>
-              <TypePill type={transaction.type} label={t(transaction.type)} />
-              <TypePill type="" label={t(transaction.frequency)} />
-            </DetailPills>
-          </DetailHero>
 
-          <DetailFacts className="mt-1">
-            <DetailFact label={t("next_occurrence")} valueClassName="capitalize">
+            <DetailTitle>{transaction.description}</DetailTitle>
+          </DetailHeader>
+
+          <DetailGrid>
+            <DetailCell label={t("next_occurrence")} valueClassName="capitalize">
               {getNextOccurrence(transaction.start_date, transaction.frequency)}
-            </DetailFact>
+            </DetailCell>
 
-            <DetailFact label={t("category")}>{category?.name || "-"}</DetailFact>
+            <DetailCell label={t("category")}>{category?.name || "-"}</DetailCell>
 
             {context && (
-              <DetailFact label={t("context")}>
-                <DetailChip className="bg-primary/10 text-primary">
-                  {context.name}
-                </DetailChip>
-              </DetailFact>
+              <DetailCell label={t("context")} valueClassName="text-primary">
+                {context.name}
+              </DetailCell>
             )}
 
             {group && (
-              <DetailFact label={t("group")}>
-                <DetailChip className={GROUP_CHIP_CLASSES}>{group.name}</DetailChip>
-              </DetailFact>
+              <DetailCell
+                label={t("group")}
+                valueClassName="text-[hsl(var(--color-investment))]"
+              >
+                {group.name}
+              </DetailCell>
             )}
 
             {transaction.created_at && (
-              <DetailFact label={t("created_at") || "Created At"} valueClassName="capitalize">
+              <DetailCell label={t("created_at") || "Created At"} valueClassName="capitalize">
                 {format(parseISO(transaction.created_at), "d MMMM yyyy", {
                   locale: i18n.language === "it" ? it : enUS,
                 })}
-              </DetailFact>
+              </DetailCell>
             )}
-          </DetailFacts>
+          </DetailGrid>
 
           <DetailMeta>
             {transaction.pendingSync === 1 ? (
               <>
-                <CloudOff className="mr-1.5 h-3.5 w-3.5" />
+                <CloudOff className="h-3.5 w-3.5" />
                 {t("pending_sync") || t("status")}
               </>
             ) : (
               <>
-                <Cloud className="mr-1.5 h-3.5 w-3.5 text-[hsl(var(--gonuts-good))]" />
+                <Cloud className="h-3.5 w-3.5 text-[hsl(var(--gonuts-good))]" />
                 {t("synced")}
               </>
             )}

@@ -66,17 +66,17 @@ export function MobileCategoryRow({
             : undefined
         }
         className={cn(
-          "relative bg-card p-3 rounded-lg border shadow-sm flex flex-col gap-2 cursor-pointer transition-transform duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "group relative bg-card p-3 rounded-lg border border-border/60 shadow-card flex flex-col gap-2 cursor-pointer transition-all duration-200 ease-out active:scale-[0.99] hover:-translate-y-0.5 hover:shadow-card-hover hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           isInactive && "opacity-60"
         )}
       >
         <div className="flex items-center gap-3 h-[48px]">
           {/* Icon */}
           <div
-            className="h-10 w-10 rounded-full flex items-center justify-center shrink-0"
+            className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 ring-1 ring-inset ring-foreground/[0.04] transition-transform duration-200 ease-out group-hover:scale-105"
             style={{
-              backgroundColor: category.color ? `${category.color}20` : "#f3f4f6",
-              color: category.color || "#6b7280",
+              backgroundColor: category.color ? `${category.color}1f` : "hsl(var(--muted))",
+              color: category.color || "hsl(var(--muted-foreground))",
             }}
           >
             {IconComp ? (
@@ -138,7 +138,7 @@ export function MobileCategoryRow({
             </div>
             {/* Show budget summart text if exists */}
             {!isInactive && budget && (
-              <div className="text-[10px] text-muted-foreground flex gap-1 items-center mt-0.5">
+              <div className="num text-[10px] text-muted-foreground flex gap-1 items-center mt-0.5">
                 <span>{budget.spent.toFixed(2)}€</span>
                 <span>/</span>
                 <span>{budget.amount.toFixed(0)}€</span>
