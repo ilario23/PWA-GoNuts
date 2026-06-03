@@ -775,6 +775,7 @@ export function TransactionDialog({
         type={watchedType}
         groupId={watchedGroupId}
         modal
+        variant='tabs'
         usageFrequency={categoryUsage}
         externalOpen={categoryOpen}
         onExternalOpenChange={setCategoryOpen}
