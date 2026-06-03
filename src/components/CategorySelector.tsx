@@ -49,6 +49,11 @@ interface CategorySelectorProps {
   /** External open control — when provided, no trigger button is rendered */
   externalOpen?: boolean;
   onExternalOpenChange?: (open: boolean) => void;
+  /**
+   * Picker layout. 'tree' = the inline expand/collapse accordion (default).
+   * 'tabs' = sticky parent-tab navigation: pick a group, then a child.
+   */
+  variant?: 'tree' | 'tabs';
 }
 
 // Helper to get descendant IDs (defined outside to avoid recursion issues)
@@ -74,6 +79,7 @@ export function CategorySelector({
   customTrigger,
   externalOpen,
   onExternalOpenChange,
+  variant = 'tree',
 }: CategorySelectorProps) {
   // Fetch ALL categories first, then filter strictly in memory for responsiveness
   // Or should we trust the hook? Let's filter in memory to be sure.
@@ -88,6 +94,11 @@ export function CategorySelector({
   const [searchTerm, setSearchTerm] = React.useState('');
   const [expandedRoots, setExpandedRoots] = React.useState<Set<string>>(
     new Set(),
+  );
+  // 'tabs' variant: which parent group's children are currently shown
+  // (null = the top-level "All" view).
+  const [activeParentId, setActiveParentId] = React.useState<string | null>(
+    null,
   );
 
   React.useEffect(() => {
@@ -190,6 +201,18 @@ export function CategorySelector({
         newSet.add(selectedCategory.parent_id!);
         return newSet;
       });
+    }
+  }, [open, selectedCategory]);
+
+  // 'tabs' variant: when the picker opens, land the user on the group that
+  // holds their current selection; reset to "All" when it closes.
+  React.useEffect(() => {
+    if (!open) {
+      setActiveParentId(null);
+      return;
+    }
+    if (selectedCategory?.parent_id) {
+      setActiveParentId(selectedCategory.parent_id);
     }
   }, [open, selectedCategory]);
 
@@ -383,65 +406,251 @@ export function CategorySelector({
     );
   };
 
-  const Content = (
+  // ── Shared building blocks (used by both the tree and tabs layouts) ──
+
+  const searchField = (
+    <div className='px-3 py-2.5 border-b'>
+      <div className='flex items-center gap-2 rounded-[var(--radius-md)] bg-muted px-3 h-11'>
+        <Search className='h-4 w-4 text-muted-foreground shrink-0' />
+        <Input
+          placeholder={t('search_categories')}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className='border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 h-9 text-[15px] placeholder:text-foreground/55'
+          data-testid='category-search'
+        />
+        {searchTerm && (
+          <button
+            type='button'
+            onClick={() => setSearchTerm('')}
+            aria-label={t('clear') || 'Clear'}
+            className='-mr-1 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground shrink-0'
+          >
+            <X className='h-4 w-4' />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const frequentStrip = frequentCategories.length > 0 && (
+    <div className='mb-2 px-0.5'>
+      <div className='px-1 pb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/55'>
+        {t('frequent', {defaultValue: 'Frequent'})}
+      </div>
+      <div className='flex flex-wrap gap-1.5'>
+        {frequentCategories.map((c) => {
+          const isSel = value === c.id;
+          return (
+            <button
+              key={c.id}
+              type='button'
+              onClick={() => handleSelect(c.id)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 text-[13px] font-semibold transition-colors',
+                isSel
+                  ? 'border-transparent bg-foreground text-background'
+                  : 'border-border/60 bg-card text-foreground hover:bg-muted',
+              )}
+            >
+              {renderCategoryIcon(c.icon, c.color, 'sm')}
+              <span className='max-w-[140px] truncate'>{c.name}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className='mt-2.5 h-px bg-border/50' />
+    </div>
+  );
+
+  // A single flat ledger row for the tabs layout. `drill` means tapping opens
+  // the category's children instead of selecting it.
+  const renderFlatRow = (
+    category: Category,
+    isFirst: boolean,
+    drill: boolean,
+  ) => {
+    const isSelected = value === category.id;
+    const childCount = getChildren(category.id).length;
+    const groupName = category.group_id
+      ? groups.find((g) => g.id === category.group_id)?.name
+      : null;
+    const act = () =>
+      drill ? setActiveParentId(category.id) : handleSelect(category.id);
+
+    return (
+      <div
+        key={category.id}
+        role='button'
+        tabIndex={0}
+        aria-pressed={!drill && isSelected}
+        onClick={act}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            act();
+          }
+        }}
+        className={cn(
+          'group relative flex items-center gap-3 px-2.5 py-2 min-h-[52px] cursor-pointer rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+          !drill && isSelected
+            ? 'bg-muted'
+            : 'hover:bg-muted/50 active:bg-muted',
+          !isFirst &&
+            'before:absolute before:inset-x-2.5 before:top-0 before:h-px before:bg-border/45',
+        )}
+      >
+        {renderCategoryIcon(category.icon, category.color)}
+        <div className='flex-1 min-w-0'>
+          <div className='flex items-center gap-2 min-w-0'>
+            <span
+              className={cn(
+                'truncate text-[15px] leading-tight',
+                !drill && isSelected ? 'font-bold' : 'font-semibold',
+              )}
+            >
+              {category.name}
+            </span>
+            {groupName && (
+              <Badge
+                variant='outline'
+                className='shrink-0 text-[10px] h-4 px-1.5 py-0 flex items-center gap-1 border-primary/40 text-primary'
+              >
+                <Users className='h-2.5 w-2.5' />
+                {groupName}
+              </Badge>
+            )}
+          </div>
+        </div>
+        {drill ? (
+          <div className='flex items-center gap-1 shrink-0 text-muted-foreground'>
+            <Badge
+              variant='secondary'
+              className='num text-[10px] px-1.5 py-0 h-[18px] tabular-nums font-bold'
+            >
+              {childCount}
+            </Badge>
+            <ChevronRight className='h-[18px] w-[18px]' />
+          </div>
+        ) : (
+          isSelected && (
+            <Check className='h-[18px] w-[18px] shrink-0 text-[hsl(var(--gonuts-orange))]' />
+          )
+        )}
+      </div>
+    );
+  };
+
+  const activeParent = activeParentId
+    ? categories?.find((c) => c.id === activeParentId)
+    : null;
+  const tabParents = rootCategories.filter(
+    (r) => getChildren(r.id).length > 0,
+  );
+
+  const tabsContent = (
     <div className='flex flex-col min-h-0 bg-background w-full'>
-      <div className='px-3 py-2.5 border-b'>
-        <div className='flex items-center gap-2 rounded-[var(--radius-md)] bg-muted px-3 h-11'>
-          <Search className='h-4 w-4 text-muted-foreground shrink-0' />
-          <Input
-            placeholder={t('search_categories')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className='border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 h-9 text-[15px] placeholder:text-foreground/55'
-            data-testid='category-search'
-          />
-          {searchTerm && (
+      {searchField}
+
+      {/* Sticky group tabs */}
+      {!isSearching && tabParents.length > 0 && (
+        <div className='border-b overflow-x-auto scrollbar-hide'>
+          <div className='flex w-max gap-1.5 px-3 py-2'>
             <button
               type='button'
-              onClick={() => setSearchTerm('')}
-              aria-label={t('clear') || 'Clear'}
-              className='-mr-1 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground shrink-0'
+              onClick={() => setActiveParentId(null)}
+              className={cn(
+                'shrink-0 rounded-full border px-3.5 h-9 text-[13px] font-semibold transition-colors',
+                activeParentId === null
+                  ? 'border-transparent bg-foreground text-background'
+                  : 'border-border/60 bg-card text-foreground hover:bg-muted',
+              )}
             >
-              <X className='h-4 w-4' />
+              {t('all', {defaultValue: 'All'})}
             </button>
-          )}
+            {tabParents.map((p) => {
+              const isActive = activeParentId === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type='button'
+                  onClick={() => setActiveParentId(p.id)}
+                  className={cn(
+                    'shrink-0 inline-flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 text-[13px] font-semibold transition-colors',
+                    isActive
+                      ? 'border-transparent bg-foreground text-background'
+                      : 'border-border/60 bg-card text-foreground hover:bg-muted',
+                  )}
+                >
+                  {renderCategoryIcon(p.icon, p.color, 'sm')}
+                  <span className='max-w-[140px] truncate'>{p.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         className='flex-1 min-h-0 overflow-y-auto p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] w-full'
         data-vaul-no-drag
       >
-        {/* Frequently used — one-tap picks */}
-        {frequentCategories.length > 0 && (
-          <div className='mb-2 px-0.5'>
-            <div className='px-1 pb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/55'>
-              {t('frequent', {defaultValue: 'Frequent'})}
+        {isSearching ? (
+          rootCategories.length === 0 ? (
+            <div className='text-center py-8 text-muted-foreground text-sm'>
+              {t('no_categories_found')}
             </div>
-            <div className='flex flex-wrap gap-1.5'>
-              {frequentCategories.map((c) => {
-                const isSel = value === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    type='button'
-                    onClick={() => handleSelect(c.id)}
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 text-[13px] font-semibold transition-colors',
-                      isSel
-                        ? 'border-transparent bg-foreground text-background'
-                        : 'border-border/60 bg-card text-foreground hover:bg-muted',
-                    )}
-                  >
-                    {renderCategoryIcon(c.icon, c.color, 'sm')}
-                    <span className='max-w-[140px] truncate'>{c.name}</span>
-                  </button>
-                );
-              })}
+          ) : (
+            <div>
+              {rootCategories.map((root, i) =>
+                renderCategoryNode(root, 0, i === 0),
+              )}
             </div>
-            <div className='mt-2.5 h-px bg-border/50' />
+          )
+        ) : activeParent ? (
+          <div>
+            {/* Select the group itself */}
+            {renderFlatRow(activeParent, true, false)}
+            <div className='mt-1 px-1 pb-1.5 pt-2 text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/55'>
+              {t('subcategories', {defaultValue: 'Subcategories'})}
+            </div>
+            {getChildren(activeParent.id).map((child, i) =>
+              renderFlatRow(child, i === 0, getChildren(child.id).length > 0),
+            )}
           </div>
+        ) : (
+          <>
+            {frequentStrip}
+            {rootCategories.length === 0 ? (
+              <div className='text-center py-8 text-muted-foreground text-sm'>
+                {t('no_categories_found')}
+              </div>
+            ) : (
+              <div>
+                {rootCategories.map((root, i) =>
+                  renderFlatRow(
+                    root,
+                    i === 0,
+                    getChildren(root.id).length > 0,
+                  ),
+                )}
+              </div>
+            )}
+          </>
         )}
+      </div>
+    </div>
+  );
+
+  const treeContent = (
+    <div className='flex flex-col min-h-0 bg-background w-full'>
+      {searchField}
+
+      <div
+        className='flex-1 min-h-0 overflow-y-auto p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] w-full'
+        data-vaul-no-drag
+      >
+        {frequentStrip}
         {showSkipOption && !isSearching && (
           <div className='mb-1 pb-1 border-b border-border/45'>
             <div
@@ -496,6 +705,8 @@ export function CategorySelector({
       </div>
     </div>
   );
+
+  const Content = variant === 'tabs' ? tabsContent : treeContent;
 
   if (isMobile) {
     return (
@@ -604,10 +815,11 @@ export function CategorySelector({
               </span>
             </div>
           ) : selectedCategory ? (
-            <div className='flex items-center min-w-0'>
+            <div className='flex items-center gap-2.5 min-w-0'>
               {renderCategoryIcon(
                 selectedCategory.icon,
                 selectedCategory.color,
+                'sm',
               )}
               <span className='truncate'>{selectedCategory.name}</span>
             </div>

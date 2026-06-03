@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-06-03
+
+Refinements to the ledger design language and profile page.
+
+### Changed
+- **Profile page redesign**: Redesigned as a "ledger title page" with live account stats (Member since, Entries logged, Categories) in tabular mono figures, separated by ruled hairlines. Simplified to a clean view ⇄ edit toggle replacing the old three-state accordion. Account section is now a single pressable ledger row.
+- **CategorySelector refinements**: Enhanced layout vocabulary and improved keyboard navigation for the category picker.
+- **Avatar and profile handling**: Improved avatar loading and profile state management with live queries for real-time updates.
+
+### Added
+- New translations for profile section (en/it): `member_since`, `entries_logged`, `sign_out`, `sign_out_desc`, `account`.
+
+### Fixed
+- Profile accent ring now uses `--ring` token (user theme) instead of static coral, ensuring consistency with FAB and active nav colors.
+
 ## [2.0.0] - 2026-06-03
 
 A major visual release: GoNuts gets a complete v2 redesign across every screen.
