@@ -1061,6 +1061,8 @@
   "changelog_v1_0_11_3": "Drawer saldo gruppo: corretti scroll e layout così saldi, piano di regolamento e storico restano fruibili con contenuti lunghi.",
   "changelog_v1_0_12_0": "Dialog aggiunta transazione più chiaro: etichette migliorate, testo di supporto visibile e default migliore per chi ha pagato nei gruppi.",
   "changelog_v1_0_12_1": "Risolte regressioni in aggiunta transazione: la categoria resta selezionabile e viene azzerata solo quando cambia il gruppo.",
+  "changelog_v2_0_2_0": "L'elenco dei movimenti usa ora le icone categoria piene della dashboard — riquadri colorati con glifo bianco — per un aspetto più deciso e coerente in tutta l'app.",
+  "changelog_v2_0_2_1": "La sezione \"Recenti\" della dashboard rispecchia ora l'elenco dei movimenti: raggruppata per giorno e toccabile per aprire il pannello di dettaglio completo con azioni di modifica, duplicazione ed eliminazione.",
   "changelog_v2_0_1_0": "Profilo riprogettato come pagina titolo del registro con statistiche live sull'account (Iscritto da, Movimenti registrati, Categorie) in figure mono tabulari separate da linee tratteggiate.",
   "changelog_v2_0_1_1": "Nuove traduzioni del profilo e miglioramento della coerenza dell'anello avatar usando i colori del tema scelto dall'utente.",
   "changelog_v2_0_1_2": "Migliorata la struttura del selettore categoria e la navigazione da tastiera per una migliore accessibilità.",
