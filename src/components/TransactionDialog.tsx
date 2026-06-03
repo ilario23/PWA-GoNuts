@@ -374,7 +374,7 @@ export function TransactionDialog({
     expense: {
       label: t('expense'),
       icon: ArrowUpRight,
-      activeClass: 'bg-foreground text-background',
+      activeClass: 'bg-[hsl(var(--gonuts-bad))] text-white',
     },
     income: {
       label: t('income'),
@@ -516,48 +516,57 @@ export function TransactionDialog({
               />
             </div>
 
-            {/* Meta tiles */}
-            <div className='px-5 pb-4 shrink-0'>
-              <div className='flex flex-wrap gap-2'>
-                {/* Category tile */}
-                <button
-                  type='button'
-                  onClick={() => setCategoryOpen(true)}
-                  className={cn(
-                    'flex items-center gap-3 py-3 px-3 rounded-[18px] shrink-0 text-left transition-all active:scale-95',
-                    selectedCat ? 'text-white' : 'bg-foreground text-background',
-                  )}
-                  style={selectedCat ? {backgroundColor: selectedCat.color || '#1A1714', color: '#fff'} : undefined}
-                >
-                  <div className='w-8 h-8 rounded-[10px] bg-white/20 flex items-center justify-center shrink-0'>
-                    {selectedCatIcon
-                      ? createElement(selectedCatIcon, {className: 'h-[18px] w-[18px]'})
-                      : <Folder className='h-[18px] w-[18px]' />}
+            {/* Meta selectors: required Category (primary) + optional Date/Context/Group (secondary) */}
+            <div className='px-5 pb-4 shrink-0 space-y-2'>
+              {/* Category — full-width primary row (required; blocks Save) */}
+              <button
+                type='button'
+                onClick={() => setCategoryOpen(true)}
+                className={cn(
+                  'w-full flex items-center gap-3 py-3 px-3 rounded-[18px] text-left transition-all active:scale-[0.98]',
+                  selectedCat ? 'text-white' : 'bg-foreground text-background',
+                )}
+                style={selectedCat ? {backgroundColor: selectedCat.color || '#1A1714', color: '#fff'} : undefined}
+              >
+                <div className='w-8 h-8 rounded-[10px] bg-white/20 flex items-center justify-center shrink-0'>
+                  {selectedCatIcon
+                    ? createElement(selectedCatIcon, {className: 'h-[18px] w-[18px]'})
+                    : <Folder className='h-[18px] w-[18px]' />}
+                </div>
+                <div className='min-w-0'>
+                  <div className='text-[10px] font-bold uppercase tracking-widest opacity-70'>{t('category')}</div>
+                  <div className='text-sm font-bold leading-tight truncate'>
+                    {selectedCat?.name ?? t('choose', {defaultValue: 'Choose'})}
                   </div>
-                  <div>
-                    <div className='text-[10px] font-bold uppercase tracking-widest opacity-70'>{t('category')}</div>
-                    <div className='text-sm font-bold leading-tight max-w-[80px] truncate'>
-                      {selectedCat?.name ?? t('choose', {defaultValue: 'Choose'})}
-                    </div>
-                  </div>
-                </button>
+                </div>
+              </button>
 
-                {/* Date tile */}
-                <label className='flex items-center gap-3 py-3 px-3 rounded-[18px] bg-muted shrink-0 cursor-pointer active:scale-95 transition-all'>
-                  <div className='w-8 h-8 rounded-[10px] bg-background flex items-center justify-center shrink-0'>
-                    <Calendar className='h-4 w-4 text-foreground' />
+              {/* Secondary row: equal-width tiles that self-balance for 1–3 items */}
+              <div className='flex gap-2'>
+                {/* Date tile (always present) */}
+                <div className='relative flex-1 basis-0 min-w-0 flex flex-col gap-1.5 py-3 px-3 rounded-[18px] bg-muted cursor-pointer active:scale-95 transition-all'>
+                  <div className='flex items-center gap-1.5 text-muted-foreground'>
+                    <Calendar className='h-4 w-4 shrink-0' />
+                    <span className='text-[10px] font-bold uppercase tracking-widest'>{t('date')}</span>
                   </div>
-                  <div>
-                    <div className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground'>{t('date')}</div>
-                    <div className='text-sm font-bold text-foreground'>{formatDateShort(watchedDate || '')}</div>
-                  </div>
+                  <div className='text-sm font-bold text-foreground truncate'>{formatDateShort(watchedDate || '')}</div>
                   <input
                     type='date'
-                    className='sr-only'
+                    aria-label={t('date')}
+                    className='absolute inset-0 h-full w-full cursor-pointer opacity-0'
                     value={watchedDate || ''}
+                    onClick={(e) => {
+                      // Native date inputs don't open on a plain focus/label click — force
+                      // the picker on every browser (desktop needs the indicator, which is hidden).
+                      try {
+                        (e.currentTarget as HTMLInputElement & {showPicker?: () => void}).showPicker?.();
+                      } catch {
+                        /* showPicker can throw if unsupported or not user-activated */
+                      }
+                    }}
                     onChange={(e) => form.setValue('date', e.target.value, {shouldValidate: true})}
                   />
-                </label>
+                </div>
 
                 {/* Context tile */}
                 {contexts && contexts.length > 0 && (
@@ -565,7 +574,7 @@ export function TransactionDialog({
                     type='button'
                     onClick={() => setContextPickerOpen(true)}
                     className={cn(
-                      'flex items-center gap-3 py-3 px-3 rounded-[18px] shrink-0 text-left transition-all active:scale-95',
+                      'flex-1 basis-0 min-w-0 flex flex-col gap-1.5 py-3 px-3 rounded-[18px] text-left transition-all active:scale-95',
                       selectedCtx ? 'border' : 'bg-muted',
                     )}
                     style={
@@ -575,16 +584,14 @@ export function TransactionDialog({
                     }
                   >
                     <div
-                      className='w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0'
-                      style={selectedCtx ? {backgroundColor: hashColor(selectedCtx.id), color: '#fff'} : {backgroundColor: 'hsl(var(--background))'}}
+                      className='flex items-center gap-1.5'
+                      style={selectedCtx ? {color: hashColor(selectedCtx.id)} : undefined}
                     >
-                      <Tag className='h-4 w-4' />
+                      <Tag className={cn('h-4 w-4 shrink-0', !selectedCtx && 'text-muted-foreground')} />
+                      <span className={cn('text-[10px] font-bold uppercase tracking-widest', !selectedCtx && 'text-muted-foreground')}>{t('context')}</span>
                     </div>
-                    <div>
-                      <div className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground'>{t('context')}</div>
-                      <div className='text-sm font-bold text-foreground max-w-[80px] truncate'>
-                        {selectedCtx?.name ?? t('none')}
-                      </div>
+                    <div className='text-sm font-bold text-foreground truncate'>
+                      {selectedCtx?.name ?? t('none')}
                     </div>
                   </button>
                 )}
@@ -595,25 +602,16 @@ export function TransactionDialog({
                     type='button'
                     onClick={() => setGroupPickerOpen(true)}
                     className={cn(
-                      'flex items-center gap-3 py-3 px-3 rounded-[18px] shrink-0 text-left transition-all active:scale-95',
-                      selectedGroup ? 'bg-foreground text-background' : 'bg-muted',
+                      'flex-1 basis-0 min-w-0 flex flex-col gap-1.5 py-3 px-3 rounded-[18px] text-left transition-all active:scale-95',
+                      selectedGroup ? 'bg-foreground/10' : 'bg-muted',
                     )}
                   >
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0',
-                        selectedGroup ? 'bg-white/20' : 'bg-background',
-                      )}
-                    >
-                      <Users className='h-4 w-4' />
+                    <div className={cn('flex items-center gap-1.5', selectedGroup ? 'text-foreground' : 'text-muted-foreground')}>
+                      <Users className='h-4 w-4 shrink-0' />
+                      <span className='text-[10px] font-bold uppercase tracking-widest'>{t('group')}</span>
                     </div>
-                    <div>
-                      <div className={cn('text-[10px] font-bold uppercase tracking-widest', selectedGroup ? 'opacity-70' : 'text-muted-foreground')}>
-                        {t('group')}
-                      </div>
-                      <div className='text-sm font-bold max-w-[80px] truncate'>
-                        {selectedGroup?.name ?? t('personal_transaction_label')}
-                      </div>
+                    <div className='text-sm font-bold text-foreground truncate'>
+                      {selectedGroup?.name ?? t('personal_transaction_label')}
                     </div>
                   </button>
                 )}

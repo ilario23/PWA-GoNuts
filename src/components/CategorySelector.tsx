@@ -5,6 +5,13 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
   Drawer,
   DrawerContent,
   DrawerHeader,
@@ -439,6 +446,24 @@ export function CategorySelector({
           {Content}
         </DrawerContent>
       </Drawer>
+    );
+  }
+
+  // Desktop headless mode: no trigger is rendered, so a Popover would have no
+  // anchor to position against and never appears. Use a centered Dialog instead.
+  if (externalOpen !== undefined) {
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className='p-0 gap-0 max-w-[360px] overflow-hidden'>
+          <DialogHeader className='border-b px-4 py-3 text-left'>
+            <DialogTitle>{t('select_category')}</DialogTitle>
+            <DialogDescription className='sr-only'>
+              {t('select_category')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className='h-[400px] flex flex-col'>{Content}</div>
+        </DialogContent>
+      </Dialog>
     );
   }
 

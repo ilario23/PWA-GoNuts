@@ -4,7 +4,6 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar";
 import { useSettings } from "@/hooks/useSettings";
 import { applyThemeColor } from "@/lib/theme-colors";
-import { useTheme } from "next-themes";
 import { PendingChangesIndicator } from "@/components/PendingChangesIndicator";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -28,18 +27,30 @@ function AppHeader() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
-  const { theme } = useTheme();
 
-  // Apply accent color when settings or theme changes
+  // Apply accent color when settings or theme changes.
+  // Derive isDark from settings (the source of truth), not next-themes which
+  // has no provider and would always return "light".
   useEffect(() => {
-    if (settings?.accentColor) {
+    if (!settings?.accentColor) return;
+
+    const settingsTheme = settings.theme ?? "system";
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const apply = () => {
       const isDark =
-        theme === "dark" ||
-        (theme === "system" &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches);
-      applyThemeColor(settings.accentColor, isDark);
+        settingsTheme === "dark" ||
+        (settingsTheme === "system" && mediaQuery.matches);
+      applyThemeColor(settings.accentColor!, isDark);
+    };
+
+    apply();
+
+    if (settingsTheme === "system") {
+      mediaQuery.addEventListener("change", apply);
+      return () => mediaQuery.removeEventListener("change", apply);
     }
-  }, [settings?.accentColor, theme]);
+  }, [settings?.accentColor, settings?.theme]);
 
   return (
     <SidebarProvider>
