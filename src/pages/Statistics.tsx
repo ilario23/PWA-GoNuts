@@ -337,8 +337,8 @@ export function StatisticsPage() {
             onClick={() => startTransition(() => setActiveTab("monthly"))}
             className={`px-5 py-2 rounded-[calc(var(--radius)-2px)] text-sm font-semibold transition-colors ${
               activeTab === "monthly"
-                ? "bg-card text-foreground shadow-sm"
-                : "text-foreground/50 hover:text-foreground"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {format(new Date(`${selectedMonth}-01`), "MMM yyyy", { locale: dateLocale })}
@@ -347,8 +347,8 @@ export function StatisticsPage() {
             onClick={() => startTransition(() => setActiveTab("yearly"))}
             className={`px-5 py-2 rounded-[calc(var(--radius)-2px)] text-sm font-semibold transition-colors ${
               activeTab === "yearly"
-                ? "bg-card text-foreground shadow-sm"
-                : "text-foreground/50 hover:text-foreground"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {selectedYear}
@@ -448,7 +448,7 @@ export function StatisticsPage() {
                   className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
                     viewTab === tab
                       ? "bg-foreground text-background"
-                      : "bg-muted text-foreground/60 hover:text-foreground"
+                      : "bg-muted text-foreground/80 hover:text-foreground"
                   }`}
                 >
                   {tab === "breakdown" ? t("breakdown") : tab === "trend" ? t("trend") : t("contexts")}

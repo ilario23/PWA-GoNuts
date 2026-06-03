@@ -711,8 +711,6 @@ export function CategoriesPage() {
         setExpandedCategoryIds={setExpandedCategoryIds}
         groups={groups}
         getBudgetForCategory={getBudgetForCategory}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
         onCategoryClick={handleCategoryClick}
         isLoading={isLoading}
       />
@@ -760,31 +758,6 @@ export function CategoriesPage() {
         onOpenChange={setBudgetDialogOpen}
         category={budgetCategoryId ? categories?.find(c => c.id === budgetCategoryId) || null : null}
       /> */}
-
-      {/* Detail Drawer (Mobile) */}
-      <CategoryDetailDrawer
-        category={selectedCategory}
-        open={detailSheetOpen}
-        onOpenChange={setDetailSheetOpen}
-        budgetInfo={selectedCategory ? (() => {
-          const budget = getBudgetForCategory(selectedCategory.id);
-          return budget ? {
-            amount: budget.amount,
-            spent: budget.spent,
-            percentage: budget.percentage
-          } : null;
-        })() : undefined}
-        parentCategory={selectedCategory ? getParentCategory(selectedCategory.parent_id) : null}
-        childrenCount={selectedCategory ? getChildrenCount(selectedCategory.id) : 0}
-        groupName={selectedCategory?.group_id ? groups.find(g => g.id === selectedCategory.group_id)?.name : undefined}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
-      // onSetBudget={() => {
-      //   if (selectedCategory) {
-      //     handleOpenBudgetDialog(selectedCategory.id);
-      //   }
-      // }}
-      />
 
       <DeleteConfirmDialog
         open={deleteDialogOpen}

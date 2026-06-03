@@ -24,6 +24,7 @@ import { SmoothLoader } from "@/components/ui/smooth-loader";
 import { motion, Variants } from "framer-motion";
 import { FadeIn } from "@/components/ui/fade-in";
 import { getIconComponent } from "@/lib/icons";
+import { getTypeTextColor, GROUP_CHIP_CLASSES } from "@/lib/typeColors";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { UI_DEFAULTS, UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { Copy } from "lucide-react"; // Import Copy icon
@@ -151,19 +152,6 @@ export function TransactionList({
     const group = getGroup(transaction.group_id);
     if (!group || !("myShare" in group)) return transaction.amount;
     return (transaction.amount * (group as GroupWithMembers).myShare) / 100;
-  };
-
-  const getTypeTextColor = (type: string) => {
-    switch (type) {
-      case "expense":
-        return "text-red-500";
-      case "income":
-        return "text-green-500";
-      case "investment":
-        return "text-blue-500";
-      default:
-        return "";
-    }
   };
 
   // Group transactions by date
@@ -309,7 +297,7 @@ export function TransactionList({
               <TooltipProvider>
                 <Tooltip delayDuration={300}>
                   <TooltipTrigger asChild>
-                    <div className="inline-flex items-center gap-1 text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-md cursor-default">
+                    <div className={`inline-flex items-center gap-1 text-xs ${GROUP_CHIP_CLASSES} px-2 py-1 rounded-md cursor-default`}>
                       <Users className="h-3 w-3" aria-hidden="true" />
                       {group.name}
                     </div>
@@ -507,9 +495,6 @@ export function TransactionList({
                           category={getCategory(item.data.category_id)}
                           context={getContext(item.data.context_id)}
                           group={getGroup(item.data.group_id)}
-                          onEdit={onEdit}
-                          onDelete={onDelete}
-                          onDuplicate={onDuplicate}
                           onClick={() => handleRowClick(item.data)}
                           isVirtual={true}
                           hideContext={hideContext}
@@ -529,7 +514,9 @@ export function TransactionList({
               group={getGroup(selectedTransaction?.group_id)}
               open={isDrawerOpen}
               onOpenChange={setIsDrawerOpen}
-
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onDuplicate={onDuplicate}
             />
           </>
         );
@@ -569,9 +556,6 @@ export function TransactionList({
                     category={getCategory(item.data.category_id)}
                     context={getContext(item.data.context_id)}
                     group={getGroup(item.data.group_id)}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onDuplicate={onDuplicate}
                     onClick={() => handleRowClick(item.data)}
                     isVirtual={false}
                     hideContext={hideContext}
@@ -589,7 +573,9 @@ export function TransactionList({
             group={getGroup(selectedTransaction?.group_id)}
             open={isDrawerOpen}
             onOpenChange={setIsDrawerOpen}
-
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onDuplicate={onDuplicate}
           />
         </>
       );

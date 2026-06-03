@@ -655,7 +655,7 @@ export function TransactionsPage() {
             className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ${
               filters.type === f.id
                 ? "bg-foreground text-background"
-                : "bg-muted text-foreground/70 hover:bg-muted/80"
+                : "bg-muted text-foreground/85 hover:bg-muted/80"
             }`}
           >
             {f.label}
@@ -669,7 +669,7 @@ export function TransactionsPage() {
               className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ${
                 hasAdvancedFilters
                   ? "bg-[hsl(var(--gonuts-orange))] text-white"
-                  : "bg-muted text-foreground/70 hover:bg-muted/80"
+                  : "bg-muted text-foreground/85 hover:bg-muted/80"
               }`}
             >
               <Filter className="h-3.5 w-3.5" />

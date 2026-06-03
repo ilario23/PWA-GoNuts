@@ -1,9 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { GroupWithMembers } from "@/hooks/useGroups";
 import { Card, CardContent } from "@/components/ui/card";
-import { Crown, Users, ArrowUpRight, BarChart3 } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { SwipeableItem } from "@/components/ui/SwipeableItem";
+import { Crown, Users, ArrowUpRight, BarChart3, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 interface GroupCardProps {
   group: GroupWithMembers;
@@ -28,8 +32,6 @@ export function GroupCard({
   myBalance,
 }: GroupCardProps) {
   const { t } = useTranslation();
-  const isMobile = useIsMobile();
-  const enabled = isMobile && group.isCreator;
 
   const isOwed = myBalance !== undefined && myBalance > 0.005;
   const isOwing = myBalance !== undefined && myBalance < -0.005;
@@ -67,15 +69,17 @@ export function GroupCard({
   ];
 
   return (
-    <SwipeableItem
-      onEdit={() => onEdit(group)}
-      onDelete={() => onDelete(group)}
-      onClick={() => onView(group)}
-      enabled={enabled}
-    >
       <Card
-        className="overflow-hidden cursor-pointer transition-all duration-150 active:scale-[0.99]"
+        role="button"
+        tabIndex={0}
+        className="overflow-hidden cursor-pointer transition-all duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={() => onView(group)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onView(group);
+          }
+        }}
       >
         <CardContent className="p-0">
           {/* Main body */}
@@ -97,9 +101,35 @@ export function GroupCard({
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0 pt-0.5">
-                <Users className="h-3.5 w-3.5" />
-                <span>{group.members.length}</span>
+              <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Users className="h-3.5 w-3.5" />
+                  <span>{group.members.length}</span>
+                </div>
+                {group.isCreator && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={t("actions")}
+                      className="-mr-1 -mt-1 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60 active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem onSelect={() => onEdit(group)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        {t("edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => onDelete(group)}
+                        className="text-[hsl(var(--gonuts-bad))] focus:text-[hsl(var(--gonuts-bad))] focus:bg-[hsl(var(--gonuts-bad))]/10"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {t("delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             </div>
 
@@ -158,6 +188,5 @@ export function GroupCard({
           </div>
         </CardContent>
       </Card>
-    </SwipeableItem>
   );
 }

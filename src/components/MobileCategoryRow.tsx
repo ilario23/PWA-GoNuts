@@ -4,14 +4,13 @@ import { getIconComponent } from "@/lib/icons";
 import { ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
-import { SwipeableItem } from "@/components/ui/SwipeableItem";
 import { createElement } from "react";
 import { Progress } from "@/components/ui/progress";
+import { getTypeTintClasses } from "@/lib/typeColors";
+import { cn } from "@/lib/utils";
 
 interface MobileCategoryRowProps {
   category: Category;
-  onEdit: (category: Category) => void;
-  onDelete: (id: string) => void;
   onClick?: (category: Category) => void;
   style?: React.CSSProperties;
   className?: string; // Allow custom classes
@@ -29,8 +28,6 @@ interface MobileCategoryRowProps {
 
 export function MobileCategoryRow({
   category,
-  onEdit,
-  onDelete,
   onClick,
   style,
   className,
@@ -44,36 +41,34 @@ export function MobileCategoryRow({
   const IconComp = category.icon ? getIconComponent(category.icon) : null;
   const isInactive = category.active === 0;
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "expense":
-        return "text-red-500 bg-red-500/10";
-      case "income":
-        return "text-green-500 bg-green-500/10";
-      case "investment":
-        return "text-blue-500 bg-blue-500/10";
-      default:
-        return "text-muted-foreground bg-muted";
-    }
-  };
+  const getTypeColor = getTypeTintClasses;
 
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return "bg-red-500";
+    if (percentage >= 100) return "bg-[hsl(var(--gonuts-bad))]";
     if (percentage >= 80) return "bg-amber-500";
-    return "bg-green-500";
+    return "bg-[hsl(var(--gonuts-good))]";
   };
 
   return (
-    <SwipeableItem
-      onEdit={() => onEdit(category)}
-      onDelete={() => onDelete(category.id)}
-      onClick={onClick ? () => onClick(category) : undefined}
-      style={style}
-      className={className}
-    >
+    <div className={cn("rounded-lg mb-2", className)} style={style}>
       <div
-        className={`relative bg-card p-3 rounded-lg border shadow-sm flex flex-col gap-2 cursor-pointer ${isInactive ? "opacity-60" : ""
-          }`}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onClick={onClick ? () => onClick(category) : undefined}
+        onKeyDown={
+          onClick
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onClick(category);
+                }
+              }
+            : undefined
+        }
+        className={cn(
+          "relative bg-card p-3 rounded-lg border shadow-sm flex flex-col gap-2 cursor-pointer transition-transform duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          isInactive && "opacity-60"
+        )}
       >
         <div className="flex items-center gap-3 h-[48px]">
           {/* Icon */}
@@ -147,7 +142,7 @@ export function MobileCategoryRow({
                 <span>{budget.spent.toFixed(2)}€</span>
                 <span>/</span>
                 <span>{budget.amount.toFixed(0)}€</span>
-                <span className={budget.percentage >= 100 ? "text-red-500 font-bold" : ""}>
+                <span className={budget.percentage >= 100 ? "text-[hsl(var(--gonuts-bad))] font-bold" : ""}>
                   ({budget.percentage.toFixed(0)}%)
                 </span>
               </div>
@@ -184,6 +179,6 @@ export function MobileCategoryRow({
           </div>
         )}
       </div>
-    </SwipeableItem>
+    </div>
   );
 }

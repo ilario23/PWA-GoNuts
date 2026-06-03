@@ -14,8 +14,6 @@ interface CategoryMobileListProps {
     setExpandedCategoryIds: React.Dispatch<React.SetStateAction<Set<string>>>;
     groups: Group[];
     getBudgetForCategory: (categoryId: string) => { amount: number; spent: number; percentage: number; period: "monthly" | "yearly" } | null | undefined;
-    onEdit: (category: Category) => void;
-    onDelete: (id: string) => void;
     onCategoryClick: (category: Category) => void;
     isLoading: boolean;
 }
@@ -27,8 +25,6 @@ export function CategoryMobileList({
     setExpandedCategoryIds,
     groups,
     getBudgetForCategory,
-    onEdit,
-    onDelete,
     onCategoryClick,
     isLoading,
 }: CategoryMobileListProps) {
@@ -70,8 +66,6 @@ export function CategoryMobileList({
                 <div key={category.id} className="mb-3">
                     <MobileCategoryRow
                         category={category}
-                        onEdit={onEdit}
-                        onDelete={onDelete}
                         onClick={onCategoryClick}
                         childCount={children.length}
                         budget={budget ? {
@@ -128,8 +122,6 @@ export function CategoryMobileList({
 
                 <MobileCategoryRow
                     category={category}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
                     onClick={onCategoryClick}
                     childCount={children.length}
                     budget={budget ? {

@@ -362,8 +362,8 @@ export function SettingsPage() {
               const isSelected = (settings.accentColor || "slate") === color.name;
               return (
                 <button key={color.name} onClick={() => updateSettings({ accentColor: color.name })}
-                  className={cn("relative h-8 w-full rounded-[8px] border-2 transition-all touch-manipulation hover:scale-105 active:scale-95",
-                    isSelected ? "border-foreground ring-2 ring-offset-1 ring-foreground" : "border-border/60"
+                  className={cn("relative h-8 w-full rounded-[8px] transition-all touch-manipulation hover:scale-105 active:scale-95",
+                    isSelected ? "ring-2 ring-offset-2 ring-foreground" : ""
                   )}
                   style={{ backgroundColor: `hsl(${mounted && resolvedTheme === "dark" ? color.dark.primary : color.light.primary})` }}
                   title={t(color.name)}>

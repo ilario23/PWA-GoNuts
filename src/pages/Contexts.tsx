@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { Context, db } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
-import { SwipeableItem } from "@/components/ui/SwipeableItem";
 import { ContextFormDialog } from "@/components/contexts/ContextFormDialog";
 import { ContextDetailDrawer } from "@/components/contexts/ContextDetailDrawer";
 import { ContextFormValues } from "@/lib/schemas";
@@ -219,18 +218,21 @@ export function ContextsPage() {
             const inactive = c.active === 0;
 
             return (
-              <SwipeableItem
-                key={c.id}
-                onEdit={() => handleEdit(c)}
-                onDelete={() => handleDeleteClick(c.id)}
-                onClick={() => handleOpenDetail(c)}
-              >
                 <Card
+                  key={c.id}
+                  role="button"
+                  tabIndex={0}
                   className={cn(
-                    "overflow-hidden cursor-pointer transition-all duration-150 active:scale-[0.99]",
+                    "overflow-hidden cursor-pointer transition-all duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                     inactive && "opacity-50"
                   )}
                   onClick={() => handleOpenDetail(c)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleOpenDetail(c);
+                    }
+                  }}
                 >
                   <CardContent className="p-0 flex items-center gap-3">
                     {/* Leading color dot (replaces the old side-stripe) */}
@@ -264,7 +266,6 @@ export function ContextsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </SwipeableItem>
             );
           })}
         </div>
@@ -297,6 +298,8 @@ export function ContextsPage() {
         context={selectedContext}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        onEdit={handleEdit}
+        onDelete={handleDeleteClick}
       />
     </div>
   );

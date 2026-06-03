@@ -1,10 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { Transaction, Category, Context, Group } from "@/lib/db";
 import { getIconComponent } from "@/lib/icons";
-import { Tag, Users, AlertCircle, Edit, Copy, Trash2 } from "lucide-react";
+import { Tag, Users, AlertCircle } from "lucide-react";
 import { SyncStatusBadge } from "./SyncStatus";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
-import { SwipeableItem } from "@/components/ui/SwipeableItem";
+import { getTypeTextColor, GROUP_CHIP_CLASSES } from "@/lib/typeColors";
 import { createElement } from "react";
 import {
   extractSettlementNote,
@@ -16,9 +16,6 @@ interface MobileTransactionRowProps {
   category?: Category;
   context?: Context;
   group?: Group;
-  onEdit?: (transaction: Transaction) => void;
-  onDelete?: (id: string) => void;
-  onDuplicate?: (transaction: Transaction) => void;
   onClick?: () => void;
   isVirtual?: boolean;
   style?: React.CSSProperties;
@@ -32,9 +29,6 @@ export function MobileTransactionRow({
   category,
   context,
   group,
-  onEdit,
-  onDelete,
-  onDuplicate,
   onClick,
   style,
   hideContext,
@@ -48,71 +42,23 @@ export function MobileTransactionRow({
     ? extractSettlementNote(transaction.description)
     : "";
 
-  const getTypeTextColor = (type: string) => {
-    switch (type) {
-      case "expense":
-        return "text-red-500";
-      case "income":
-        return "text-green-500";
-      case "investment":
-        return "text-blue-500";
-      default:
-        return "";
-    }
-  };
-
   return (
-    <SwipeableItem
-      onDelete={onDelete ? () => onDelete(transaction.id) : undefined}
-      leftActions={
-        onEdit || onDuplicate
-          ? [
-            ...(onEdit
-              ? [
-                {
-                  key: "edit",
-                  label: t("edit"),
-                  icon: <Edit className="h-5 w-5" />,
-                  onClick: () => onEdit(transaction),
-                  color: "bg-blue-500",
-                },
-              ]
-              : []),
-            ...(onDuplicate
-              ? [
-                {
-                  key: "duplicate",
-                  label: t("duplicate"),
-                  icon: <Copy className="h-5 w-5" />,
-                  onClick: () => onDuplicate(transaction),
-                  color: "bg-indigo-500",
-                },
-              ]
-              : []),
-          ]
-          : undefined
-      }
-      rightActions={
-        onDelete
-          ? [
-            {
-              key: "delete",
-              label: t("delete"),
-              icon: <Trash2 className="h-5 w-5" />,
-              onClick: () => onDelete(transaction.id),
-              color: "bg-red-500",
-            },
-          ]
-          : undefined
-      }
-      onClick={onClick}
-      className={style ? "" : undefined}
-      style={style}
-    >
+    <div className="mb-2" style={style}>
       <div
-        className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] cursor-pointer transition-transform duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         role={onClick ? "button" : undefined}
         tabIndex={onClick ? 0 : undefined}
+        onClick={onClick}
+        onKeyDown={
+          onClick
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onClick();
+                }
+              }
+            : undefined
+        }
         aria-label={`${transaction.description}, ${(personalAmount ?? transaction.amount).toFixed(2)}`}
       >
         {/* Icon */}
@@ -155,7 +101,7 @@ export function MobileTransactionRow({
             {(group || (context && !hideContext)) && (
               <div className="flex items-center gap-1 flex-wrap">
                 {group && (
-                  <div className="flex items-center gap-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded text-[10px]">
+                  <div className={`flex items-center gap-0.5 ${GROUP_CHIP_CLASSES} px-1.5 py-0.5 rounded text-[10px]`}>
                     <Users className="h-3 w-3" />
                     <span className="truncate max-w-[80px]">{group.name}</span>
                   </div>
@@ -201,6 +147,6 @@ export function MobileTransactionRow({
           </div>
         </div>
       </div>
-    </SwipeableItem>
+    </div>
   );
 }

@@ -268,8 +268,6 @@ export function RecurringTransactionsPage() {
               category={categories?.find((c) => c.id === t_item.category_id)}
               context={contexts?.find((c) => c.id === t_item.context_id)}
               group={groups?.find((g) => g.id === t_item.group_id)}
-              onEdit={handleEdit}
-              onDelete={handleDeleteClick}
               onClick={handleTransactionClick}
               onToggle={handleToggle}
             />

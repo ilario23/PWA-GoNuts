@@ -16,6 +16,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { DetailDrawerActions } from "@/components/ui/DetailDrawerActions";
 import { Tag, Receipt, X, Hash, Calendar } from "lucide-react";
 import { useMobile } from "@/hooks/useMobile";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -27,12 +28,16 @@ interface ContextDetailDrawerProps {
     context: Context | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    onEdit?: (context: Context) => void;
+    onDelete?: (id: string) => void;
 }
 
 export function ContextDetailDrawer({
     context,
     open,
     onOpenChange,
+    onEdit,
+    onDelete,
 }: ContextDetailDrawerProps) {
     const { t } = useTranslation();
     const isMobile = useMobile();
@@ -97,7 +102,7 @@ export function ContextDetailDrawer({
                         </Badge>
                     )}
                     {context.active !== 0 && (
-                        <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                        <Badge variant="outline" className="border-[hsl(var(--gonuts-good))]/40 text-[hsl(var(--gonuts-good))] bg-[hsl(var(--gonuts-good))]/10">
                             {t("active")}
                         </Badge>
                     )}
@@ -116,7 +121,7 @@ export function ContextDetailDrawer({
                             <Calendar className="h-3 w-3 mr-1" />
                             {t("current_month")}
                         </div>
-                        <div className="text-xl font-bold text-red-500">
+                        <div className="text-xl font-bold text-[hsl(var(--gonuts-bad))]">
                             {(stats?.expensesMonth || 0).toFixed(2)} €
                         </div>
                     </div>
@@ -125,7 +130,7 @@ export function ContextDetailDrawer({
                             <Calendar className="h-3 w-3 mr-1" />
                             {t("current_year")}
                         </div>
-                        <div className="text-xl font-bold text-red-500">
+                        <div className="text-xl font-bold text-[hsl(var(--gonuts-bad))]">
                             {(stats?.expensesYear || 0).toFixed(2)} €
                         </div>
                     </div>
@@ -133,12 +138,20 @@ export function ContextDetailDrawer({
 
                 {/* Actions */}
                 <div className="space-y-2 pt-2">
-                    <Button className="w-full justify-start h-12" onClick={handleViewTransactions}>
+                    <Button variant="outline" className="w-full justify-start h-12" onClick={handleViewTransactions}>
                         <Receipt className="mr-3 h-5 w-5" />
                         <span className="flex-1 text-left">{t("view_transactions_context")}</span>
                     </Button>
                 </div>
             </div>
+
+            {(onEdit || onDelete) && (
+                <DetailDrawerActions
+                    onClose={() => onOpenChange(false)}
+                    onEdit={() => onEdit?.(context)}
+                    onDelete={() => onDelete?.(context.id)}
+                />
+            )}
         </div>
     );
 
@@ -162,7 +175,6 @@ export function ContextDetailDrawer({
                         </Button>
                     </DrawerClose>
                     {Content}
-                    <div className="mb-6"></div>
                 </DrawerContent>
             </Drawer>
         );

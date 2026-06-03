@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { RecurringTransaction, Category, Context, Group } from "@/lib/db";
 import { getIconComponent } from "@/lib/icons";
 import { Repeat } from "lucide-react";
-import { SwipeableItem } from "@/components/ui/SwipeableItem";
 import {
   addDays,
   addWeeks,
@@ -22,8 +21,6 @@ interface MobileRecurringTransactionRowProps {
   category?: Category;
   context?: Context;
   group?: Group;
-  onEdit?: (transaction: RecurringTransaction) => void;
-  onDelete?: (id: string) => void;
   onClick?: (transaction: RecurringTransaction) => void;
   onToggle?: (id: string, active: boolean) => void;
   style?: React.CSSProperties;
@@ -51,8 +48,6 @@ function getNextOccurrence(startDateStr: string, frequency: string): string {
 export function MobileRecurringTransactionRow({
   transaction,
   category,
-  onEdit,
-  onDelete,
   onClick,
   onToggle,
   style,
@@ -65,27 +60,34 @@ export function MobileRecurringTransactionRow({
     transaction.type === "income"
       ? "text-[hsl(var(--gonuts-good))]"
       : transaction.type === "investment"
-        ? "text-blue-500"
+        ? "text-[hsl(var(--color-investment))]"
         : "text-[hsl(var(--gonuts-bad))]";
 
   const amountPrefix =
     transaction.type === "income" ? "+" : transaction.type === "expense" ? "−" : "";
 
   return (
-    <SwipeableItem
-      onEdit={onEdit ? () => onEdit(transaction) : undefined}
-      onDelete={onDelete ? () => onDelete(transaction.id) : undefined}
-      onClick={onClick ? () => onClick(transaction) : undefined}
-      style={style}
-    >
+    <div style={style}>
       <div
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
         className={cn(
-          "bg-card rounded-[var(--radius)] border border-border/50 p-4 flex items-center gap-3 cursor-pointer",
+          "bg-card rounded-[var(--radius)] border border-border/50 p-4 flex items-center gap-3 cursor-pointer transition-transform duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           "shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]",
           "dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]",
           !isActive && "opacity-50"
         )}
         onClick={onClick ? () => onClick(transaction) : undefined}
+        onKeyDown={
+          onClick
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onClick(transaction);
+                }
+              }
+            : undefined
+        }
       >
         {/* Category icon swatch */}
         <div
@@ -122,6 +124,8 @@ export function MobileRecurringTransactionRow({
 
           {onToggle && (
             <button
+              role="switch"
+              aria-checked={isActive}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggle(transaction.id, !isActive);
@@ -153,6 +157,6 @@ export function MobileRecurringTransactionRow({
           )}
         </div>
       </div>
-    </SwipeableItem>
+    </div>
   );
 }
