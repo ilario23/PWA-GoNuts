@@ -1064,6 +1064,8 @@
   "changelog_v1_0_11_3": "Group balance drawer: fixed scrolling and layout so balances, settlement plan, and history stay usable when the sheet content is tall.",
   "changelog_v1_0_12_0": "Add transaction dialog is clearer: improved labels, visible helper text, and better defaults for group payer selection.",
   "changelog_v1_0_12_1": "Fixed add transaction regressions: category selection remains stable and now resets only when the selected group changes.",
+  "changelog_v2_0_2_0": "Transaction list now uses the dashboard's solid-fill category icons — colored tiles with a white glyph — for a bolder, more consistent look across the app.",
+  "changelog_v2_0_2_1": "Dashboard \"Recent\" section now mirrors the Transactions list: grouped by day and tappable to open the full detail drawer with edit, duplicate, and delete actions.",
   "changelog_v2_0_1_0": "Redesigned Profile page as a ledger title page with live account stats (Member since, Entries logged, Categories) in tabular mono figures separated by ruled hairlines.",
   "changelog_v2_0_1_1": "New profile translations and improved avatar accent ring consistency using user theme colors.",
   "changelog_v2_0_1_2": "Enhanced CategorySelector layout vocabulary and keyboard navigation for better accessibility.",
