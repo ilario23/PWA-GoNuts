@@ -57,7 +57,7 @@ const CustomTooltip = ({ active, payload }: any) => {
                         <div className="flex justify-between gap-4 pt-1 border-t">
                             <span className="text-muted-foreground">{t("balance")}:</span>
                             <span
-                                className={`font-bold ${data.balance >= 0 ? "text-green-600" : "text-red-600"
+                                className={`font-bold ${data.balance >= 0 ? "text-gonuts-good" : "text-gonuts-bad"
                                     }`}
                             >
                                 {data.balance >= 0 ? "+" : ""}€{data.balance.toFixed(2)}
@@ -192,11 +192,11 @@ export function BalanceChart({ balances, currentUserId }: BalanceChartProps) {
                 {/* Legend explanation */}
                 <div className="mt-4 pt-4 border-t space-y-2 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded bg-green-600" />
+                        <div className="w-3 h-3 rounded bg-gonuts-good" />
                         <span>{t("balance")} {t("balance_ge_zero")} {t("owed_to_you")}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded bg-red-500" />
+                        <div className="w-3 h-3 rounded bg-gonuts-bad" />
                         <span>{t("balance")} {t("balance_lt_zero")} {t("you_owe")}</span>
                     </div>
                 </div>

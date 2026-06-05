@@ -85,15 +85,16 @@ export function TransactionList({
   // to avoid race conditions where items stay at opacity: 0
 
   const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 10 },
+    hidden: { opacity: 0, y: 14 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.3,
-        ease: "easeOut"
-      }
-    }
+        duration: 0.34,
+        // ease-out-quint: the row drops in and settles, not just fades.
+        ease: [0.22, 1, 0.36, 1],
+      },
+    },
   };
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);

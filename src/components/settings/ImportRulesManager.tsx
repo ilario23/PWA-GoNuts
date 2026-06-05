@@ -140,7 +140,7 @@ export function ImportRulesManager() {
                                                             <span className={cn(
                                                                 "px-2 py-1 rounded text-xs font-medium",
                                                                 rule.category_id === 'SKIP'
-                                                                    ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                                                                    ? "bg-gonuts-bad/10 text-gonuts-bad dark:bg-gonuts-bad/40 dark:text-gonuts-bad"
                                                                     : "bg-primary/10 text-primary"
                                                             )}>
                                                                 {getCategoryName(rule.category_id)}
@@ -176,7 +176,7 @@ export function ImportRulesManager() {
                                                     <ArrowRight className="h-3 w-3" />
                                                     <span className={cn(
                                                         "font-medium truncate",
-                                                        rule.category_id === 'SKIP' ? "text-red-600" : "text-primary"
+                                                        rule.category_id === 'SKIP' ? "text-gonuts-bad" : "text-primary"
                                                     )}>
                                                         {getCategoryName(rule.category_id)}
                                                     </span>

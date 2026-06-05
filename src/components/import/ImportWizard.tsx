@@ -533,19 +533,19 @@ export function ImportWizard({ open, onOpenChange, onImportComplete }: ImportWiz
 
                     {step === 'success' && importResult && (
                         <div className="flex flex-col items-center justify-center py-10 space-y-6 text-center">
-                            <div className="h-20 w-20 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center text-green-600 dark:text-green-400">
+                            <div className="h-20 w-20 bg-gonuts-good/10 dark:bg-gonuts-good/50 rounded-full flex items-center justify-center text-gonuts-good dark:text-gonuts-good">
                                 <CheckCircle2 className="h-10 w-10" />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-bold text-green-700 dark:text-green-400 mb-2">{t("import.success_title", "Import Complete!")}</h3>
+                                <h3 className="text-2xl font-bold text-gonuts-good dark:text-gonuts-good mb-2">{t("import.success_title", "Import Complete!")}</h3>
                                 <p className="text-muted-foreground">{t("import.success_desc", "Your data has been successfully imported and synced.")}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4 w-full max-w-sm mt-4">
-                                <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded">
+                                <div className="bg-muted dark:bg-slate-900 p-3 rounded">
                                     <div className="text-2xl font-bold">{importResult.transactions}</div>
                                     <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("transactions", "Transactions")}</div>
                                 </div>
-                                <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded">
+                                <div className="bg-muted dark:bg-slate-900 p-3 rounded">
                                     <div className="text-2xl font-bold">{importResult.categories}</div>
                                     <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("categories", "Categories")}</div>
                                 </div>

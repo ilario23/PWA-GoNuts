@@ -86,7 +86,7 @@ export function SettlementPlan({
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
+          <CheckCircle2 className="h-12 w-12 text-gonuts-good mb-4" />
           <h3 className="text-lg font-semibold mb-2">{t("all_settled")}</h3>
           <p className="text-muted-foreground text-sm text-center">
             {t("no_payments_needed")}

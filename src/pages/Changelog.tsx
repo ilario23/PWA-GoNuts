@@ -11,15 +11,15 @@ export function ChangelogPage() {
     const getTypeColor = (type: ChangeType) => {
         switch (type) {
             case "feat":
-                return "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20";
+                return "bg-gonuts-good/10 text-gonuts-good dark:text-gonuts-good border-gonuts-good/20";
             case "fix":
-                return "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20";
+                return "bg-gonuts-bad/10 text-gonuts-bad dark:text-gonuts-bad border-gonuts-bad/20";
             case "chore":
-                return "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20";
+                return "bg-muted text-foreground dark:text-muted-foreground border-border";
             case "refactor":
                 return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20";
             default:
-                return "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20";
+                return "bg-muted text-foreground dark:text-muted-foreground border-border";
         }
     };
 

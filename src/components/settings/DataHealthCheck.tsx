@@ -87,7 +87,7 @@ export function DataHealthCheck() {
                 )}
 
                 {report && report.issues.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-6 text-center text-green-600">
+                    <div className="flex flex-col items-center justify-center py-6 text-center text-gonuts-good">
                         <CheckCircle2 className="h-12 w-12 mb-2" />
                         <p className="font-medium">{t("all_good", "All systems operational. No issues found.")}</p>
                     </div>

@@ -58,9 +58,9 @@ function DesktopCategoryRows({
     if (depth > maxDepth) return null;
 
     const getProgressColor = (percentage: number) => {
-        if (percentage >= 100) return "bg-red-500";
+        if (percentage >= 100) return "bg-gonuts-bad";
         if (percentage >= 80) return "bg-amber-500";
-        return "bg-green-500";
+        return "bg-gonuts-good";
     };
 
     return (
@@ -200,7 +200,7 @@ function DesktopCategoryRows({
                                 ) : (
                                     <Badge
                                         variant="outline"
-                                        className={`text-green-600 border-green-600 ${isRoot ? "" : "text-xs"
+                                        className={`text-gonuts-good border-gonuts-good ${isRoot ? "" : "text-xs"
                                             }`}
                                     >
                                         {t("active")}

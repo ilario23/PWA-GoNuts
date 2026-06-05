@@ -233,7 +233,7 @@ export function CategoryFormDialog({
                                                             variant="outline"
                                                             disabled={isUsed}
                                                             className={`w-full ${field.value === "expense"
-                                                                ? "bg-red-500 hover:bg-red-600 text-white"
+                                                                ? "bg-gonuts-bad hover:bg-gonuts-bad text-white"
                                                                 : ""
                                                                 }`}
                                                             onClick={() => field.onChange("expense")}
@@ -246,7 +246,7 @@ export function CategoryFormDialog({
                                                             variant="outline"
                                                             disabled={isUsed}
                                                             className={`w-full ${field.value === "income"
-                                                                ? "bg-green-500 hover:bg-green-600 text-white"
+                                                                ? "bg-gonuts-good hover:bg-gonuts-good text-white"
                                                                 : ""
                                                                 }`}
                                                             onClick={() => field.onChange("income")}

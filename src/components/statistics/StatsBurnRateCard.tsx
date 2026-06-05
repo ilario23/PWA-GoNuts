@@ -84,8 +84,8 @@ export function StatsBurnRateCard({
                     </div>
                     <div className={cn(
                         "p-2 rounded-full bg-opacity-10",
-                        !hasBudget ? "bg-slate-100 text-slate-500" :
-                            isOnTrack ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                        !hasBudget ? "bg-muted text-muted-foreground" :
+                            isOnTrack ? "bg-gonuts-good/10 text-gonuts-good" : "bg-gonuts-bad/10 text-gonuts-bad"
                     )}>
                         {hasBudget ? (
                             isOnTrack ? <TrendingDown className="h-5 w-5" /> : <TrendingUp className="h-5 w-5" />
@@ -125,7 +125,7 @@ export function StatsBurnRateCard({
                                     €<CountUp value={spending - budgetAmount} />
                                 </div>
                             ) : (
-                                <div className="text-2xl font-bold text-green-600 font-mono tracking-tight">
+                                <div className="text-2xl font-bold text-gonuts-good font-mono tracking-tight">
                                     €<CountUp value={safeDailyLimit} /><span className="text-sm font-sans text-muted-foreground">/{t("day_short")}</span>
                                 </div>
                             )
@@ -151,7 +151,7 @@ export function StatsBurnRateCard({
                                 <span>{t("budget_used")} ({(rawMoneyProgress).toFixed(0)}%)</span>
                                 <span className="font-medium">€<CountUp value={spending} /></span>
                             </div>
-                            <AnimatedProgress value={moneyProgress} className={cn("h-2", isOverBudget ? "bg-red-100 [&>div]:bg-red-500" : "")} />
+                            <AnimatedProgress value={moneyProgress} className={cn("h-2", isOverBudget ? "bg-gonuts-bad/10 [&>div]:bg-gonuts-bad" : "")} />
                         </div>
 
                         {/* Time Elapsed (Context) */}

@@ -22,7 +22,7 @@ export function ImportPreview({ parsedData, regenerateColors, onRegenerateColors
 
     return (
         <div className="space-y-4">
-            <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-lg">
+            <div className="bg-muted dark:bg-slate-900 p-4 rounded-lg">
                 <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider mb-3">{t("import.found_data", "Found Data")}</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white dark:bg-slate-800 p-3 rounded border">
@@ -41,7 +41,7 @@ export function ImportPreview({ parsedData, regenerateColors, onRegenerateColors
                     )}
                     <div className="bg-white dark:bg-slate-800 p-3 rounded border">
                         <span className="text-2xl font-bold block capitalize flex items-center gap-2">
-                            {parsedData.source === 'legacy_vue' ? <><Turtle className="w-6 h-6 text-green-500" /> {t("import.turtlet_app", "Turtlet App")}</> :
+                            {parsedData.source === 'legacy_vue' ? <><Turtle className="w-6 h-6 text-gonuts-good" /> {t("import.turtlet_app", "Turtlet App")}</> :
                                 parsedData.source === 'antigravity_backup' ? 'GoNuts' :
                                     parsedData.source === 'intesa_sanpaolo' ? 'Intesa Sanpaolo' :
                                         parsedData.source === 'revolut' ? 'Revolut' : 'CSV Export'}
@@ -111,8 +111,8 @@ export function ImportPreview({ parsedData, regenerateColors, onRegenerateColors
 
             {/* Data Integrity Issues Warning */}
             {parsedData.dataIntegrityIssues && (
-                <div className="text-sm p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 rounded border border-red-100 dark:border-red-900 flex gap-2">
-                    <AlertTriangle className="h-5 w-5 flex-shrink-0 text-red-500" />
+                <div className="text-sm p-3 bg-gonuts-bad/10 text-gonuts-bad dark:bg-gonuts-bad/20 dark:text-gonuts-bad rounded border border-gonuts-bad dark:border-gonuts-bad flex gap-2">
+                    <AlertTriangle className="h-5 w-5 flex-shrink-0 text-gonuts-bad" />
                     <div className="flex-1">
                         <p className="font-semibold">{t("import.data_integrity_warning_title", "Data Integrity Issues Detected")}</p>
                         <p className="mb-2">{t("import.data_integrity_warning_desc", "Some items reference categories that don't exist in this file. They will be set to 'Uncategorized'.")}</p>
@@ -122,7 +122,7 @@ export function ImportPreview({ parsedData, regenerateColors, onRegenerateColors
                                 <p className="font-medium text-xs uppercase tracking-wider">{t("import.orphaned_transactions", "Transactions with missing categories")}:</p>
                                 <ul className="list-disc list-inside text-xs mt-1 max-h-24 overflow-y-auto">
                                     {parsedData.dataIntegrityIssues.orphanedTransactionCategories.slice(0, 5).map((item, idx) => (
-                                        <li key={idx}>"{item.description}" → <code className="bg-red-100 dark:bg-red-900/50 px-1 rounded text-[10px]">{item.categoryId.substring(0, 8)}...</code></li>
+                                        <li key={idx}>"{item.description}" → <code className="bg-gonuts-bad/10 dark:bg-gonuts-bad/50 px-1 rounded text-[10px]">{item.categoryId.substring(0, 8)}...</code></li>
                                     ))}
                                     {parsedData.dataIntegrityIssues.orphanedTransactionCategories.length > 5 && (
                                         <li className="opacity-70">...{t("common.and_more", "and {{count}} more", { count: parsedData.dataIntegrityIssues.orphanedTransactionCategories.length - 5 })}</li>
@@ -136,7 +136,7 @@ export function ImportPreview({ parsedData, regenerateColors, onRegenerateColors
                                 <p className="font-medium text-xs uppercase tracking-wider">{t("import.orphaned_recurring", "Recurring expenses with missing categories")}:</p>
                                 <ul className="list-disc list-inside text-xs mt-1 max-h-24 overflow-y-auto">
                                     {parsedData.dataIntegrityIssues.orphanedRecurringCategories.map((item, idx) => (
-                                        <li key={idx}>"{item.description}" → <code className="bg-red-100 dark:bg-red-900/50 px-1 rounded text-[10px]">{item.categoryId.substring(0, 8)}...</code></li>
+                                        <li key={idx}>"{item.description}" → <code className="bg-gonuts-bad/10 dark:bg-gonuts-bad/50 px-1 rounded text-[10px]">{item.categoryId.substring(0, 8)}...</code></li>
                                     ))}
                                 </ul>
                             </div>

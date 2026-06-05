@@ -303,7 +303,7 @@ export function GroupBalancePage() {
       {/* Actions */}
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button
-          className="flex-1 gap-2 bg-[hsl(var(--gonuts-orange))] hover:bg-[hsl(var(--gonuts-orange))]/90 text-white"
+          className="flex-1 gap-2 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white"
           onClick={openManual}
         >
           <HandCoins className="h-4 w-4" />
@@ -347,7 +347,7 @@ export function GroupBalancePage() {
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="num text-sm font-bold text-[hsl(var(--gonuts-orange))]">
+                        <span className="num text-sm font-bold text-[hsl(var(--primary))]">
                           €{s.amount.toFixed(2)}
                         </span>
                         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />

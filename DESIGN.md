@@ -94,7 +94,7 @@ This system rejects the generic blue-gradient SaaS dashboard, the cold navy-and-
 A warm neutral base (paper + ink) with one identity accent (coral) and a strict semantic pair for money (green in, red out).
 
 ### Primary
-- **Coral Spark** (`#E66A3C`, `hsl(19 77% 56%)`): The brand accent and focus ring. Reserved for the primary "add" affordance (FAB), active navigation, and today's marker. Its rarity is what makes it read as *the* action.
+- **Accent** (the user-selected theme color, driven by `--primary` / `--ring`; default Coral Spark `#E66A3C`, `hsl(19 77% 56%)`): The one action color and focus ring. Reserved for the primary "add" affordance (FAB), active navigation, and today's marker. Its rarity is what makes it read as *the* action. The theme picker recolors it; anything that reads as "the action" must come from `--primary`/`--ring`, never a hardcoded coral literal (those were swept to `--primary` so a non-coral theme stays consistent).
 
 ### Secondary
 - **Ledger Green** (`#2F9E5A`): Income and positive balances. Always paired with a `+` sign or label, never carrying meaning alone.
@@ -112,7 +112,7 @@ A warm neutral base (paper + ink) with one identity accent (coral) and a strict 
 - **Warm Border** (`#D4CCC2`): Hairline borders and dividers.
 
 ### Named Rules
-**The One Coral Rule.** Coral is the action color. It belongs to the add-transaction FAB, the active nav tab, and today's bar — and almost nothing else. If a second coral element appears on a screen, one of them is wrong.
+**The One Accent Rule.** The themed accent (`--primary`/`--ring`, default coral) is the action color. It belongs to the add-transaction FAB, the active nav tab, and today's bar — and almost nothing else. If a second accent-colored element appears on a screen, one of them is wrong. Never hardcode the accent (no `--gonuts-orange` literals); it must follow the theme.
 
 **The Money-Never-Color-Alone Rule.** Green and red always travel with a sign, word, or icon. A color-blind user must read direction without seeing hue.
 

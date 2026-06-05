@@ -92,7 +92,7 @@ export function BudgetHealthChart() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className={`text-sm font-bold ${item.percentage >= 100 ? "text-red-500" : ""}`}>
+                                    <span className={`text-sm font-bold ${item.percentage >= 100 ? "text-gonuts-bad" : ""}`}>
                                         {item.percentage.toFixed(0)}%
                                     </span>
                                     {getStatusIcon(item.percentage)}

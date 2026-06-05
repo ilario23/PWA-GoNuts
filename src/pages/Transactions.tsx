@@ -385,6 +385,7 @@ export function TransactionsPage() {
         paid_by_member_id: paidByMemberId,
       });
     }
+    toast.success(editingId ? t("transaction_updated") : t("transaction_added"));
     setIsOpen(false);
     setEditingId(null);
     setDuplicatingTransaction(null);
@@ -591,6 +592,41 @@ export function TransactionsPage() {
           </Badge>
         </div>
         <div className="flex gap-2">
+          {/* Filters — always reachable on mobile (was hidden off the end of the chip row). */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <button
+                aria-label={t("filters")}
+                className={`flex items-center gap-1.5 px-3.5 h-9 rounded-full text-sm font-semibold transition-colors ${
+                  hasAdvancedFilters
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-foreground/85 hover:bg-muted/80"
+                }`}
+              >
+                <Filter className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t("filters")}</span>
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="flex flex-col overflow-hidden gap-0"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+              <SheetHeader className="shrink-0 pb-4 text-left">
+                <SheetTitle>{t("filters")}</SheetTitle>
+              </SheetHeader>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain -mx-2 px-2">
+                <FilterContent
+                  filters={filters}
+                  setFilters={setFilters}
+                  availableCategories={availableCategories}
+                  groups={groups}
+                  contexts={contexts}
+                  onReset={handleResetFilters}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
           {/* Desktop Add button. On mobile the BottomNav FAB owns add-transaction,
               so no header button here (avoids a duplicate add affordance). */}
           <Button
@@ -635,8 +671,8 @@ export function TransactionsPage() {
         </Select>
       </div>
 
-      {/* Type chip filters + advanced filter button */}
-      <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+      {/* Type chip filters */}
+      <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
         {[
           { id: "all", label: t("all") },
           { id: "expense", label: t("expense") },
@@ -661,41 +697,6 @@ export function TransactionsPage() {
             {f.label}
           </button>
         ))}
-        <div className="flex-1" />
-        {/* Advanced filters */}
-        <Sheet>
-          <SheetTrigger asChild>
-            <button
-              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                hasAdvancedFilters
-                  ? "bg-[hsl(var(--gonuts-orange))] text-white"
-                  : "bg-muted text-foreground/85 hover:bg-muted/80"
-              }`}
-            >
-              <Filter className="h-3.5 w-3.5" />
-              {t("filters")}
-            </button>
-          </SheetTrigger>
-          <SheetContent
-            side="left"
-            className="flex flex-col overflow-hidden gap-0"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-            <SheetHeader className="shrink-0 pb-4 text-left">
-              <SheetTitle>{t("filters")}</SheetTitle>
-            </SheetHeader>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain -mx-2 px-2">
-              <FilterContent
-                filters={filters}
-                setFilters={setFilters}
-                availableCategories={availableCategories}
-                groups={groups}
-                contexts={contexts}
-                onReset={handleResetFilters}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
       </div>
 
       {/* Active advanced-filters summary chips */}

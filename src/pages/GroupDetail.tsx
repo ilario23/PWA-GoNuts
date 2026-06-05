@@ -205,7 +205,7 @@ export function GroupDetailPage() {
         </Button>
         <Button
           size="sm"
-          className="gap-1.5 bg-[hsl(var(--gonuts-orange))] hover:bg-[hsl(var(--gonuts-orange))]/90 text-white shrink-0"
+          className="gap-1.5 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white shrink-0"
           onClick={() => {
             setEditingTransaction(null);
             setIsTxDialogOpen(true);
@@ -317,7 +317,7 @@ export function GroupDetailPage() {
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="num text-sm font-bold text-[hsl(var(--gonuts-orange))]">
+                        <span className="num text-sm font-bold text-[hsl(var(--primary))]">
                           €{s.amount.toFixed(2)}
                         </span>
                         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />

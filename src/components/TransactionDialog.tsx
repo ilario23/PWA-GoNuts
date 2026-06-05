@@ -370,6 +370,17 @@ export function TransactionDialog({
     !!watchedDescription?.trim() &&
     !!watchedDate;
 
+  // First missing field, so the disabled Save isn't a silent dead end.
+  const missingHint = canSave
+    ? null
+    : amountNum <= 0
+      ? t('hint_enter_amount', {defaultValue: 'Enter an amount'})
+      : !watchedCategoryId
+        ? t('hint_choose_category', {defaultValue: 'Choose a category'})
+        : !watchedDescription?.trim()
+          ? t('hint_add_description', {defaultValue: 'Add a description'})
+          : null;
+
   const typeConfig = {
     expense: {
       label: t('expense'),
@@ -444,6 +455,7 @@ export function TransactionDialog({
                 <input
                   type='text'
                   inputMode='decimal'
+                  aria-label={t('amount')}
                   placeholder='0'
                   value={String((watchedAmount as unknown) ?? '')}
                   onChange={(e) => {
@@ -509,6 +521,7 @@ export function TransactionDialog({
             <div className='px-5 pb-5 shrink-0'>
               <input
                 type='text'
+                aria-label={t('description')}
                 placeholder={t('transaction_description_placeholder') || 'What was this for?'}
                 value={watchedDescription || ''}
                 onChange={(e) => form.setValue('description', e.target.value, {shouldValidate: true})}
@@ -685,6 +698,11 @@ export function TransactionDialog({
 
   const formSaveButton = (
     <div className='px-5 pt-3 pb-5 shrink-0 border-t border-border/40'>
+      {missingHint && (
+        <p className='text-center text-xs text-muted-foreground mb-2' aria-live='polite'>
+          {missingHint}
+        </p>
+      )}
       <button
         type='button'
         onClick={form.handleSubmit(handleFormSubmit)}
@@ -694,7 +712,7 @@ export function TransactionDialog({
           'w-full h-14 rounded-[18px] flex items-center justify-center gap-2',
           'text-[17px] font-extrabold transition-all',
           canSave
-            ? 'bg-[hsl(var(--gonuts-orange))] text-white shadow-[0_4px_16px_-2px_rgba(230,106,60,0.40)] active:scale-[0.98]'
+            ? 'bg-primary text-primary-foreground shadow-[0_4px_16px_-2px_hsl(var(--primary)/0.40)] active:scale-[0.98]'
             : 'bg-muted text-muted-foreground cursor-not-allowed',
         )}
       >
@@ -712,6 +730,7 @@ export function TransactionDialog({
             side='bottom'
             hideClose
             className='rounded-t-[28px] p-0 flex flex-col gap-0 max-h-[92dvh] focus:outline-none overflow-hidden'
+            style={{ viewTransitionName: editingTransaction ? undefined : 'add-fab' }}
           >
             <SheetTitle className='sr-only'>
               {editingTransaction ? t('edit_transaction') : t('new_transaction', {defaultValue: 'New transaction'})}
@@ -725,6 +744,11 @@ export function TransactionDialog({
             </div>
             {formBody}
             <div className='px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] shrink-0 border-t border-border/40'>
+              {missingHint && (
+                <p className='text-center text-xs text-muted-foreground mb-2' aria-live='polite'>
+                  {missingHint}
+                </p>
+              )}
               <button
                 type='button'
                 onClick={form.handleSubmit(handleFormSubmit)}
@@ -734,7 +758,7 @@ export function TransactionDialog({
                   'w-full h-14 rounded-[18px] flex items-center justify-center gap-2',
                   'text-[17px] font-extrabold transition-all',
                   canSave
-                    ? 'bg-[hsl(var(--gonuts-orange))] text-white shadow-[0_4px_16px_-2px_rgba(230,106,60,0.40)] active:scale-[0.98]'
+                    ? 'bg-primary text-primary-foreground shadow-[0_4px_16px_-2px_hsl(var(--primary)/0.40)] active:scale-[0.98]'
                     : 'bg-muted text-muted-foreground cursor-not-allowed',
                 )}
               >
@@ -811,7 +835,7 @@ export function TransactionDialog({
                       <div className='text-xs text-muted-foreground'>{ctx.description}</div>
                     )}
                   </div>
-                  {watchedContextId === ctx.id && <Check className='ml-auto h-4 w-4 text-[hsl(var(--gonuts-orange))]' />}
+                  {watchedContextId === ctx.id && <Check className='ml-auto h-4 w-4 text-[hsl(var(--primary))]' />}
                 </button>
               ))}
           </div>
@@ -839,7 +863,7 @@ export function TransactionDialog({
                 <Users className='h-4 w-4 text-muted-foreground' />
               </div>
               <span className='font-semibold'>{t('personal_transaction_label')}</span>
-              {!watchedGroupId && <Check className='ml-auto h-4 w-4 text-[hsl(var(--gonuts-orange))]' />}
+              {!watchedGroupId && <Check className='ml-auto h-4 w-4 text-[hsl(var(--primary))]' />}
             </button>
             {groups?.map((group) => (
               <button
@@ -863,7 +887,7 @@ export function TransactionDialog({
                     <div className='text-xs text-muted-foreground'>{group.description}</div>
                   )}
                 </div>
-                {watchedGroupId === group.id && <Check className='ml-auto h-4 w-4 text-[hsl(var(--gonuts-orange))]' />}
+                {watchedGroupId === group.id && <Check className='ml-auto h-4 w-4 text-[hsl(var(--primary))]' />}
               </button>
             ))}
           </div>

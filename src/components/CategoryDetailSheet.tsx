@@ -92,7 +92,7 @@ export function CategoryDetailSheet({
           ) : (
             <Badge
               variant="outline"
-              className="text-green-600 border-green-600"
+              className="text-gonuts-good border-gonuts-good"
             >
               {t("active")}
             </Badge>

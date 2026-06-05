@@ -313,7 +313,7 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">{t("total_income")}</span>
-                            <span className="font-semibold text-green-500">
+                            <span className="font-semibold text-gonuts-good">
                                 +{demoData.settings.currency}{stats.totalIncome.toFixed(2)}
                             </span>
                         </div>
@@ -341,7 +341,7 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
                                         <span className="truncate max-w-[150px]">{tx.description}</span>
                                         <span className={cn(
                                             "font-medium",
-                                            tx.type === "expense" ? "text-destructive" : "text-green-500"
+                                            tx.type === "expense" ? "text-destructive" : "text-gonuts-good"
                                         )}>
                                             {tx.type === "expense" ? "-" : "+"}{demoData.settings.currency}{tx.amount.toFixed(2)}
                                         </span>
@@ -404,7 +404,7 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
                             </div>
                             <div className="text-right">
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("balance", "Balance")}</p>
-                                <p className="text-sm font-bold text-green-600 dark:text-green-500">
+                                <p className="text-sm font-bold text-gonuts-good dark:text-gonuts-good">
                                     {t("you_are_owed", "You are owed")} {demoData.settings.currency}23.70
                                 </p>
                             </div>
@@ -422,7 +422,7 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
                                     </div>
                                     <div className={cn(
                                         "font-medium",
-                                        exp.paid_by === 'You' ? "text-green-600" : "text-destructive"
+                                        exp.paid_by === 'You' ? "text-gonuts-good" : "text-destructive"
                                     )}>
                                         {exp.paid_by === 'You' ? "+" : "-"}{demoData.settings.currency}{(exp.amount / 2).toFixed(2)}
                                     </div>
