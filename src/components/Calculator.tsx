@@ -62,7 +62,7 @@ export function Calculator({
                 variant="ghost"
                 size="sm"
                 aria-label={t("calc_equals", { defaultValue: "Equals" })}
-                className="flex-1 h-9 bg-[hsl(var(--gonuts-orange))] text-white hover:bg-[hsl(var(--gonuts-orange))]/90"
+                className="flex-1 h-9 bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary))]/90"
                 onClick={onEqual}
             >
                 <Equal className="h-4 w-4" />

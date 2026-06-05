@@ -43,16 +43,16 @@ export function BalanceStatusCard({
         }
         if (isOwed) {
             return {
-                color: "text-green-600",
-                bgColor: "bg-green-50 dark:bg-green-950",
+                color: "text-gonuts-good",
+                bgColor: "bg-gonuts-good/10 dark:bg-gonuts-good/10",
                 icon: ArrowUpRight,
                 label: t("owed_to_you"),
                 badgeVariant: "default" as const,
             };
         }
         return {
-            color: "text-red-600",
-            bgColor: "bg-red-50 dark:bg-red-950",
+            color: "text-gonuts-bad",
+            bgColor: "bg-gonuts-bad/10 dark:bg-gonuts-bad/10",
             icon: ArrowDownRight,
             label: t("you_owe"),
             badgeVariant: "destructive" as const,

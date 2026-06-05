@@ -111,7 +111,7 @@ export function StatsPeriodComparison({
                     €{comparison.income.current.toFixed(0)}
                 </div>
                 <div
-                    className={`text-xs flex items-center gap-1 ${comparison.income.trend === "up" ? "text-green-500" : "text-red-500"
+                    className={`text-xs flex items-center gap-1 ${comparison.income.trend === "up" ? "text-gonuts-good" : "text-gonuts-bad"
                         }`}
                 >
                     {comparison.income.trend === "up" ? (
@@ -129,7 +129,7 @@ export function StatsPeriodComparison({
                     €{comparison.expense.current.toFixed(0)}
                 </div>
                 <div
-                    className={`text-xs flex items-center gap-1 ${comparison.expense.trend === "up" ? "text-green-500" : "text-red-500"
+                    className={`text-xs flex items-center gap-1 ${comparison.expense.trend === "up" ? "text-gonuts-good" : "text-gonuts-bad"
                         }`}
                 >
                     {comparison.expense.current <= comparison.expense.previous ? (
@@ -144,13 +144,13 @@ export function StatsPeriodComparison({
             <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">{t("balance")}</div>
                 <div
-                    className={`text-xl font-bold ${comparison.balance.current >= 0 ? "text-green-500" : "text-red-500"
+                    className={`text-xl font-bold ${comparison.balance.current >= 0 ? "text-gonuts-good" : "text-gonuts-bad"
                         }`}
                 >
                     €{comparison.balance.current.toFixed(0)}
                 </div>
                 <div
-                    className={`text-xs flex items-center gap-1 ${comparison.balance.trend === "up" ? "text-green-500" : "text-red-500"
+                    className={`text-xs flex items-center gap-1 ${comparison.balance.trend === "up" ? "text-gonuts-good" : "text-gonuts-bad"
                         }`}
                 >
                     {comparison.balance.trend === "up" ? (
@@ -165,7 +165,7 @@ export function StatsPeriodComparison({
             <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">{t("saving_rate")}</div>
                 <div
-                    className={`text-xl font-bold ${comparison.savingRate.current >= 0 ? "text-green-500" : "text-red-500"
+                    className={`text-xl font-bold ${comparison.savingRate.current >= 0 ? "text-gonuts-good" : "text-gonuts-bad"
                         }`}
                 >
                     {comparison.savingRate.current.toFixed(1)}%
@@ -433,8 +433,8 @@ export function StatsPeriodComparison({
                                             </span>
                                             <div
                                                 className={`flex items-center gap-1 text-sm ${cat.trend === "improved"
-                                                    ? "text-green-500"
-                                                    : "text-red-500"
+                                                    ? "text-gonuts-good"
+                                                    : "text-gonuts-bad"
                                                     }`}
                                             >
                                                 {cat.trend === "improved" ? (

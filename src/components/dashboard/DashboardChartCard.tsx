@@ -353,7 +353,7 @@ export function DashboardBudgetContent({
                             <span className="text-muted-foreground text-sm">
                                 {t("spent")}
                             </span>
-                            <span className="text-3xl font-bold text-red-600">
+                            <span className="text-3xl font-bold text-gonuts-bad">
                                 €{totalExpense.toFixed(2)}
                             </span>
                         </div>
@@ -372,10 +372,10 @@ export function DashboardBudgetContent({
                         <div className="h-6 w-full bg-muted rounded-full overflow-hidden">
                             <div
                                 className={`h-full transition-all duration-500 rounded-full ${isOverBudget
-                                    ? "bg-red-500"
+                                    ? "bg-gonuts-bad"
                                     : budgetUsedPercentage > 80
                                         ? "bg-amber-500"
-                                        : "bg-green-500"
+                                        : "bg-gonuts-good"
                                     }`}
                                 style={{
                                     width: `${Math.min(budgetUsedPercentage, 100)}%`,
@@ -385,10 +385,10 @@ export function DashboardBudgetContent({
                         <div className="flex justify-between text-base">
                             <span
                                 className={`font-medium ${isOverBudget
-                                    ? "text-red-600"
+                                    ? "text-gonuts-bad"
                                     : budgetUsedPercentage > 80
                                         ? "text-yellow-600"
-                                        : "text-green-600"
+                                        : "text-gonuts-good"
                                     }`}
                             >
                                 <CountUp value={budgetUsedPercentage} decimals={0} suffix="%" /> {t("used")}
@@ -396,8 +396,8 @@ export function DashboardBudgetContent({
                             <span
                                 className={
                                     isOverBudget
-                                        ? "text-red-600 font-medium"
-                                        : "text-green-600 font-medium"
+                                        ? "text-gonuts-bad font-medium"
+                                        : "text-gonuts-good font-medium"
                                 }
                             >
                                 {isOverBudget

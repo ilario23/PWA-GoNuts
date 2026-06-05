@@ -80,7 +80,7 @@ function SwipeDemo() {
                 </div>
 
                 <div className="absolute inset-0 flex items-center justify-between px-4">
-                    <div className="flex items-center text-white font-medium bg-red-500 absolute right-0 top-0 bottom-0 w-1/2 justify-end pr-4 rounded-r-lg">
+                    <div className="flex items-center text-white font-medium bg-gonuts-bad absolute right-0 top-0 bottom-0 w-1/2 justify-end pr-4 rounded-r-lg">
                         <Trash2 className="h-5 w-5 ml-2" />
                     </div>
                 </div>
@@ -144,7 +144,7 @@ function TableDemo() {
                 {/* Static Row */}
                 <div className="flex items-center p-2 border-b">
                     <div className="flex-1 pl-2 font-medium">Coffee</div>
-                    <div className="w-20 text-right pr-2 text-red-500">-€2.50</div>
+                    <div className="w-20 text-right pr-2 text-gonuts-bad">-€2.50</div>
                     <div className="w-20 flex justify-center gap-1">
                         <Button variant="ghost" size="icon" className="h-6 w-6"><Edit className="h-3 w-3" /></Button>
                         <Button variant="ghost" size="icon" className="h-6 w-6"><Trash2 className="h-3 w-3" /></Button>
@@ -154,7 +154,7 @@ function TableDemo() {
                 {/* Animated Row */}
                 <div className="flex items-center p-2 relative group cursor-default">
                     <div className="flex-1 pl-2 font-medium">Salary</div>
-                    <div className="w-20 text-right pr-2 text-green-500">+€2,800</div>
+                    <div className="w-20 text-right pr-2 text-gonuts-good">+€2,800</div>
                     <div className="w-20 flex justify-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground"><MoreHorizontal className="h-3 w-3" /></Button>
                     </div>
@@ -233,7 +233,7 @@ const useHelpTopics = () => {
                             <SwipeDemo />
                             <ul className="space-y-2 text-sm">
                                 <li className="flex gap-2">
-                                    <ArrowLeft className="h-5 w-5 text-red-500 shrink-0" />
+                                    <ArrowLeft className="h-5 w-5 text-gonuts-bad shrink-0" />
                                     <span><strong>{t("help.swipe_left", "Swipe Left")}:</strong> {t("help.swipe_left_desc", "Deletes the item (Transactions, Categories, Groups, etc.)")}</span>
                                 </li>
                                 <li className="flex gap-2">
@@ -280,8 +280,8 @@ const useHelpTopics = () => {
                 <div className="space-y-4 text-sm">
                     <p>{t("help.sync_intro")}</p>
                     <div className="grid gap-3">
-                        <div className="p-3 bg-green-500/10 dark:bg-green-500/20 border border-green-500/20 dark:border-green-500/30 rounded-lg space-y-2">
-                            <h4 className="font-semibold text-green-600 flex items-center gap-2">
+                        <div className="p-3 bg-gonuts-good/10 dark:bg-gonuts-good/20 border border-gonuts-good/20 dark:border-gonuts-good/30 rounded-lg space-y-2">
+                            <h4 className="font-semibold text-gonuts-good flex items-center gap-2">
                                 <WifiOff className="h-4 w-4" />
                                 {t("help.sync_local_title")}
                             </h4>
@@ -294,8 +294,8 @@ const useHelpTopics = () => {
                             </h4>
                             <p className="text-xs text-muted-foreground">{t("help.sync_cloud_expl")}</p>
                         </div>
-                        <div className="p-3 bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-lg space-y-2">
-                            <h4 className="font-semibold text-red-600 flex items-center gap-2">
+                        <div className="p-3 bg-gonuts-bad/10 dark:bg-gonuts-bad/20 border border-gonuts-bad/20 dark:border-gonuts-bad/30 rounded-lg space-y-2">
+                            <h4 className="font-semibold text-gonuts-bad flex items-center gap-2">
                                 <LogOut className="h-4 w-4" />
                                 {t("help.logout_title")}
                             </h4>
@@ -374,7 +374,7 @@ const useHelpTopics = () => {
 
                         <AccordionItem value="categories">
                             <AccordionTrigger className="gap-2">
-                                <Tags className="h-4 w-4 text-green-500" />
+                                <Tags className="h-4 w-4 text-gonuts-good" />
                                 {t("help.groups_categories_title")}
                             </AccordionTrigger>
                             <AccordionContent className="text-muted-foreground">
@@ -508,8 +508,8 @@ const useHelpTopics = () => {
                             </div>
                         </div>
 
-                        <div className="p-3 bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-lg space-y-2">
-                            <h4 className="font-semibold text-red-600 flex items-center gap-2">
+                        <div className="p-3 bg-gonuts-bad/10 dark:bg-gonuts-bad/20 border border-gonuts-bad/20 dark:border-gonuts-bad/30 rounded-lg space-y-2">
+                            <h4 className="font-semibold text-gonuts-bad flex items-center gap-2">
                                 <ShieldAlert className="h-4 w-4" />
                                 {t("help.profile_security_title", "Device Security")}
                             </h4>
@@ -564,8 +564,8 @@ const useHelpTopics = () => {
                 <div className="space-y-4 text-sm">
                     <p>{t("help.budget_intro")}</p>
                     <div className="grid gap-3">
-                        <div className="p-3 bg-green-500/10 dark:bg-green-500/20 border border-green-500/20 dark:border-green-500/30 rounded-lg space-y-2">
-                            <h4 className="font-semibold text-green-600 flex items-center gap-2">
+                        <div className="p-3 bg-gonuts-good/10 dark:bg-gonuts-good/20 border border-gonuts-good/20 dark:border-gonuts-good/30 rounded-lg space-y-2">
+                            <h4 className="font-semibold text-gonuts-good flex items-center gap-2">
                                 <Wallet className="h-4 w-4" />
                                 {t("help.budget_monthly_title")}
                             </h4>

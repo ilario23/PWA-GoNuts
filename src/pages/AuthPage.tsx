@@ -87,7 +87,7 @@ export function AuthPage() {
           className="h-11 w-11 rounded-[14px] shadow-sm"
         />
         <span className="text-3xl font-extrabold tracking-tight">
-          Go<span className="text-[hsl(var(--gonuts-orange))]">Nuts</span>
+          Go<span className="text-[hsl(var(--primary))]">Nuts</span>
         </span>
       </div>
       <Card className="w-full">
@@ -95,7 +95,11 @@ export function AuthPage() {
           <CardTitle className="text-2xl font-bold">
             {isSignUp ? t("sign_up") : t("sign_in")}
           </CardTitle>
-          <CardDescription>{t("auth_desc")}</CardDescription>
+          <CardDescription>
+            {isSignUp
+              ? t("auth_desc_signup", { defaultValue: "Create an account to start tracking" })
+              : t("auth_desc_signin", { defaultValue: "Sign in to your account to continue" })}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">

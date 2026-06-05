@@ -31,7 +31,7 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
             {/* Desktop Table View */}
             <div className="hidden md:block border rounded-lg overflow-hidden max-h-[60vh] overflow-y-auto">
                 <Table>
-                    <TableHeader className="bg-slate-50 dark:bg-slate-900 sticky top-0 z-10">
+                    <TableHeader className="bg-muted dark:bg-slate-900 sticky top-0 z-10">
                         <TableRow>
                             <TableHead className="w-[100px]">{t("common.date", "Date")}</TableHead>
                             <TableHead className="w-[200px]">{t("common.description", "Description")}</TableHead>
@@ -42,14 +42,14 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                     </TableHeader>
                     <TableBody>
                         {parsedData.transactions.map((tx, i) => (
-                            <TableRow key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <TableRow key={i} className="hover:bg-muted dark:hover:bg-slate-800/50">
                                 <TableCell className="font-mono text-sm">
                                     {format(new Date(tx.date), 'dd/MM/yyyy')}
                                 </TableCell>
                                 <TableCell className="max-w-[200px] truncate" title={tx.description}>
                                     {tx.description}
                                 </TableCell>
-                                <TableCell className={`text-right font-medium ${tx.type === 'income' ? 'text-green-600' : ''}`}>
+                                <TableCell className={`text-right font-medium ${tx.type === 'income' ? 'text-gonuts-good' : ''}`}>
                                     {tx.amount.toFixed(2)} €
                                 </TableCell>
                                 <TableCell>
@@ -86,7 +86,7 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-red-500"
+                                        className="h-8 w-8 text-muted-foreground hover:text-gonuts-bad"
                                         onClick={() => onDeleteTransaction(i)}
                                     >
                                         <Trash2 className="h-4 w-4" />
@@ -103,10 +103,10 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                 {parsedData.transactions.map((tx, i) => (
                     <div key={i} className="bg-card border rounded-lg p-3 shadow-sm space-y-3">
                         <div className="flex justify-between items-start">
-                            <span className="text-xs font-mono text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                            <span className="text-xs font-mono text-muted-foreground bg-muted dark:bg-slate-800 px-2 py-0.5 rounded">
                                 {format(new Date(tx.date), 'dd/MM/yyyy')}
                             </span>
-                            <span className={`font-bold ${tx.type === 'income' ? 'text-green-600' : ''}`}>
+                            <span className={`font-bold ${tx.type === 'income' ? 'text-gonuts-good' : ''}`}>
                                 {tx.amount.toFixed(2)} €
                             </span>
                         </div>
@@ -140,7 +140,7 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-9 w-9 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    className="h-9 w-9 text-muted-foreground hover:text-gonuts-bad hover:bg-gonuts-bad/10 dark:hover:bg-gonuts-bad/20"
                                     onClick={() => onDeleteTransaction(i)}
                                 >
                                     <Trash2 className="h-4 w-4" />

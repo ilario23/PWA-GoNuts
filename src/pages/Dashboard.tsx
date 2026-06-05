@@ -6,12 +6,13 @@ import { useContexts } from "@/hooks/useContexts";
 import { useGroups } from "@/hooks/useGroups";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
-import { ArrowDownLeft, ArrowUpRight, TrendingUp, ChevronRight, Plus } from "lucide-react";
+import { ArrowDownLeft, TrendingUp, ChevronRight, Plus, Scale } from "lucide-react";
 import {
   TransactionDialog,
   TransactionFormData,
 } from "@/components/TransactionDialog";
 import { TransactionList } from "@/components/TransactionList";
+import { DailyRhythm } from "@/components/DailyRhythm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { TransactionFormValues } from "@/lib/schemas";
 import { toast } from "sonner";
@@ -31,6 +32,19 @@ function getCurrencySymbol(code: string): string {
       .formatToParts(0)
       .find((p) => p.type === "currency")?.value ?? code
   );
+}
+
+// Sign before the symbol (-€27, never €-27). `signed` shows the minus for
+// negative values; positive values stay unsigned per currency convention.
+function formatSignedAmount(
+  val: number,
+  symbol: string,
+  signed: boolean
+): string {
+  const rounded = Math.round(val);
+  const body = `${symbol}${Math.abs(rounded).toLocaleString()}`;
+  if (signed && rounded < 0) return `-${body}`;
+  return body;
 }
 
 export function Dashboard() {
@@ -77,6 +91,9 @@ export function Dashboard() {
     [monthlyStats.income, monthlyStats.expense, monthlyStats.investment]
   );
 
+  // Net balance for the stat triad (income in, expense out; investments excluded)
+  const netBalance = totalIncome - totalExpense;
+
   // Hero number — integer and cents
   const heroInt = Math.floor(totalExpense);
   const heroCents = (totalExpense % 1).toFixed(2).slice(1); // ".XX"
@@ -121,11 +138,6 @@ export function Dashboard() {
     [dailyAmounts]
   );
 
-  const hasDailyData = useMemo(
-    () => dailyAmounts.some((d) => d.value > 0),
-    [dailyAmounts]
-  );
-
   const today = now.getDate();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
@@ -165,10 +177,12 @@ export function Dashboard() {
     setIsDialogOpen(true);
   }, []);
 
-  const handleDeleteClick = useCallback((id: string) => {
+  // Plain handler: React Compiler memoizes it; a manual useCallback([]) here
+  // trips preserve-manual-memoization (inferred setDeleteDialogOpen dep).
+  const handleDeleteClick = (id: string) => {
     setDeletingId(id);
     setDeleteDialogOpen(true);
-  }, []);
+  };
 
   const handleConfirmDelete = useCallback(() => {
     if (!deletingId) return;
@@ -212,11 +226,12 @@ export function Dashboard() {
           paid_by_member_id: data.paid_by_member_id || undefined,
         });
       }
+      toast.success(editingTransaction ? t("transaction_updated") : t("transaction_added"));
       setIsDialogOpen(false);
       setEditingTransaction(null);
       setDuplicatingTransaction(null);
     },
-    [user, addTransaction, updateTransaction, editingTransaction]
+    [user, addTransaction, updateTransaction, editingTransaction, t]
   );
 
   const handleOpenChange = useCallback((open: boolean) => {
@@ -271,24 +286,31 @@ export function Dashboard() {
           </>
         )}
 
-        {/* Mini stat cards */}
+        {/* Mini stat cards — hero above already carries the month expense,
+            so the triad is Income / Net / Invested (no duplicate expense). */}
         <div className="grid grid-cols-3 gap-2.5 mt-4">
           {[
             {
               label: t("income"),
               val: totalIncome,
+              signed: false,
               Icon: ArrowDownLeft,
               color: "hsl(var(--gonuts-good))",
             },
             {
-              label: t("expense"),
-              val: totalExpense,
-              Icon: ArrowUpRight,
-              color: "hsl(var(--foreground))",
+              label: t("balance"),
+              val: netBalance,
+              signed: true,
+              Icon: Scale,
+              color:
+                netBalance < 0
+                  ? "hsl(var(--gonuts-bad))"
+                  : "hsl(var(--gonuts-good))",
             },
             {
               label: t("invested"),
               val: totalInvestment,
+              signed: false,
               Icon: TrendingUp,
               color: "hsl(var(--color-investment))",
             },
@@ -308,7 +330,7 @@ export function Dashboard() {
                 <Skeleton className="h-5 w-14" />
               ) : (
                 <span className="num font-bold text-base">
-                  {currencySymbol}{Math.round(m.val).toLocaleString()}
+                  {formatSignedAmount(m.val, currencySymbol, m.signed)}
                 </span>
               )}
             </div>
@@ -323,7 +345,7 @@ export function Dashboard() {
             <h2 className="text-lg font-bold">{t("where_it_went")}</h2>
             <Link
               to="/statistics"
-              className="flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-0.5 -mr-2 px-2 min-h-[44px] text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {t("see_all")}
               <ChevronRight className="w-4 h-4" />
@@ -402,7 +424,7 @@ export function Dashboard() {
             <h2 className="text-lg font-bold">{t("budget")}</h2>
             <Link
               to="/settings"
-              className="flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-0.5 -mr-2 px-2 min-h-[44px] text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {t("manage")}
               <ChevronRight className="w-4 h-4" />
@@ -495,45 +517,17 @@ export function Dashboard() {
         <div className="rounded-[var(--radius)] border border-border/50 bg-card p-4
           shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]
           dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]">
-          {isLoading ? (
-            <Skeleton className="h-[84px] w-full" />
-          ) : !hasDailyData ? (
-            <div className="flex items-center justify-center h-[84px] text-sm text-muted-foreground">
-              {t("no_spending_this_month")}
-            </div>
-          ) : (
-            <>
-              <div className="flex items-end gap-[3px] h-[84px]">
-                {dailyAmounts.map((d) => {
-                  const h = d.hasData
-                    ? Math.max(3, (d.value / maxDailyAmount) * 80)
-                    : 3;
-                  const isToday = d.day === today;
-                  const bg = isToday
-                    ? "hsl(var(--gonuts-orange))"
-                    : d.value > 0
-                    ? "hsl(var(--foreground))"
-                    : "hsl(var(--muted))";
-                  return (
-                    <div
-                      key={d.day}
-                      className="flex-1 rounded-[3px] transition-all"
-                      style={{ height: h, backgroundColor: bg }}
-                    />
-                  );
-                })}
-              </div>
-              <div className="flex items-center justify-between mt-2.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                <span>1 {monthName}</span>
-                <span>
-                  {t("today")}
-                </span>
-                <span>
-                  {daysInMonth} {monthName}
-                </span>
-              </div>
-            </>
-          )}
+          <DailyRhythm
+            days={dailyAmounts}
+            max={maxDailyAmount}
+            todayDay={today}
+            startLabel={`1 ${monthName}`}
+            endLabel={`${daysInMonth} ${monthName}`}
+            todayLabel={t("today")}
+            currencySymbol={currencySymbol}
+            isLoading={isLoading}
+            emptyText={t("no_spending_this_month")}
+          />
         </div>
       </section>
 

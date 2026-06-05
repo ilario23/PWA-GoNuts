@@ -118,9 +118,9 @@ export function RecurringTransactionFormDialog({
     const getTypeColor = (type: string) => {
         switch (type) {
             case "expense":
-                return "bg-red-500 hover:bg-red-600 text-white";
+                return "bg-gonuts-bad hover:bg-gonuts-bad text-white";
             case "income":
-                return "bg-green-500 hover:bg-green-600 text-white";
+                return "bg-gonuts-good hover:bg-gonuts-good text-white";
             case "investment":
                 return "bg-blue-500 hover:bg-blue-600 text-white";
             default:

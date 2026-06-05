@@ -18,7 +18,7 @@ export function ImportUploadStep({ importType, selectedBank, isProcessing, error
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     return (
-        <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl bg-slate-50 dark:bg-slate-950 relative">
+        <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl bg-muted dark:bg-slate-950 relative">
             {/* Template Download Button for Generic CSV */}
             {importType === 'bank_csv' && selectedBank === 'generic' && !isProcessing && (
                 <div className="absolute top-4 right-4">
@@ -64,7 +64,7 @@ export function ImportUploadStep({ importType, selectedBank, isProcessing, error
                         onClick={(e) => { (e.currentTarget as HTMLInputElement).value = ''; }} // Reset to allow re-selection of same file
                     />
                     {error && (
-                        <div className="mt-4 p-3 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded text-sm flex items-center">
+                        <div className="mt-4 p-3 bg-gonuts-bad/10 text-gonuts-bad dark:bg-gonuts-bad/30 dark:text-gonuts-bad rounded text-sm flex items-center">
                             <AlertTriangle className="h-4 w-4 mr-2" />
                             {error}
                         </div>

@@ -157,7 +157,7 @@ export function ContextsPage() {
           <Button
             onClick={openNew}
             size="sm"
-            className="gap-1.5 bg-[hsl(var(--gonuts-orange))] hover:bg-[hsl(var(--gonuts-orange))]/90 text-white"
+            className="gap-1.5 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white"
           >
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">{t("add_context")}</span>

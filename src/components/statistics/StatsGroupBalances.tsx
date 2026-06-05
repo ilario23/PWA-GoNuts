@@ -99,7 +99,7 @@ export function StatsGroupBalances({
                                     {chartData.map((entry, index) => (
                                         <Cell
                                             key={`cell-${index}`}
-                                            fill={entry.balance >= 0 ? "hsl(142.1 70.6% 45.3%)" : "hsl(0 84.2% 60.2%)"}
+                                            fill={entry.balance >= 0 ? "hsl(var(--gonuts-good))" : "hsl(var(--gonuts-bad))"}
                                         />
                                     ))}
                                 </Bar>

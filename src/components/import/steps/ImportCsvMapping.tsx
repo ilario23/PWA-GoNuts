@@ -92,7 +92,7 @@ export function ImportCsvMapping({ csvHeaders, csvPreviewRows, csvMapping, setCs
                     <TableHeader>
                         <TableRow>
                             {csvHeaders.map(h => (
-                                <TableHead key={h} className="bg-slate-50 dark:bg-slate-900 whitespace-nowrap">{h}</TableHead>
+                                <TableHead key={h} className="bg-muted dark:bg-slate-900 whitespace-nowrap">{h}</TableHead>
                             ))}
                         </TableRow>
                     </TableHeader>

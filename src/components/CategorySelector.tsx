@@ -339,7 +339,7 @@ export function CategorySelector({
           </div>
 
           {isSelected && (
-            <Check className='h-[18px] w-[18px] shrink-0 text-[hsl(var(--gonuts-orange))]' />
+            <Check className='h-[18px] w-[18px] shrink-0 text-[hsl(var(--primary))]' />
           )}
 
           {hasChildren && !isSearching && (
@@ -388,7 +388,7 @@ export function CategorySelector({
             >
               <Check
                 className={cn(
-                  'h-3.5 w-3.5 shrink-0 text-[hsl(var(--gonuts-orange))]',
+                  'h-3.5 w-3.5 shrink-0 text-[hsl(var(--primary))]',
                   isSelected ? 'opacity-100' : 'opacity-0',
                 )}
               />
@@ -534,7 +534,7 @@ export function CategorySelector({
           </div>
         ) : (
           isSelected && (
-            <Check className='h-[18px] w-[18px] shrink-0 text-[hsl(var(--gonuts-orange))]' />
+            <Check className='h-[18px] w-[18px] shrink-0 text-[hsl(var(--primary))]' />
           )
         )}
       </div>
@@ -724,8 +724,8 @@ export function CategorySelector({
             data-testid='category-trigger'
           >
             {value === 'SKIP' ? (
-              <div className='flex items-center min-w-0 text-red-600 dark:text-red-400'>
-                <div className='flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'>
+              <div className='flex items-center min-w-0 text-gonuts-bad dark:text-gonuts-bad'>
+                <div className='flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-gonuts-bad/10 dark:bg-gonuts-bad/40 text-gonuts-bad dark:text-gonuts-bad'>
                   <div className='h-2 w-3 bg-current rounded-sm' />
                 </div>
                 <div className='flex flex-col items-start text-left min-w-0 flex-1'>
@@ -806,8 +806,8 @@ export function CategorySelector({
           data-testid='category-trigger'
         >
           {value === 'SKIP' ? (
-            <div className='flex items-center min-w-0 text-red-600 dark:text-red-400'>
-              <div className='flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'>
+            <div className='flex items-center min-w-0 text-gonuts-bad dark:text-gonuts-bad'>
+              <div className='flex h-6 w-6 items-center justify-center rounded-full mr-3 shrink-0 bg-gonuts-bad/10 dark:bg-gonuts-bad/40 text-gonuts-bad dark:text-gonuts-bad'>
                 <div className='h-2 w-3 bg-current rounded-sm' />
               </div>
               <span className='truncate'>

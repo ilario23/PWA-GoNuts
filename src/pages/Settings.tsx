@@ -475,7 +475,7 @@ export function SettingsPage() {
             </Select>
           </div>
           <Button variant="outline" className="w-full h-11 gap-2" onClick={handleCSVExport} disabled={isExportingCSV}>
-            {isExportingCSV ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 text-green-600" />}
+            {isExportingCSV ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 text-gonuts-good" />}
             {t("download_csv") || "Download CSV"}
           </Button>
         </CardContent>

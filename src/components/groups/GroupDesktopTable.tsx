@@ -151,7 +151,7 @@ export function GroupDesktopTable({
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-8 w-8 text-muted-foreground hover:text-green-600"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-gonuts-good"
                                                         onClick={() => onBalance(group)}
                                                     >
                                                         <ArrowUpRight className="h-4 w-4" />

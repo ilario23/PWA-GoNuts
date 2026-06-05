@@ -98,12 +98,12 @@ export function StatsSummaryCards({
                                         {t("total_income")}
                                     </CardTitle>
                                     <div className="flex items-center">
-                                        <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
-                                        {renderVerticalDots(0, "bg-green-500")}
+                                        <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-gonuts-good" />
+                                        {renderVerticalDots(0, "bg-gonuts-good")}
                                     </div>
                                 </CardHeader>
                                 <CardContent className="pb-2 md:pb-6">
-                                    <div className="text-lg md:text-2xl font-bold text-green-500">
+                                    <div className="text-lg md:text-2xl font-bold text-gonuts-good">
                                         {renderAnimatedValue(currentStats.income, "+€")}
                                     </div>
                                     <p className="text-xs text-muted-foreground mt-1">
@@ -119,12 +119,12 @@ export function StatsSummaryCards({
                                         {t("monthly_average")}
                                     </CardTitle>
                                     <div className="flex items-center">
-                                        <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
-                                        {renderVerticalDots(1, "bg-green-500")}
+                                        <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-gonuts-good" />
+                                        {renderVerticalDots(1, "bg-gonuts-good")}
                                     </div>
                                 </CardHeader>
                                 <CardContent className="pb-2 md:pb-6">
-                                    <div className="text-lg md:text-2xl font-bold text-green-500 flex items-baseline">
+                                    <div className="text-lg md:text-2xl font-bold text-gonuts-good flex items-baseline">
                                         {renderAnimatedValue(yearlyMonthlyAverages.income, "+€")}
                                         {yearlyMonthlyAverages.income !== 0 && (
                                             <span className="text-sm font-normal text-muted-foreground ml-1">
@@ -145,10 +145,10 @@ export function StatsSummaryCards({
                             <CardTitle className="text-xs md:text-sm font-medium">
                                 {t("total_income")}
                             </CardTitle>
-                            <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
+                            <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-gonuts-good" />
                         </CardHeader>
                         <CardContent className="pb-2 md:pb-6">
-                            <div className="text-lg md:text-2xl font-bold text-green-500">
+                            <div className="text-lg md:text-2xl font-bold text-gonuts-good">
                                 {renderAnimatedValue(currentStats.income, "+€")}
                             </div>
                         </CardContent>
@@ -169,12 +169,12 @@ export function StatsSummaryCards({
                                         {t("total_expenses")}
                                     </CardTitle>
                                     <div className="flex items-center">
-                                        <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-500" />
-                                        {renderVerticalDots(0, "bg-red-500")}
+                                        <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-gonuts-bad" />
+                                        {renderVerticalDots(0, "bg-gonuts-bad")}
                                     </div>
                                 </CardHeader>
                                 <CardContent className="pb-2 md:pb-6">
-                                    <div className="text-lg md:text-2xl font-bold text-red-500">
+                                    <div className="text-lg md:text-2xl font-bold text-gonuts-bad">
                                         {renderAnimatedValue(currentStats.expense, "-€")}
                                     </div>
                                     <p className="text-xs text-muted-foreground mt-1">
@@ -190,12 +190,12 @@ export function StatsSummaryCards({
                                         {t("monthly_average")}
                                     </CardTitle>
                                     <div className="flex items-center">
-                                        <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-500" />
-                                        {renderVerticalDots(1, "bg-red-500")}
+                                        <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-gonuts-bad" />
+                                        {renderVerticalDots(1, "bg-gonuts-bad")}
                                     </div>
                                 </CardHeader>
                                 <CardContent className="pb-2 md:pb-6">
-                                    <div className="text-lg md:text-2xl font-bold text-red-500 flex items-baseline">
+                                    <div className="text-lg md:text-2xl font-bold text-gonuts-bad flex items-baseline">
                                         {renderAnimatedValue(yearlyMonthlyAverages.expense, "-€")}
                                         {yearlyMonthlyAverages.expense !== 0 && (
                                             <span className="text-sm font-normal text-muted-foreground ml-1">
@@ -216,10 +216,10 @@ export function StatsSummaryCards({
                             <CardTitle className="text-xs md:text-sm font-medium">
                                 {t("total_expenses")}
                             </CardTitle>
-                            <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-500" />
+                            <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-gonuts-bad" />
                         </CardHeader>
                         <CardContent className="pb-2 md:pb-6">
-                            <div className="text-lg md:text-2xl font-bold text-red-500">
+                            <div className="text-lg md:text-2xl font-bold text-gonuts-bad">
                                 {renderAnimatedValue(currentStats.expense, "-€")}
                             </div>
                         </CardContent>
@@ -240,11 +240,11 @@ export function StatsSummaryCards({
                                         {t("investment")}
                                     </CardTitle>
                                     <div className="flex items-center">
-                                        {renderVerticalDots(0, "bg-blue-500")}
+                                        {renderVerticalDots(0, "bg-gonuts-invest")}
                                     </div>
                                 </CardHeader>
                                 <CardContent className="pb-2 md:pb-6">
-                                    <div className="text-lg md:text-2xl font-bold text-blue-500">
+                                    <div className="text-lg md:text-2xl font-bold text-gonuts-invest">
                                         {renderAnimatedValue(currentStats.investment, "€")}
                                     </div>
                                     <p className="text-xs text-muted-foreground mt-1">
@@ -260,11 +260,11 @@ export function StatsSummaryCards({
                                         {t("monthly_average")}
                                     </CardTitle>
                                     <div className="flex items-center">
-                                        {renderVerticalDots(1, "bg-blue-500")}
+                                        {renderVerticalDots(1, "bg-gonuts-invest")}
                                     </div>
                                 </CardHeader>
                                 <CardContent className="pb-2 md:pb-6">
-                                    <div className="text-lg md:text-2xl font-bold text-blue-500 flex items-baseline">
+                                    <div className="text-lg md:text-2xl font-bold text-gonuts-invest flex items-baseline">
                                         {renderAnimatedValue(yearlyMonthlyAverages.investment, "€")}
                                         {yearlyMonthlyAverages.investment !== 0 && (
                                             <span className="text-sm font-normal text-muted-foreground ml-1">
@@ -287,7 +287,7 @@ export function StatsSummaryCards({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="pb-2 md:pb-6">
-                            <div className="text-lg md:text-2xl font-bold text-blue-500">
+                            <div className="text-lg md:text-2xl font-bold text-gonuts-invest">
                                 {renderAnimatedValue(currentStats.investment, "€")}
                             </div>
                         </CardContent>
@@ -310,16 +310,16 @@ export function StatsSummaryCards({
                                     <div className="flex items-center">
                                         {renderVerticalDots(
                                             0,
-                                            currentNetBalance >= 0 ? "bg-green-500" : "bg-red-500"
+                                            currentNetBalance >= 0 ? "bg-gonuts-good" : "bg-gonuts-bad"
                                         )}
                                     </div>
                                 </CardHeader>
                                 <CardContent className="pb-2 md:pb-6">
                                     <div
-                                        className={`text-lg md:text-2xl font-bold ${currentNetBalance >= 0 ? "text-green-500" : "text-red-500"
+                                        className={`text-lg md:text-2xl font-bold ${currentNetBalance >= 0 ? "text-gonuts-good" : "text-gonuts-bad"
                                             }`}
                                     >
-                                        {renderAnimatedValue(currentNetBalance, currentNetBalance >= 0 ? "+€" : "€")}
+                                        {renderAnimatedValue(Math.abs(currentNetBalance), currentNetBalance >= 0 ? "+€" : "-€")}
                                     </div>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {t("tap_for_average")}
@@ -337,22 +337,22 @@ export function StatsSummaryCards({
                                         {renderVerticalDots(
                                             1,
                                             yearlyMonthlyAverages.netBalance >= 0
-                                                ? "bg-green-500"
-                                                : "bg-red-500"
+                                                ? "bg-gonuts-good"
+                                                : "bg-gonuts-bad"
                                         )}
                                     </div>
                                 </CardHeader>
                                 <CardContent className="pb-2 md:pb-6">
                                     <div
                                         className={`text-lg md:text-2xl font-bold ${yearlyMonthlyAverages.netBalance >= 0
-                                            ? "text-green-500"
-                                            : "text-red-500"
+                                            ? "text-gonuts-good"
+                                            : "text-gonuts-bad"
                                             }`}
                                     >
                                         <div className="flex items-baseline">
                                             {renderAnimatedValue(
-                                                yearlyMonthlyAverages.netBalance,
-                                                yearlyMonthlyAverages.netBalance >= 0 ? "+€" : "€"
+                                                Math.abs(yearlyMonthlyAverages.netBalance),
+                                                yearlyMonthlyAverages.netBalance >= 0 ? "+€" : "-€"
                                             )}
                                             {yearlyMonthlyAverages.netBalance !== 0 && (
                                                 <span className="text-sm font-normal text-muted-foreground ml-1">
@@ -377,10 +377,10 @@ export function StatsSummaryCards({
                         </CardHeader>
                         <CardContent className="pb-2 md:pb-6">
                             <div
-                                className={`text-lg md:text-2xl font-bold ${currentNetBalance >= 0 ? "text-green-500" : "text-red-500"
+                                className={`text-lg md:text-2xl font-bold ${currentNetBalance >= 0 ? "text-gonuts-good" : "text-gonuts-bad"
                                     }`}
                             >
-                                {renderAnimatedValue(currentNetBalance, currentNetBalance >= 0 ? "+€" : "€")}
+                                {renderAnimatedValue(Math.abs(currentNetBalance), currentNetBalance >= 0 ? "+€" : "-€")}
                             </div>
                         </CardContent>
                     </Card>
@@ -400,8 +400,8 @@ export function StatsSummaryCards({
                                     currentStats.income) *
                                     100 >=
                                     0
-                                    ? "text-green-500"
-                                    : "text-red-500"
+                                    ? "text-gonuts-good"
+                                    : "text-gonuts-bad"
                                     }`}
                             >
                                 {renderAnimatedValue(
@@ -435,8 +435,8 @@ export function StatsSummaryCards({
                                     currentStats.income) *
                                     100 >=
                                     0
-                                    ? "text-green-500"
-                                    : "text-red-500"
+                                    ? "text-gonuts-good"
+                                    : "text-gonuts-bad"
                                     }`}
                             >
                                 {renderAnimatedValue(

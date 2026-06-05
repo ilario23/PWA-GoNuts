@@ -106,17 +106,17 @@ export function UpdatePasswordPage() {
                                 <div className="space-y-2 pt-1 transition-all animate-in fade-in slide-in-from-top-1">
                                     <div className="flex h-2 w-full overflow-hidden rounded-full bg-secondary">
                                         <div
-                                            className={`h-full transition-all duration-500 ease-out ${strengthScore <= 1 ? "bg-red-500 w-[25%]" :
+                                            className={`h-full transition-all duration-500 ease-out ${strengthScore <= 1 ? "bg-gonuts-bad w-[25%]" :
                                                 strengthScore === 2 ? "bg-orange-500 w-[50%]" :
                                                     strengthScore === 3 ? "bg-yellow-500 w-[75%]" :
-                                                        "bg-green-500 w-full"
+                                                        "bg-gonuts-good w-full"
                                                 }`}
                                         />
                                     </div>
-                                    <p className={`text-xs font-medium ${strengthScore <= 1 ? "text-red-500" :
+                                    <p className={`text-xs font-medium ${strengthScore <= 1 ? "text-gonuts-bad" :
                                         strengthScore === 2 ? "text-orange-500" :
                                             strengthScore === 3 ? "text-yellow-500" :
-                                                "text-green-500"
+                                                "text-gonuts-good"
                                         }`}>
                                         {strengthFeedback.warning || strengthFeedback.suggestions[0] ||
                                             (strengthScore <= 1 ? t("strength_weak") :

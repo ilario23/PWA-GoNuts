@@ -57,7 +57,7 @@ import {
 import { format } from "date-fns";
 import { it, enUS } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthProvider";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DailyRhythm } from "@/components/DailyRhythm";
 import { StatsSummaryCards } from "@/components/statistics/StatsSummaryCards";
 import { StatsBurnRateCard } from "@/components/statistics/StatsBurnRateCard";
 import { StatsContextAnalytics } from "@/components/statistics/StatsContextAnalytics";
@@ -209,17 +209,17 @@ export function StatisticsPage() {
     {
       name: "income",
       value: currentStats.income,
-      fill: "hsl(142.1 70.6% 45.3%)",
+      fill: "hsl(var(--color-income))",
     },
     {
       name: "expense",
       value: currentStats.expense,
-      fill: "hsl(0 84.2% 60.2%)",
+      fill: "hsl(var(--color-expense))",
     },
     {
       name: "investment",
       value: currentStats.investment,
-      fill: "hsl(217.2 91.2% 59.8%)",
+      fill: "hsl(var(--color-investment))",
     },
   ].filter((item) => item.value > 0);
 
@@ -281,11 +281,6 @@ export function StatisticsPage() {
 
   const maxDailyAmount = useMemo(
     () => Math.max(...dailyAmounts.map((d) => d.value), 1),
-    [dailyAmounts]
-  );
-
-  const hasDailyData = useMemo(
-    () => dailyAmounts.some((d) => d.value > 0),
     [dailyAmounts]
   );
 
@@ -401,46 +396,24 @@ export function StatisticsPage() {
               <div className="rounded-[var(--radius)] border border-border/50 bg-card p-4
                 shadow-[0_1px_0_rgba(26,23,20,0.04),0_6px_16px_-8px_rgba(26,23,20,0.12)]
                 dark:shadow-[0_1px_0_rgba(0,0,0,0.12),0_6px_16px_-8px_rgba(0,0,0,0.30)]">
-                {isLoading ? (
-                  <Skeleton className="h-[84px] w-full" />
-                ) : !hasDailyData ? (
-                  <div className="flex items-center justify-center h-[84px] text-sm text-muted-foreground">
-                    {t("no_spending_this_month")}
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-end gap-[3px] h-[84px]">
-                      {dailyAmounts.map((d) => {
-                        const h = d.hasData ? Math.max(3, (d.value / maxDailyAmount) * 80) : 3;
-                        const isToday = d.day === todayDayNum;
-                        const bg = isToday
-                          ? "hsl(var(--gonuts-orange))"
-                          : d.value > 0
-                          ? "hsl(var(--foreground))"
-                          : "hsl(var(--muted))";
-                        return (
-                          <div
-                            key={d.day}
-                            className="flex-1 rounded-[3px] transition-all"
-                            style={{ height: h, backgroundColor: bg }}
-                          />
-                        );
-                      })}
-                    </div>
-                    <div className="flex items-center justify-between mt-2.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                      <span>1 {selectedMonthDisplayName}</span>
-                      {todayDayNum > 0 && <span>{t("today")}</span>}
-                      <span>{daysInSelectedMonth} {selectedMonthDisplayName}</span>
-                    </div>
-                  </>
-                )}
+                <DailyRhythm
+                  days={dailyAmounts}
+                  max={maxDailyAmount}
+                  todayDay={todayDayNum}
+                  startLabel={`1 ${selectedMonthDisplayName}`}
+                  endLabel={`${daysInSelectedMonth} ${selectedMonthDisplayName}`}
+                  todayLabel={t("today")}
+                  currencySymbol="€"
+                  isLoading={isLoading}
+                  emptyText={t("no_spending_this_month")}
+                />
               </div>
             </section>
           )}
 
           {/* View pill tabs (monthly + yearly) */}
           {(
-            <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
               {(["breakdown", "trend", "contexts"] as const).map((tab) => (
                 <button
                   key={tab}
@@ -653,8 +626,8 @@ export function StatisticsPage() {
                           className={`text-xs flex items-center gap-1 ${Math.abs(monthlyComparison.income.change) < 0.1
                             ? "text-muted-foreground"
                             : monthlyComparison.income.trend === "up"
-                              ? "text-green-500"
-                              : "text-red-500"
+                              ? "text-gonuts-good"
+                              : "text-gonuts-bad"
                             }`}
                         >
                           {Math.abs(monthlyComparison.income.change) < 0.1 ? (
@@ -681,8 +654,8 @@ export function StatisticsPage() {
                           className={`text-xs flex items-center gap-1 ${Math.abs(monthlyComparison.expense.change) < 0.1
                             ? "text-muted-foreground"
                             : monthlyComparison.expense.current <= monthlyComparison.expense.previous
-                              ? "text-green-500" // Lower expense is good
-                              : "text-red-500"   // Higher expense is bad
+                              ? "text-gonuts-good" // Lower expense is good
+                              : "text-gonuts-bad"   // Higher expense is bad
                             }`}
                         >
                           {Math.abs(monthlyComparison.expense.change) < 0.1 ? (
@@ -705,18 +678,18 @@ export function StatisticsPage() {
                         </div>
                         <div
                           className={`num text-xl font-bold ${monthlyComparison.balance.current >= 0
-                            ? "text-green-500"
-                            : "text-red-500"
+                            ? "text-gonuts-good"
+                            : "text-gonuts-bad"
                             }`}
                         >
-                          €{monthlyComparison.balance.current.toFixed(0)}
+                          {monthlyComparison.balance.current < 0 ? "-" : ""}€{Math.abs(monthlyComparison.balance.current).toFixed(0)}
                         </div>
                         <div
                           className={`text-xs flex items-center gap-1 ${Math.abs(monthlyComparison.balance.change) < 0.1
                             ? "text-muted-foreground"
                             : monthlyComparison.balance.trend === "up"
-                              ? "text-green-500"
-                              : "text-red-500"
+                              ? "text-gonuts-good"
+                              : "text-gonuts-bad"
                             }`}
                         >
                           {Math.abs(monthlyComparison.balance.change) < 0.1 ? (
@@ -738,8 +711,8 @@ export function StatisticsPage() {
                         </div>
                         <div
                           className={`num text-xl font-bold ${monthlyComparison.savingRate.current >= 0
-                            ? "text-green-500"
-                            : "text-red-500"
+                            ? "text-gonuts-good"
+                            : "text-gonuts-bad"
                             }`}
                         >
                           {monthlyComparison.income.current === 0
@@ -751,8 +724,8 @@ export function StatisticsPage() {
                           className={`text-xs flex items-center gap-1 ${Math.abs(monthlyComparison.savingRate.change) < 0.1
                             ? "text-muted-foreground"
                             : monthlyComparison.savingRate.trend === "up"
-                              ? "text-green-500"
-                              : "text-red-500"
+                              ? "text-gonuts-good"
+                              : "text-gonuts-bad"
                             }`}
                         >
                           {Math.abs(monthlyComparison.savingRate.change) < 0.1 ? (
@@ -780,7 +753,7 @@ export function StatisticsPage() {
                             config={{
                               current: {
                                 label: t("current_month"),
-                                color: "hsl(0 84.2% 60.2% )",
+                                color: "hsl(var(--color-expense))",
                               },
                               previous: {
                                 label: format(new Date(previousMonth), "MMMM yyyy", { locale: dateLocale }),
@@ -936,8 +909,8 @@ export function StatisticsPage() {
                               </span>
                               <div
                                 className={`flex items-center gap-1 text-sm ${cat.trend === "improved"
-                                  ? "text-green-500"
-                                  : "text-red-500"
+                                  ? "text-gonuts-good"
+                                  : "text-gonuts-bad"
                                   }`}
                               >
                                 {cat.trend === "improved" ? (
@@ -1176,8 +1149,8 @@ export function StatisticsPage() {
                           className={`text-xs flex items-center gap-1 ${Math.abs(yearlyComparison.income.change) < 0.1
                             ? "text-muted-foreground"
                             : yearlyComparison.income.trend === "up"
-                              ? "text-green-500"
-                              : "text-red-500"
+                              ? "text-gonuts-good"
+                              : "text-gonuts-bad"
                             }`}
                         >
                           {Math.abs(yearlyComparison.income.change) < 0.1 ? (
@@ -1204,8 +1177,8 @@ export function StatisticsPage() {
                           className={`text-xs flex items-center gap-1 ${Math.abs(yearlyComparison.expense.change) < 0.1
                             ? "text-muted-foreground"
                             : yearlyComparison.expense.current <= yearlyComparison.expense.previous
-                              ? "text-green-500" // Lower expense is good
-                              : "text-red-500"   // Higher expense is bad
+                              ? "text-gonuts-good" // Lower expense is good
+                              : "text-gonuts-bad"   // Higher expense is bad
                             }`}
                         >
                           {Math.abs(yearlyComparison.expense.change) < 0.1 ? (
@@ -1228,18 +1201,18 @@ export function StatisticsPage() {
                         </div>
                         <div
                           className={`num text-xl font-bold ${yearlyComparison.balance.current >= 0
-                            ? "text-green-500"
-                            : "text-red-500"
+                            ? "text-gonuts-good"
+                            : "text-gonuts-bad"
                             }`}
                         >
-                          €{yearlyComparison.balance.current.toFixed(0)}
+                          {yearlyComparison.balance.current < 0 ? "-" : ""}€{Math.abs(yearlyComparison.balance.current).toFixed(0)}
                         </div>
                         <div
                           className={`text-xs flex items-center gap-1 ${Math.abs(yearlyComparison.balance.change) < 0.1
                             ? "text-muted-foreground"
                             : yearlyComparison.balance.trend === "up"
-                              ? "text-green-500"
-                              : "text-red-500"
+                              ? "text-gonuts-good"
+                              : "text-gonuts-bad"
                             }`}
                         >
                           {Math.abs(yearlyComparison.balance.change) < 0.1 ? (
@@ -1261,8 +1234,8 @@ export function StatisticsPage() {
                         </div>
                         <div
                           className={`num text-xl font-bold ${yearlyComparison.savingRate.current >= 0
-                            ? "text-green-500"
-                            : "text-red-500"
+                            ? "text-gonuts-good"
+                            : "text-gonuts-bad"
                             }`}
                         >
                           {yearlyComparison.income.current === 0
@@ -1274,8 +1247,8 @@ export function StatisticsPage() {
                           className={`text-xs flex items-center gap-1 ${Math.abs(yearlyComparison.savingRate.change) < 0.1
                             ? "text-muted-foreground"
                             : yearlyComparison.savingRate.trend === "up"
-                              ? "text-green-500"
-                              : "text-red-500"
+                              ? "text-gonuts-good"
+                              : "text-gonuts-bad"
                             }`}
                         >
                           {Math.abs(yearlyComparison.savingRate.change) < 0.1 ? (
@@ -1303,7 +1276,7 @@ export function StatisticsPage() {
                             config={{
                               current: {
                                 label: selectedYear,
-                                color: "hsl(0 84.2% 60.2%)",
+                                color: "hsl(var(--color-expense))",
                               },
                               previous: {
                                 label: previousYear,
@@ -1414,15 +1387,15 @@ export function StatisticsPage() {
                         config={{
                           income: {
                             label: t("income"),
-                            color: "hsl(142.1 70.6% 45.3%)",
+                            color: "hsl(var(--color-income))",
                           },
                           expense: {
                             label: t("expense"),
-                            color: "hsl(0 84.2% 60.2%)",
+                            color: "hsl(var(--color-expense))",
                           },
                           balance: {
                             label: t("balance"),
-                            color: "hsl(217.2 91.2% 59.8%)",
+                            color: "hsl(var(--color-investment))",
                           },
                         }}
                         className="h-[350px] w-full min-w-0 aspect-auto"
@@ -1554,11 +1527,11 @@ export function StatisticsPage() {
                         config={{
                           income: {
                             label: t("income"),
-                            color: "hsl(142.1 70.6% 45.3%)",
+                            color: "hsl(var(--color-income))",
                           },
                           expense: {
                             label: t("expense"),
-                            color: "hsl(0 84.2% 60.2%)",
+                            color: "hsl(var(--color-expense))",
                           },
                         }}
                         className="h-[300px] w-full min-w-0 aspect-auto"
@@ -1581,12 +1554,12 @@ export function StatisticsPage() {
                           <ChartLegend content={<ChartLegendContent />} />
                           <Bar
                             dataKey="income"
-                            fill="hsl(142.1 70.6% 45.3%)"
+                            fill="hsl(var(--color-income))"
                             radius={[4, 4, 0, 0]}
                           />
                           <Bar
                             dataKey="expense"
-                            fill="hsl(0 84.2% 60.2%)"
+                            fill="hsl(var(--color-expense))"
                             radius={[4, 4, 0, 0]}
                           />
                         </ComposedChart>

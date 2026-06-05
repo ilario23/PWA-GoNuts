@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { flushSync } from "react-dom";
 import { useLocation, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LayoutDashboard, Receipt, PieChart, MoreHorizontal, Plus } from "lucide-react";
@@ -33,6 +34,25 @@ export function BottomNav() {
     const isDark = resolvedTheme === "dark";
     return isDark ? theme.dark.primary : theme.light.primary;
   }, [settings?.accentColor, resolvedTheme]);
+
+  // Morph the FAB into the add sheet via the View Transitions API when the
+  // browser supports it and motion is allowed. The FAB and the add sheet share
+  // `view-transition-name: add-fab`, so the platform tweens between them.
+  // Progressive enhancement: any unsupported/guarded path opens the sheet the
+  // normal way (Radix slide-up), so the sacred add flow never depends on this.
+  const openAdd = () => {
+    const doc = document as Document & {
+      startViewTransition?: (cb: () => void) => unknown;
+    };
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (typeof doc.startViewTransition === "function" && !reduce) {
+      doc.startViewTransition(() => {
+        flushSync(() => setIsDialogOpen(true));
+      });
+    } else {
+      setIsDialogOpen(true);
+    }
+  };
 
   const handleSubmit = async (data: TransactionFormData) => {
     if (!user) return;
@@ -80,7 +100,7 @@ export function BottomNav() {
         <NavTab {...tabs[1]} accentColor={accentColorValue} />
 
         <button
-          onClick={() => setIsDialogOpen(true)}
+          onClick={openAdd}
           aria-label={t("add_transaction")}
           className={cn(
             "flex items-center justify-center",
@@ -91,7 +111,10 @@ export function BottomNav() {
           )}
           style={{
             backgroundColor: `hsl(${accentColorValue})`,
-            boxShadow: `0 4px 16px -2px hsl(${accentColorValue} / 0.5)`
+            boxShadow: `0 4px 16px -2px hsl(${accentColorValue} / 0.5)`,
+            // Shared morph target with the add sheet (dropped while open so the
+            // name lives on exactly one element during the transition).
+            viewTransitionName: isDialogOpen ? "none" : "add-fab",
           }}
         >
           <Plus className="w-7 h-7" strokeWidth={2.5} />

@@ -22,7 +22,7 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
         return (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Card
-                    className="cursor-pointer hover:border-primary transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
+                    className="cursor-pointer hover:border-primary transition-colors hover:bg-muted dark:hover:bg-slate-900"
                     onClick={() => onSelectType('backup')}
                 >
                     <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
@@ -35,7 +35,7 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
                 </Card>
 
                 <Card
-                    className="cursor-pointer hover:border-primary transition-colors hover:bg-slate-50 dark:hover:bg-slate-900 relative group"
+                    className="cursor-pointer hover:border-primary transition-colors hover:bg-muted dark:hover:bg-slate-900 relative group"
                     onClick={() => onSelectType('bank_csv')}
                 >
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -54,7 +54,7 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
                         </Button>
                     </div>
                     <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
-                        <FileSpreadsheet className="h-10 w-10 mb-4 text-green-500" />
+                        <FileSpreadsheet className="h-10 w-10 mb-4 text-gonuts-good" />
                         <h3 className="font-semibold text-lg mb-1">{t("import.type_bank", "Bank Export")}</h3>
                         <p className="text-sm text-muted-foreground">
                             {t("import.type_bank_desc", "Import transactions from CSV/Excel files (Revolut, Intesa, etc).")}
@@ -75,7 +75,7 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-4">
                 <Card
-                    className="cursor-pointer hover:border-primary transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
+                    className="cursor-pointer hover:border-primary transition-colors hover:bg-muted dark:hover:bg-slate-900"
                     onClick={() => onSelectBank('intesa')}
                 >
                     <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
@@ -86,7 +86,7 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
                 </Card>
 
                 <Card
-                    className="cursor-pointer hover:border-primary transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
+                    className="cursor-pointer hover:border-primary transition-colors hover:bg-muted dark:hover:bg-slate-900"
                     onClick={() => onSelectBank('revolut')}
                 >
                     <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
@@ -97,11 +97,11 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
                 </Card>
 
                 <Card
-                    className="cursor-pointer hover:border-primary transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
+                    className="cursor-pointer hover:border-primary transition-colors hover:bg-muted dark:hover:bg-slate-900"
                     onClick={() => onSelectBank('generic')}
                 >
                     <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
-                        <Command className="h-8 w-8 mb-3 text-slate-500" />
+                        <Command className="h-8 w-8 mb-3 text-muted-foreground" />
                         <h3 className="font-semibold text-md mb-1">{t("bank_generic_csv")}</h3>
                         <p className="text-xs text-muted-foreground">{t("format_custom_mapping")}</p>
                     </CardContent>
