@@ -1,4 +1,12 @@
 import '@testing-library/jest-dom';
+
+// jest-environment-jsdom does not expose Node's structuredClone, but
+// fake-indexeddb needs it to clone records on insert.
+import { deserialize, serialize } from 'node:v8';
+if (typeof globalThis.structuredClone === 'undefined') {
+    globalThis.structuredClone = <T>(value: T): T => deserialize(serialize(value));
+}
+
 import 'fake-indexeddb/auto';
 
 // Mock Supabase client to avoid import.meta errors
