@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
@@ -30,7 +30,11 @@ if (loadingEl) {
 try {
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <App />
+      {/* Top-level boundary: i18n loads locale bundles on demand and
+          components suspend until translations are ready */}
+      <Suspense fallback={null}>
+        <App />
+      </Suspense>
     </StrictMode>
   );
 } catch (error) {

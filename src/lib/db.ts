@@ -342,6 +342,22 @@ export interface ImportRule {
  * Provides typed access to all IndexedDB tables with proper indexing
  * for efficient queries. Supports versioned schema migrations.
  */
+/**
+ * Persisted sync error so quarantine state and failure history
+ * survive page reloads (the SyncManager hydrates from this table).
+ */
+export interface SyncErrorRecord {
+  /** "<table>:<itemId>" for push errors, "pull:<table>" for pull errors */
+  key: string;
+  id: string;
+  table: string;
+  operation: "push" | "pull";
+  error: string;
+  attempts: number;
+  lastAttempt: string;
+  isQuarantined: boolean;
+}
+
 export class AppDatabase extends Dexie {
   groups!: Table<Group>;
   group_members!: Table<GroupMember>;
@@ -354,6 +370,7 @@ export class AppDatabase extends Dexie {
   category_budgets!: Table<CategoryBudget>;
   profiles!: Table<Profile>;
   import_rules!: Table<ImportRule>;
+  sync_errors!: Table<SyncErrorRecord>;
 
   constructor() {
     super("ExpenseTrackerDB");
@@ -411,6 +428,10 @@ export class AppDatabase extends Dexie {
       profiles: "id, pendingSync",
       import_rules: "id, user_id, match_type, pendingSync, deleted_at",
     });
+    // v4: persist sync errors so quarantine state survives reloads
+    this.version(4).stores({
+      sync_errors: "key",
+    });
   }
 
   /**
@@ -431,7 +452,23 @@ export class AppDatabase extends Dexie {
       this.category_budgets.clear(),
       this.profiles.clear(),
       this.import_rules.clear(),
+      this.sync_errors.clear(),
     ]);
+
+    // Also purge service-worker runtime caches that may hold API responses
+    // (financial data must not survive logout in Cache Storage).
+    if ("caches" in window) {
+      try {
+        const keys = await caches.keys();
+        await Promise.all(
+          keys
+            .filter((key) => key.includes("supabase"))
+            .map((key) => caches.delete(key))
+        );
+      } catch {
+        // Cache Storage unavailable (private mode) — nothing to purge
+      }
+    }
   }
 }
 

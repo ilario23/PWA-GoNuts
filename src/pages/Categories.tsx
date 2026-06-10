@@ -624,6 +624,7 @@ export function CategoriesPage() {
               size="icon"
               className="md:w-auto md:px-4 md:h-10"
               data-testid="add-category-button"
+              aria-label={t("add_category")}
             >
               <Plus className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">{t("add_category")}</span>
@@ -646,7 +647,7 @@ export function CategoriesPage() {
         {/* Mobile Filter Sheet Trigger */}
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" aria-label={t("filters", "Filters")}>
               <Filter className="h-4 w-4" />
             </Button>
           </SheetTrigger>

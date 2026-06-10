@@ -102,6 +102,7 @@ function DesktopCategoryRows({
                                             e.stopPropagation();
                                             toggleCategory(c.id);
                                         }}
+                                        aria-label={isExpanded ? "Collapse" : "Expand"}
                                     >
                                         <ChevronRight
                                             className="h-4 w-4 transition-transform duration-200 ease-out"
@@ -221,6 +222,7 @@ function DesktopCategoryRows({
                                                         onEdit(c);
                                                     }}
                                                     data-testid="edit-category-button"
+                                                    aria-label={t("edit")}
                                                 >
                                                     <Edit className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
                                                 </Button>
@@ -240,6 +242,7 @@ function DesktopCategoryRows({
                                                         e.stopPropagation();
                                                         onDelete(c.id);
                                                     }}
+                                                    aria-label={t("delete")}
                                                 >
                                                     <Trash2 className={`${isRoot ? "h-4 w-4" : "h-3 w-3"} text-destructive`} />
                                                 </Button>

@@ -28,7 +28,7 @@ describe("db", () => {
   });
 
   it("should have correct version", () => {
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(4);
   });
 
   it("should index recurrence_key on transactions", () => {

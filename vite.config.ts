@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import * as path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     react(),
     VitePWA({
@@ -14,8 +14,8 @@ export default defineConfig({
         short_name: "GoNuts",
         description:
           "GoNuts with your budget - Manage your personal finances offline-first",
-        theme_color: "#ffffff",
-        background_color: "#ffffff",
+        theme_color: "#FAF6EF",
+        background_color: "#FAF6EF",
         display: "standalone",
         display_override: ["standalone", "minimal-ui"],
         orientation: "portrait",
@@ -91,6 +91,12 @@ export default defineConfig({
             type: "image/png",
           },
           {
+            src: "icons/icon-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
+          },
+          {
             src: "icons/icon-512x512.png",
             sizes: "512x512",
             type: "image/png",
@@ -101,8 +107,13 @@ export default defineConfig({
       workbox: {
         // Precache ALL JS/CSS chunks including lazy-loaded ones
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,json}"],
-        // Don't precache source maps
-        globIgnores: ["**/*.map"],
+        // Don't precache source maps or the 1.2MB zxcvbn dictionary
+        // (loaded on demand only on password forms, cached at runtime)
+        globIgnores: [
+          "**/*.map",
+          "**/password-lang-*.js",
+          "**/file-processing-vendor-*.js",
+        ],
         // Navigation fallback for SPA - critical for offline
         navigateFallback: "index.html",
         navigateFallbackDenylist: [/^\/api/],
@@ -170,38 +181,13 @@ export default defineConfig({
               },
             },
           },
-          // Supabase Auth API - Network Only with offline fallback handling
+          // Supabase API - never cache. Dexie/IndexedDB is the offline data
+          // layer; caching API responses in Cache Storage duplicates data,
+          // leaks financial data after logout, and replaying queued auth
+          // requests hours later is unsafe.
           {
-            urlPattern: ({ url }) =>
-              url.hostname.includes("supabase") &&
-              url.pathname.includes("/auth/"),
+            urlPattern: ({ url }) => url.hostname.includes("supabase"),
             handler: "NetworkOnly",
-            options: {
-              backgroundSync: {
-                name: "auth-queue",
-                options: {
-                  maxRetentionTime: 24 * 60, // Retry for 24 hours
-                },
-              },
-            },
-          },
-          // Supabase Data API calls - Network First with offline fallback
-          {
-            urlPattern: ({ url }) =>
-              url.hostname.includes("supabase") &&
-              !url.pathname.includes("/auth/"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-api",
-              networkTimeoutSeconds: 5,
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 24 * 60 * 60, // 1 day
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
           },
         ],
       },
@@ -212,9 +198,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  esbuild: {
+    // Strip logging from production bundles (info leak + noise); keep in dev
+    drop: command === "build" ? (["console", "debugger"] as ("console" | "debugger")[]) : [],
+  },
   build: {
     // Target Safari 14+ for iOS compatibility
     target: ["es2020", "safari14"],
+    sourcemap: false,
     // Adjust warning limit
     chunkSizeWarningLimit: 1300,
     rollupOptions: {
@@ -231,9 +222,9 @@ export default defineConfig({
           ],
           "password-core": ["@zxcvbn-ts/core"],
           "password-lang": ["@zxcvbn-ts/language-en"],
-          "file-processing-vendor": ["xlsx", "papaparse"],
+          "file-processing-vendor": ["exceljs", "papaparse"],
         },
       },
     },
   },
-});
+}));

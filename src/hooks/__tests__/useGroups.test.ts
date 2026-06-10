@@ -48,7 +48,16 @@ jest.mock("../../lib/db", () => ({
       update: jest.fn(),
     },
     profiles: {
-      toArray: jest.fn(),
+      toArray: jest.fn().mockResolvedValue([]),
+    },
+    settlement_payments: {
+      filter: jest.fn(() => ({
+        toArray: jest.fn().mockResolvedValue([]),
+      })),
+    },
+    user_settings: {
+      get: jest.fn().mockResolvedValue({ legacy_settlement_migrated_at: "2024-01-01" }),
+      update: jest.fn(),
     },
   },
 }));

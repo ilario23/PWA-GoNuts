@@ -59,6 +59,7 @@ import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { exportTransactionsToCSV } from "@/lib/exportUtils";
+import { exportFullBackup, importFullBackup } from "@/lib/backup";
 
 function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
@@ -130,6 +131,9 @@ export function SettingsPage() {
   const [exportYear, setExportYear] = useState<string>(new Date().getFullYear().toString());
   const [exportMonth, setExportMonth] = useState<string>("all");
   const [isExportingCSV, setIsExportingCSV] = useState(false);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const restoreInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const handleCSVExport = async () => {
     if (!user) return;
@@ -397,6 +401,7 @@ export function SettingsPage() {
             />
             {settings.monthly_budget !== null && settings.monthly_budget !== undefined && (
               <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                aria-label={t("clear", "Clear")}
                 onClick={() => updateSettings({ monthly_budget: null })}>
                 <X className="h-4 w-4" />
               </Button>
@@ -478,6 +483,81 @@ export function SettingsPage() {
             {isExportingCSV ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 text-gonuts-good" />}
             {t("download_csv") || "Download CSV"}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="rounded-[10px] p-2 shrink-0 text-white" style={{ backgroundColor: "#4F82D9" }}>
+              <Download className="h-3.5 w-3.5" />
+            </span>
+            <div>
+              <p className="font-semibold text-sm">{t("full_backup", "Full backup")}</p>
+              <p className="text-xs text-muted-foreground">{t("full_backup_desc", "All data as JSON: transactions, categories, budgets, groups, rules")}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              className="h-11 gap-2"
+              disabled={isBackingUp}
+              onClick={async () => {
+                setIsBackingUp(true);
+                try {
+                  await exportFullBackup();
+                  toast.success(t("backup_created", "Backup downloaded"));
+                } catch (error) {
+                  console.error("Backup failed:", error);
+                  toast.error(t("backup_error", "Backup failed"));
+                } finally {
+                  setIsBackingUp(false);
+                }
+              }}
+            >
+              {isBackingUp ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {t("backup_download", "Download")}
+            </Button>
+            <Button
+              variant="outline"
+              className="h-11 gap-2"
+              disabled={isRestoring}
+              onClick={() => restoreInputRef.current?.click()}
+            >
+              {isRestoring ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {t("backup_restore", "Restore")}
+            </Button>
+          </div>
+          <input
+            ref={restoreInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setIsRestoring(true);
+              try {
+                const restored = await importFullBackup(file);
+                toast.success(
+                  t("backup_restored", {
+                    defaultValue: "Restored {{count}} records",
+                    count: restored,
+                  })
+                );
+              } catch (error) {
+                console.error("Restore failed:", error);
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : t("backup_restore_error", "Restore failed")
+                );
+              } finally {
+                setIsRestoring(false);
+              }
+            }}
+          />
         </CardContent>
       </Card>
 

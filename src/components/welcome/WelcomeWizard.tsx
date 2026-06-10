@@ -599,6 +599,7 @@ export function WelcomeWizard({ open, onComplete, onSkip }: WelcomeWizardProps) 
                                 onClick={goPrevious}
                                 disabled={isFirstStep}
                                 className="h-9 w-9 sm:h-10 sm:w-10"
+                                aria-label={t("back", "Back")}
                             >
                                 <ChevronLeft className="h-4 w-4" />
                             </Button>

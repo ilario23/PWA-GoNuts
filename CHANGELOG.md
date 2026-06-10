@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-06-10
+
+Security hardening, reliability improvements, and better tools for managing your data.
+
+### Added
+- **Full backup & restore**: Export a complete backup of all your data as a JSON file from Settings, and restore it on any device. Great for migrating or as a safety net before clearing data.
+- **Sync error visibility**: When a record fails to sync, you'll now see a clear error indicator with details on what went wrong and a one-tap retry. Quarantined records are flagged separately.
+
+### Changed
+- **Faster startup**: The app launches faster — language files load in the background instead of blocking startup.
+- **Lighter install**: The app installs about 1 MB lighter — heavy features download only when you actually use them.
+- **Profile photo cleanup**: Uploading a new profile photo automatically removes the old one.
+
+### Fixed
+- **Sync on multiple devices**: Edited the same entry on two devices? The most recent change now wins automatically, with a heads-up notification.
+- **Accessibility**: Icon buttons throughout the app are now properly labeled for VoiceOver and screen readers.
+- **iOS pinch-to-zoom**: The restriction that blocked pinch-to-zoom on iOS has been removed.
+
+---
+
+_🇮🇹 Italiano_
+
+Miglioramenti alla sicurezza, maggiore affidabilità e nuovi strumenti per gestire i tuoi dati.
+
+### Aggiunto
+- **Backup e ripristino completo**: Esporta un backup completo di tutti i tuoi dati come file JSON dalle Impostazioni, e ripristinalo su qualsiasi dispositivo. Ideale per migrare o come rete di sicurezza prima di cancellare i dati.
+- **Visibilità errori di sincronizzazione**: Quando un record non riesce a sincronizzarsi, vedrai un indicatore di errore chiaro con i dettagli del problema e un tocco per riprovare. I record in quarantena sono segnalati separatamente.
+
+### Modificato
+- **Avvio più veloce**: L'app si avvia più velocemente — i file delle lingue si caricano in background invece di bloccare l'avvio.
+- **Installazione più leggera**: L'app si installa circa 1 MB più leggera — le funzioni pesanti si scaricano solo quando le usi davvero.
+- **Pulizia foto profilo**: Caricare una nuova foto profilo rimuove automaticamente quella vecchia.
+
+### Corretto
+- **Sincronizzazione su più dispositivi**: Hai modificato la stessa voce su due dispositivi? La modifica più recente vince automaticamente, con una notifica per tenerti informato.
+- **Accessibilità**: I pulsanti con icona nell'app sono ora correttamente etichettati per VoiceOver e screen reader.
+- **Zoom con pizzico su iOS**: La restrizione che bloccava il pinch-to-zoom su iOS è stata rimossa.
+
+---
+
 ## [2.0.1] - 2026-06-03
 
 Refinements to the ledger design language and profile page.

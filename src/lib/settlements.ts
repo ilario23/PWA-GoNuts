@@ -8,7 +8,7 @@ export function buildSettlementDescription(note: string): string {
 }
 
 export function isSettlementTransaction(
-  transaction: Pick<Transaction, "description" | "group_id" | "type">
+  transaction: Pick<Transaction, "group_id" | "type"> & { description?: string }
 ): boolean {
   const description = transaction.description ?? "";
   return (

@@ -72,12 +72,22 @@ function getCachedUser(): User | null {
 }
 
 /**
- * Save user to localStorage for offline-first support
+ * Save user to localStorage for offline-first support.
+ * Only the fields needed for offline boot are persisted — identities,
+ * phone/confirmation fields etc. stay out of localStorage (PII surface).
  */
 function setCachedUser(user: User | null): void {
   try {
     if (user) {
-      localStorage.setItem(CACHED_USER_KEY, JSON.stringify(user));
+      const minimal: Partial<User> = {
+        id: user.id,
+        email: user.email,
+        created_at: user.created_at,
+        aud: user.aud,
+        user_metadata: user.user_metadata,
+        app_metadata: user.app_metadata,
+      };
+      localStorage.setItem(CACHED_USER_KEY, JSON.stringify(minimal));
     } else {
       localStorage.removeItem(CACHED_USER_KEY);
     }

@@ -35,9 +35,12 @@ import { useTranslation } from "react-i18next";
  */
 export function useContexts() {
   const { t } = useTranslation();
-  const contexts = useLiveQuery(() => db.contexts.toArray());
+  const contexts = useLiveQuery(
+    () => db.contexts.filter((c) => !c.deleted_at).toArray(),
+    []
+  );
 
-  const activeContexts = contexts?.filter((c) => !c.deleted_at) || [];
+  const activeContexts = contexts || [];
 
   const addContext = async (
     context: Omit<
