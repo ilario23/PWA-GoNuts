@@ -146,8 +146,8 @@ function TableDemo() {
                     <div className="flex-1 pl-2 font-medium">Coffee</div>
                     <div className="w-20 text-right pr-2 text-gonuts-bad">-€2.50</div>
                     <div className="w-20 flex justify-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6"><Edit className="h-3 w-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6"><Trash2 className="h-3 w-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" aria-label={t("edit", "Edit")}><Edit className="h-3 w-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" aria-label={t("delete", "Delete")}><Trash2 className="h-3 w-3" /></Button>
                     </div>
                 </div>
 
@@ -156,7 +156,7 @@ function TableDemo() {
                     <div className="flex-1 pl-2 font-medium">Salary</div>
                     <div className="w-20 text-right pr-2 text-gonuts-good">+€2,800</div>
                     <div className="w-20 flex justify-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground"><MoreHorizontal className="h-3 w-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" aria-label={t("more_options", "More")}><MoreHorizontal className="h-3 w-3" /></Button>
                     </div>
 
                     {/* Cursor Animation */}
@@ -684,7 +684,7 @@ export function HelpSystemWrapper({
         return (
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild={triggerAsChild}>
-                    {children || <Button variant="ghost" size="icon"><HelpCircle /></Button>}
+                    {children || <Button variant="ghost" size="icon" aria-label={t("help.title", "Help & Guide")}><HelpCircle /></Button>}
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
                     <DialogHeader className="px-6 py-4 border-b">
@@ -769,7 +769,7 @@ export function HelpSystemWrapper({
             if (!val) setTimeout(() => setSelectedTopicId(null), 300); // Reset after close
         }}>
             <DrawerTrigger asChild={triggerAsChild}>
-                {children || <Button variant="ghost" size="icon"><HelpCircle /></Button>}
+                {children || <Button variant="ghost" size="icon" aria-label={t("help.title", "Help & Guide")}><HelpCircle /></Button>}
             </DrawerTrigger>
             <DrawerContent className="h-[92vh] flex flex-col bg-background/95 backdrop-blur-xl">
                 {/* Decorative background element */}

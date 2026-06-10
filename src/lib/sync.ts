@@ -115,6 +115,9 @@ export class SyncManager {
   private lastSyncAt: string | null = null;
   private syncListeners: Set<SyncListener> = new Set();
   private errorMap: Map<string, SyncError> = new Map();
+  private errorsHydrated = false;
+  /** Tables already notified about an edit conflict in the current sync run */
+  private conflictNotified: Set<string> = new Set();
   private pushTimer: NodeJS.Timeout | null = null;
   private initialSyncComplete = false;
   private onLogout: (() => void) | null = null;
@@ -164,6 +167,9 @@ export class SyncManager {
       clearTimeout(this.pushTimer);
       this.pushTimer = null;
     }
+
+    await this.hydrateErrors();
+    this.conflictNotified.clear();
 
     this.isSyncing = true;
     this.notifyListeners();
@@ -313,6 +319,9 @@ export class SyncManager {
       this.pushTimer = null;
     }
 
+    await this.hydrateErrors();
+    this.conflictNotified.clear();
+
     this.isSyncing = true;
     this.notifyListeners();
 
@@ -384,9 +393,61 @@ export class SyncManager {
   }
 
   /**
+   * Load persisted sync errors from IndexedDB into the in-memory map.
+   * Keeps quarantine state and failure history across page reloads.
+   */
+  private async hydrateErrors(): Promise<void> {
+    if (this.errorsHydrated) return;
+    this.errorsHydrated = true;
+    try {
+      const records = await db.sync_errors.toArray();
+      for (const record of records) {
+        if (!this.errorMap.has(record.key)) {
+          this.errorMap.set(record.key, {
+            id: record.id,
+            table: record.table as TableName,
+            operation: record.operation,
+            error: record.error,
+            attempts: record.attempts,
+            lastAttempt: record.lastAttempt,
+            isQuarantined: record.isQuarantined,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("[Sync] Failed to hydrate persisted sync errors:", e);
+    }
+  }
+
+  /** Record an error in memory and persist it (fire-and-forget). */
+  private setError(errorKey: string, error: SyncError): void {
+    this.errorMap.set(errorKey, error);
+    db.sync_errors
+      .put({ key: errorKey, ...error })
+      .catch((e) => console.warn("[Sync] Failed to persist sync error:", e));
+  }
+
+  /** Remove an error from memory and from the persisted table. */
+  private removeError(errorKey: string): void {
+    if (!this.errorMap.delete(errorKey)) return;
+    db.sync_errors
+      .delete(errorKey)
+      .catch((e) => console.warn("[Sync] Failed to remove sync error:", e));
+  }
+
+  /** Clear all errors from memory and from the persisted table. */
+  private clearErrors(): void {
+    this.errorMap.clear();
+    db.sync_errors
+      .clear()
+      .catch((e) => console.warn("[Sync] Failed to clear sync errors:", e));
+  }
+
+  /**
    * Get current sync status
    */
   async getStatus(): Promise<SyncStatus> {
+    await this.hydrateErrors();
     return {
       isSyncing: this.isSyncing,
       lastSyncAt: this.lastSyncAt,
@@ -405,7 +466,7 @@ export class SyncManager {
     if (!error) return;
 
     // Reset the error and trigger sync
-    this.errorMap.delete(errorKey);
+    this.removeError(errorKey);
     this.notifyListeners();
     await this.sync();
   }
@@ -414,7 +475,7 @@ export class SyncManager {
    * Clear all errors and retry sync
    */
   async retryAllErrors(): Promise<void> {
-    this.errorMap.clear();
+    this.clearErrors();
     this.notifyListeners();
     await this.sync();
   }
@@ -601,7 +662,7 @@ export class SyncManager {
                 );
                 if (localTxn && localTxn.id !== item.id) {
                   await db.transactions.delete(localTxn.id);
-                  this.errorMap.delete(`transactions:${localTxn.id}`);
+                  this.removeError(`transactions:${localTxn.id}`);
                 }
                 await db.transactions.put({
                   ...(localUpdate as unknown as Transaction),
@@ -614,7 +675,7 @@ export class SyncManager {
                 });
               }
 
-              this.errorMap.delete(`${tableName}:${item.id}`);
+              this.removeError(`${tableName}:${item.id}`);
             }
           });
         }
@@ -646,7 +707,7 @@ export class SyncManager {
       const existingError = this.errorMap.get(errorKey);
       const attempts = (existingError?.attempts || 0) + 1;
 
-      this.errorMap.set(errorKey, {
+      this.setError(errorKey, {
         id: item.id,
         table: tableName,
         operation: "push",
@@ -1008,6 +1069,24 @@ export class SyncManager {
 
     // Local has pending changes - ALWAYS keep local to avoid overwriting user work
     if (existing.pendingSync === 1) {
+      // Remote changed too while we have unpushed edits: last-write-wins
+      // means our push will overwrite someone else's change. Surface it
+      // instead of losing it silently (once per table per sync run).
+      const remoteToken = remoteItem.sync_token || 0;
+      const localToken = existing.sync_token || 0;
+      if (remoteToken > localToken && !this.conflictNotified.has(tableName)) {
+        this.conflictNotified.add(tableName);
+        toast.warning(
+          i18n.t("sync_conflict_title", { defaultValue: "Edit conflict" }),
+          {
+            description: i18n.t("sync_conflict_description", {
+              defaultValue:
+                "An item you edited was also changed elsewhere. Your version will be kept.",
+            }),
+            duration: 6000,
+          }
+        );
+      }
       return { shouldUpdate: false, reason: 'pending' };
     }
 
@@ -1187,7 +1266,7 @@ export class SyncManager {
     const existingError = this.errorMap.get(errorKey);
     const attempts = (existingError?.attempts || 0) + 1;
 
-    this.errorMap.set(errorKey, {
+    this.setError(errorKey, {
       id: tableName,
       table: tableName,
       operation: "pull",

@@ -137,6 +137,7 @@ export function GroupDesktopTable({
                                                         size="icon"
                                                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                                         onClick={() => onView(group)}
+                                                        aria-label={t("view")}
                                                     >
                                                         <ExternalLink className="h-4 w-4" />
                                                     </Button>
@@ -153,6 +154,7 @@ export function GroupDesktopTable({
                                                         size="icon"
                                                         className="h-8 w-8 text-muted-foreground hover:text-gonuts-good"
                                                         onClick={() => onBalance(group)}
+                                                        aria-label={t("balance")}
                                                     >
                                                         <ArrowUpRight className="h-4 w-4" />
                                                     </Button>
@@ -169,6 +171,7 @@ export function GroupDesktopTable({
                                                         size="icon"
                                                         className="h-8 w-8 text-muted-foreground hover:text-primary"
                                                         onClick={() => onStatistics(group)}
+                                                        aria-label={t("statistics")}
                                                     >
                                                         <BarChart3 className="h-4 w-4" />
                                                     </Button>
@@ -187,6 +190,7 @@ export function GroupDesktopTable({
                                                                 size="icon"
                                                                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                                                 onClick={() => onMembers(group)}
+                                                                aria-label={t("members")}
                                                             >
                                                                 <Users className="h-4 w-4" />
                                                             </Button>
@@ -203,6 +207,7 @@ export function GroupDesktopTable({
                                                                 size="icon"
                                                                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                                                 onClick={() => onEdit(group)}
+                                                                aria-label={t("edit")}
                                                             >
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>
@@ -219,6 +224,7 @@ export function GroupDesktopTable({
                                                                 size="icon"
                                                                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                                                 onClick={() => onDelete(group)}
+                                                                aria-label={t("delete")}
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>

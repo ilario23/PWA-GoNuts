@@ -184,6 +184,7 @@ export function GroupDetailPage() {
           size="icon"
           onClick={() => navigate("/groups")}
           className="h-9 w-9 shrink-0"
+          aria-label={t("back", "Back")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -200,6 +201,7 @@ export function GroupDetailPage() {
           size="icon"
           className="h-9 w-9 text-muted-foreground shrink-0"
           title={t("sync_now") || "Sync now"}
+          aria-label={t("sync_now", "Sync now")}
         >
           <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
         </Button>

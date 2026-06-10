@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, Category } from "../lib/db";
 import { syncManager } from "../lib/sync";
@@ -44,27 +45,33 @@ import { UNCATEGORIZED_CATEGORY } from "../lib/constants";
  */
 export function useCategories(groupId?: string | null) {
   const { t } = useTranslation();
-  const categories = useLiveQuery(() => db.categories.toArray());
+  // Filter deleted rows and the local-only placeholder inside the query so
+  // subscribers don't churn through soft-deleted data on every table write
+  const categories = useLiveQuery(
+    () =>
+      db.categories
+        .filter((c) => !c.deleted_at && c.id !== UNCATEGORIZED_CATEGORY.ID)
+        .toArray(),
+    []
+  );
 
-  // Filter out deleted items, the local-only placeholder, and optionally by group
-  const filteredCategories =
-    categories?.filter((c) => {
-      if (c.deleted_at) return false;
-
-      // Exclude local-only "Uncategorized" placeholder category
-      if (c.id === UNCATEGORIZED_CATEGORY.ID) return false;
-
-      if (groupId === undefined) {
-        // Return all categories (no group_id filter)
-        return true;
-      } else if (groupId === null) {
-        // Return only personal categories
-        return !c.group_id;
-      } else {
-        // Return only categories for specific group (no personal)
-        return c.group_id === groupId;
-      }
-    }) || [];
+  // Optionally filter by group
+  const filteredCategories = useMemo(
+    () =>
+      categories?.filter((c) => {
+        if (groupId === undefined) {
+          // Return all categories (no group_id filter)
+          return true;
+        } else if (groupId === null) {
+          // Return only personal categories
+          return !c.group_id;
+        } else {
+          // Return only categories for specific group (no personal)
+          return c.group_id === groupId;
+        }
+      }) || [],
+    [categories, groupId]
+  );
 
   const addCategory = async (
     category: Omit<Category, "id" | "sync_token" | "pendingSync" | "deleted_at">

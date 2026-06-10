@@ -168,6 +168,7 @@ export function RecurringTransactionDesktopTable({
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => onEdit(t_item)}
+                                                        aria-label={t("edit", "Edit")}
                                                     >
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
@@ -183,6 +184,7 @@ export function RecurringTransactionDesktopTable({
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => onDelete(t_item.id)}
+                                                        aria-label={t("delete", "Delete")}
                                                     >
                                                         <Trash2 className="h-4 w-4 text-destructive" />
                                                     </Button>

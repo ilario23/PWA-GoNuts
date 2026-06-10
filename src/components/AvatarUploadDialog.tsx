@@ -109,6 +109,21 @@ export function AvatarUploadDialog({
 
             if (uploadError) throw uploadError
 
+            // Remove previous avatar files so the bucket doesn't accumulate
+            // one orphaned image per change (best-effort, non-blocking)
+            supabase.storage
+                .from('avatars')
+                .list(user.id)
+                .then(({ data: files }) => {
+                    const stale = (files || [])
+                        .filter((f) => f.name !== `${timestamp}.jpg`)
+                        .map((f) => `${user.id}/${f.name}`)
+                    if (stale.length > 0) {
+                        return supabase.storage.from('avatars').remove(stale)
+                    }
+                })
+                .catch((e) => console.warn('Failed to clean up old avatars:', e))
+
             // 4. Get public URL
             const { data: { publicUrl } } = supabase.storage
                 .from('avatars')

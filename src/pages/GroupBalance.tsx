@@ -253,6 +253,7 @@ export function GroupBalancePage() {
           size="icon"
           onClick={() => navigate(`/groups/${group.id}`)}
           className="h-9 w-9 shrink-0"
+          aria-label={t("back", "Back")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>

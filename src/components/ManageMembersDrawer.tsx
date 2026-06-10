@@ -307,6 +307,7 @@ export function ManageMembersDrawer({
                                                             size="icon"
                                                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                                             onClick={() => handleRemoveMember(member.id)}
+                                                            aria-label={t("remove_member", "Remove member")}
                                                         >
                                                             <UserMinus className="h-4 w-4" />
                                                         </Button>
@@ -383,7 +384,7 @@ export function ManageMembersDrawer({
                                 </Button>
                             )}
                             <DialogClosePrimitive asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label={t("close", "Close")}>
                                     <X className="h-4 w-4" />
                                 </Button>
                             </DialogClosePrimitive>
@@ -450,6 +451,7 @@ export function ManageMembersDrawer({
                                                             size="icon"
                                                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                                             onClick={() => handleRemoveMember(member.id)}
+                                                            aria-label={t("remove_member", "Remove member")}
                                                         >
                                                             <UserMinus className="h-4 w-4" />
                                                         </Button>

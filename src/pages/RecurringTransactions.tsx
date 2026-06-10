@@ -235,6 +235,7 @@ export function RecurringTransactionsPage() {
               setCategoryFilter("all");
             }}
             title={t("clear_filters")}
+            aria-label={t("clear_filters")}
           >
             <FilterX className="h-4 w-4" />
           </Button>

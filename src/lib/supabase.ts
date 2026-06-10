@@ -21,6 +21,8 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      // PKCE keeps tokens out of URL fragments (history/log leakage)
+      flowType: "pkce",
     },
   }
 );

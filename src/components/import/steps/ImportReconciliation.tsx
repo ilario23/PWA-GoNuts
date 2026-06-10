@@ -71,6 +71,7 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                                                             if (tx.category_id) onCreateRule(tx, tx.category_id);
                                                         }}
                                                         disabled={!tx.category_id || tx.category_id === 'UNCATEGORIZED'}
+                                                        aria-label={t("import.create_rule_tooltip", "Create rule for similar transactions")}
                                                     >
                                                         <Wand2 className="h-4 w-4" />
                                                     </Button>
@@ -88,6 +89,7 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                                         size="icon"
                                         className="h-8 w-8 text-muted-foreground hover:text-gonuts-bad"
                                         onClick={() => onDeleteTransaction(i)}
+                                        aria-label={t("delete", "Delete")}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -134,6 +136,7 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                                         if (tx.category_id) onCreateRule(tx, tx.category_id);
                                     }}
                                     disabled={!tx.category_id || tx.category_id === 'UNCATEGORIZED'}
+                                    aria-label={t("import.create_rule_tooltip", "Create rule for similar transactions")}
                                 >
                                     <Wand2 className="h-4 w-4" />
                                 </Button>
@@ -142,6 +145,7 @@ export function ImportReconciliation({ parsedData, onImport, onCreateRule, onMan
                                     size="icon"
                                     className="h-9 w-9 text-muted-foreground hover:text-gonuts-bad hover:bg-gonuts-bad/10 dark:hover:bg-gonuts-bad/20"
                                     onClick={() => onDeleteTransaction(i)}
+                                    aria-label={t("delete", "Delete")}
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>

@@ -151,6 +151,7 @@ export function ContextsPage() {
             onClick={() => setShowInactive(!showInactive)}
             className="h-9 w-9 text-muted-foreground"
             title={showInactive ? t("hide_archived") : t("show_archived")}
+            aria-label={showInactive ? t("hide_archived") : t("show_archived")}
           >
             {showInactive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>

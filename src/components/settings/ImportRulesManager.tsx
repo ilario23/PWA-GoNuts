@@ -154,6 +154,7 @@ export function ImportRulesManager() {
                                                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                                             onClick={() => handleDeleteRule(rule.id)}
                                                             title="Delete Rule"
+                                                            aria-label="Delete rule"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
@@ -187,6 +188,7 @@ export function ImportRulesManager() {
                                                 size="icon"
                                                 className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                                                 onClick={() => handleDeleteRule(rule.id)}
+                                                aria-label="Delete rule"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>

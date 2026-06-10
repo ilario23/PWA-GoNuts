@@ -49,6 +49,7 @@ export function ImportTypeSelection({ step, onSelectType, onSelectBank, onBack, 
                                     description: t("import.bank_supported_desc", "Maps Date, Amount, and Description columns manually.")
                                 });
                             }}
+                            aria-label={t("import.bank_supported_info", "Supported: Revolut, Intesa, N26, and any bank with standard CSV export.")}
                         >
                             <Info className="h-4 w-4 text-muted-foreground" />
                         </Button>

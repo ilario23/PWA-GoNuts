@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { handleError } from "@/lib/error-handler";
 import { TIMING } from "@/lib/constants";
@@ -13,6 +13,7 @@ interface PWAUpdateState {
 export function usePWAUpdate(): PWAUpdateState {
   const [offlineReady, setOfflineReady] = useState(false);
   const [needRefresh, setNeedRefresh] = useState(false);
+  const updateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
     needRefresh: [needRefreshSW, setNeedRefreshSW],
@@ -24,7 +25,10 @@ export function usePWAUpdate(): PWAUpdateState {
 
       // Check for updates periodically (every hour)
       if (registration) {
-        setInterval(() => {
+        if (updateIntervalRef.current) {
+          clearInterval(updateIntervalRef.current);
+        }
+        updateIntervalRef.current = setInterval(() => {
           console.log("[PWA] Checking for updates...");
           registration.update();
         }, TIMING.PWA_UPDATE_CHECK_INTERVAL);
@@ -42,6 +46,15 @@ export function usePWAUpdate(): PWAUpdateState {
       );
     },
   });
+
+  useEffect(() => {
+    return () => {
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+        updateIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setOfflineReady(offlineReadySW);

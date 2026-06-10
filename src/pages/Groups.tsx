@@ -170,6 +170,7 @@ export function GroupsPage() {
             size="icon"
             onClick={copyUserId}
             className="md:w-auto md:px-4 md:h-10"
+            aria-label={t("copy_my_id")}
           >
             {copiedUserId ? (
               <Check className="h-4 w-4 md:mr-2" />
