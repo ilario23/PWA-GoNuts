@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import {
   PieChart,
   Pie,
+  Cell,
   Label,
   Bar,
   XAxis,
@@ -459,8 +460,12 @@ export function StatisticsPage() {
                               dataKey="value"
                               nameKey="name"
                               innerRadius={70}
-                              strokeWidth={4}
+                              strokeWidth={2}
+                              stroke="hsl(var(--card))"
                             >
+                              {pieData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                              ))}
                               <Label
                                 content={({ viewBox }) => {
                                   if (viewBox && "cx" in viewBox && "cy" in viewBox) {

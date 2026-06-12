@@ -109,7 +109,7 @@ export function DailyRhythm({
             : isToday
               ? "hsl(var(--primary))"
               : d.value > 0
-                ? "hsl(var(--foreground))"
+                ? "hsl(25 10% 35%)"
                 : "hsl(var(--muted))";
           return (
             <div
