@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
- * Tracks vertical scroll *direction* inside a scroll container and reports
- * whether chrome should collapse — Instagram-style. Scrolling down (toward more
- * content) returns `true`; scrolling up returns `false`. We always report
- * expanded near the top so the nav is full-size when you land on a page.
+ * Tracks vertical scroll *direction* and reports whether chrome should
+ * collapse — Instagram-style. Scrolling down (toward more content) returns
+ * `true`; scrolling up returns `false`. We always report expanded near the top
+ * so the nav is full-size when you land on a page.
+ *
+ * Listens on the window: on mobile the whole document scrolls (the layout's
+ * containers only set `min-height`, so nothing scrolls internally), so window
+ * scroll is the real signal driving the bottom nav.
  *
  * Direction-based (not position-based): the flip happens on a change of
  * direction, with a small threshold to swallow jitter and rubber-banding.
  */
 export function useScrollDirection(
-  ref: RefObject<HTMLElement | null>,
   { threshold = 8, topOffset = 16 }: { threshold?: number; topOffset?: number } = {}
 ): boolean {
   const [collapsed, setCollapsed] = useState(false);
@@ -19,15 +22,15 @@ export function useScrollDirection(
   const anchorY = useRef(0);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const readY = () =>
+      window.scrollY ?? document.scrollingElement?.scrollTop ?? 0;
 
-    anchorY.current = el.scrollTop;
+    anchorY.current = readY();
     let ticking = false;
 
     const update = () => {
       ticking = false;
-      const y = el.scrollTop;
+      const y = readY();
 
       // Near the top: always expanded.
       if (y <= topOffset) {
@@ -50,9 +53,9 @@ export function useScrollDirection(
       }
     };
 
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [ref, threshold, topOffset]);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [threshold, topOffset]);
 
   return collapsed;
 }
