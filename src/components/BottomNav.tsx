@@ -17,7 +17,7 @@ function isSecondaryRoute(pathname: string): boolean {
     .some(p => pathname === p || pathname.startsWith(p + "/"));
 }
 
-export function BottomNav() {
+export function BottomNav({ collapsed = false }: { collapsed?: boolean }) {
   const { t } = useTranslation();
   const location = useLocation();
   const { user } = useAuth();
@@ -90,7 +90,11 @@ export function BottomNav() {
           "bg-foreground",
           "rounded-[28px] h-16",
           "shadow-[0_8px_32px_-4px_rgba(26,23,20,0.36),0_2px_8px_-2px_rgba(26,23,20,0.24)]",
-          "flex items-center justify-around px-2"
+          "flex items-center justify-around px-2",
+          // Shrink the whole pill (FAB included) while scrolling down through
+          // content; transform-origin keeps it anchored to the bottom edge.
+          "origin-bottom transition-transform duration-300 ease-out motion-reduce:transition-none",
+          collapsed && "scale-[0.82]"
         )}
         style={{ "--accent-color": accentColorValue } as React.CSSProperties}
         role="navigation"
