@@ -1069,6 +1069,8 @@
     "changelog_v2_1_0_8": "Uploading a new profile photo now automatically removes the old one.",
     "changelog_v2_1_0_9": "Edited the same entry on two devices? The most recent change now wins automatically, with a heads-up notification.",
     "changelog_v2_1_0_10": "Improved accessibility: icon buttons throughout the app are now properly labeled for VoiceOver and screen readers.",
+    "changelog_v2_1_2_0": "Bottom navigation bar redesigned as a liquid-glass pill with five equal tabs, matching the iOS-style frosted material.",
+    "changelog_v2_1_2_1": "Add transaction is now a standard center tab — same size and weight as the other tabs, no raised button.",
     "changelog_v2_1_1_0": "Bottom navigation bar now hides as you scroll down, giving more room to browse your transactions.",
     "changelog_v2_1_1_1": "Calculator buttons on iOS no longer dismiss the keyboard mid-entry.",
     "changelog_v2_1_1_2": "Fixed a gap that appeared at the bottom of sheets when the on-screen keyboard was open on iPhone.",

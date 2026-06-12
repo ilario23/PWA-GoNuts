@@ -50,12 +50,11 @@ components:
     textColor: "{colors.paper}"
     rounded: "{rounded.lg}"
     padding: "12px 20px"
-  fab:
-    backgroundColor: "{colors.coral}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.md}"
-    height: "64px"
-    width: "64px"
+  nav-add-tab:
+    backgroundColor: "transparent"
+    textColor: "rgba(255,255,255,0.82)"
+    rounded: "none"
+    note: "Standard fifth tab in the glass pill nav; no elevation, no accent fill."
   card:
     backgroundColor: "{colors.card}"
     textColor: "{colors.ink}"
@@ -87,14 +86,14 @@ This system rejects the generic blue-gradient SaaS dashboard, the cold navy-and-
 - Warm ink-on-paper base, one coral accent, semantic green/red for money direction.
 - Generous 22px card radii; soft, low shadows; nothing harsh.
 - Monospace tabular numerals for every currency value.
-- Mobile-first: a floating dark pill nav with a coral add-FAB is the signature.
+- Mobile-first: a floating liquid-glass pill nav with 5 equal tabs is the signature. Add sits as the center tab, no raised FAB.
 
 ## 2. Colors
 
 A warm neutral base (paper + ink) with one identity accent (coral) and a strict semantic pair for money (green in, red out).
 
 ### Primary
-- **Accent** (the user-selected theme color, driven by `--primary` / `--ring`; default Coral Spark `#E66A3C`, `hsl(19 77% 56%)`): The one action color and focus ring. Reserved for the primary "add" affordance (FAB), active navigation, and today's marker. Its rarity is what makes it read as *the* action. The theme picker recolors it; anything that reads as "the action" must come from `--primary`/`--ring`, never a hardcoded coral literal (those were swept to `--primary` so a non-coral theme stays consistent).
+- **Accent** (the user-selected theme color, driven by `--primary` / `--ring`; default Coral Spark `#E66A3C`, `hsl(19 77% 56%)`): The one action color and focus ring. Reserved for the add-transaction trigger, today's bar marker, and primary interactive states. The bottom nav does not use the accent for selection; selection reads as material (frosted glass capsule), not color. The theme picker recolors it; anything that reads as "the primary action" must come from `--primary`/`--ring`, never a hardcoded coral literal.
 
 ### Secondary
 - **Ledger Green** (`#2F9E5A`): Income and positive balances. Always paired with a `+` sign or label, never carrying meaning alone.
@@ -112,7 +111,7 @@ A warm neutral base (paper + ink) with one identity accent (coral) and a strict 
 - **Warm Border** (`#D4CCC2`): Hairline borders and dividers.
 
 ### Named Rules
-**The One Accent Rule.** The themed accent (`--primary`/`--ring`, default coral) is the action color. It belongs to the add-transaction FAB, the active nav tab, and today's bar — and almost nothing else. If a second accent-colored element appears on a screen, one of them is wrong. Never hardcode the accent (no `--gonuts-orange` literals); it must follow the theme.
+**The One Accent Rule.** The themed accent (`--primary`/`--ring`, default coral) is the action color. It belongs to the add-transaction trigger, today's bar, and primary interactive focus rings — and almost nothing else. Active nav-tab selection uses a neutral frosted-glass capsule (material, not color), so the accent stays rare and immediately readable as "the action." Never hardcode the accent (no `--gonuts-orange` literals); it must follow the theme.
 
 **The Money-Never-Color-Alone Rule.** Green and red always travel with a sign, word, or icon. A color-blind user must read direction without seeing hue.
 
@@ -136,12 +135,11 @@ A warm neutral base (paper + ink) with one identity accent (coral) and a strict 
 
 ## 4. Elevation
 
-A soft, low-elevation system: surfaces are flat-to-gently-lifted on paper, never harsh. Depth comes from a faint hairline border plus a soft diffuse shadow, not from dark drop shadows. The bottom nav and FAB are the only strongly-lifted elements, because they float above scrolling content.
+A soft, low-elevation system: surfaces are flat-to-gently-lifted on paper, never harsh. Depth comes from a faint hairline border plus a soft diffuse shadow, not from dark drop shadows. The bottom nav is the only strongly-lifted element, because it floats above scrolling content.
 
 ### Shadow Vocabulary
 - **Card rest** (`0 1px 0 rgba(26,23,20,0.04), 0 6px 16px -8px rgba(26,23,20,0.12)`): Default card lift on paper.
-- **Floating nav** (`0 8px 32px -4px rgba(26,23,20,0.36), 0 2px 8px -2px rgba(26,23,20,0.24)`): The bottom pill nav.
-- **FAB** (`0 4px 16px -2px rgba(230,106,60,0.50)`): Coral glow under the add button.
+- **Floating nav** (via `.nav-glass` CSS class): ink-tinted inset specular top edge + soft diffuse outer shadow. Handled by CSS, not inline styles, so dark mode adjusts automatically.
 
 ### Named Rules
 **The Soft-Shadow Rule.** Shadows are warm-tinted (ink, not pure black) and diffuse. A hard, dark, tight shadow reads as a 2014 app; lift with blur and spread, never with opacity.
@@ -171,19 +169,21 @@ A soft, low-elevation system: surfaces are flat-to-gently-lifted on paper, never
 - **Error:** Ledger Red text + message inline near the field (not only a toast).
 
 ### Navigation
-- **Mobile:** A floating dark pill (`hsl(25 15% 22%)`) fixed near the bottom safe-area, 5 slots: Dashboard, Transactions, coral add-FAB (center, raised), Statistics, More. Active = coral icon + label + top tick.
-- **Desktop:** Collapsible left sidebar with full text labels; bottom nav hidden.
-- **Active/inactive:** Active is coral; inactive labels must stay ≥4.5:1 against the dark bar (current `white/55` at 10px does not — fix toward `white/75`+).
+- **Mobile:** A floating liquid-glass pill fixed near the bottom safe-area (`left: 0.75rem; right: 0.75rem`), 5 equal tabs: Dashboard, Transactions, Add, Statistics, More. The pill uses `backdrop-filter: blur(32px) saturate(180%)` over an ink-tinted translucent fill; the `.nav-glass` class in `index.css` owns all material values.
+- **Active state:** A neutral frosted capsule (`bg-white/[0.16]` with specular inset) sits behind the active icon + label. No accent color in the nav. White text at full opacity (`rgba(255,255,255,0.98)`) for active, `rgba(255,255,255,0.82)` for inactive — both clear ≥4.5:1 on the dark glass.
+- **Add tab:** Center position, Plus icon + "Add" label, opens the transaction sheet (preserves view-transition morph). Visually identical to the other four tabs.
+- **Collapse:** Scales to `0.82` on scroll-down via `useScrollDirection`, anchored to the bottom edge. Restores on scroll-up.
+- **Desktop:** Collapsible left sidebar with full text labels; bottom nav hidden (`md:hidden`).
 
-### Signature Component — The Add-FAB
-A 64px coral rounded-square, raised above the nav pill, owning the new-transaction sheet directly. It is the emotional center of the app: logging money must always be one thumb-tap away.
+### Signature Component — The Add Tab
+The center tab in the glass pill nav, opening the transaction sheet. No raised position, no accent fill; its importance comes from the center slot and the Plus icon, not from color. The view-transition morph (`view-transition-name: add-fab`) animates the sheet open when the browser supports it. Entry is still sacred — one tap, always reachable.
 
 ## 6. Do's and Don'ts
 
 ### Do:
 - **Do** reserve hue for *meaning*: money direction (income/expense/investment), state (over-budget, success, error), data-viz categories, and user-chosen category colors. Everything else stays on the warm neutral system.
 - **Do** carry warmth through the ink/paper/coral palette, the 22px radii, and Bricolage Grotesque — not through a tinted near-white standing in for design.
-- **Do** keep coral for the one primary action per screen (The One Coral Rule).
+- **Do** keep coral (or the themed accent) for the one primary action per screen; the nav tab bar is not that surface — use the neutral glass material there instead.
 - **Do** set every currency value in `.num` (JetBrains Mono, tabular).
 - **Do** pair money colors with a sign/word/icon (The Money-Never-Color-Alone Rule).
 - **Do** drive color from the `--gonuts-*`, `--color-expense/income/investment`, and `--chart-*` tokens so accent-color and dark mode propagate.

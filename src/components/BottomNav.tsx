@@ -1,15 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { flushSync } from "react-dom";
 import { useLocation, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LayoutDashboard, Receipt, PieChart, MoreHorizontal, Plus } from "lucide-react";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import { useSettings } from "@/hooks/useSettings";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAuth } from "@/contexts/AuthProvider";
 import { TransactionDialog, TransactionFormData } from "@/components/TransactionDialog";
-import { THEME_COLORS } from "@/lib/theme-colors";
 
 function isSecondaryRoute(pathname: string): boolean {
   return ["/groups", "/categories", "/contexts", "/recurring",
@@ -22,18 +19,7 @@ export function BottomNav({ collapsed = false }: { collapsed?: boolean }) {
   const location = useLocation();
   const { user } = useAuth();
   const { addTransaction } = useTransactions();
-  const { settings } = useSettings();
-  const { resolvedTheme } = useTheme();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const accentColorValue = useMemo(() => {
-    if (!settings?.accentColor) return "24.6 95% 53.1%";
-    const theme = THEME_COLORS[settings.accentColor];
-    if (!theme) return "24.6 95% 53.1%";
-
-    const isDark = resolvedTheme === "dark";
-    return isDark ? theme.dark.primary : theme.light.primary;
-  }, [settings?.accentColor, resolvedTheme]);
 
   // Morph the FAB into the add sheet via the View Transitions API when the
   // browser supports it and motion is allowed. The FAB and the add sheet share
@@ -87,45 +73,40 @@ export function BottomNav({ collapsed = false }: { collapsed?: boolean }) {
         className={cn(
           "md:hidden fixed z-50",
           "left-3 right-3 bottom-[max(1.125rem,env(safe-area-inset-bottom))]",
-          "bg-foreground",
+          "nav-glass",
           "rounded-[28px] h-16",
-          "shadow-[0_8px_32px_-4px_rgba(26,23,20,0.36),0_2px_8px_-2px_rgba(26,23,20,0.24)]",
           "flex items-center justify-around px-2",
           // Shrink the whole pill (FAB included) while scrolling down through
           // content; transform-origin keeps it anchored to the bottom edge.
           "origin-bottom transition-transform duration-300 ease-out motion-reduce:transition-none",
           collapsed && "scale-[0.82]"
         )}
-        style={{ "--accent-color": accentColorValue } as React.CSSProperties}
         role="navigation"
         aria-label={t("main_navigation", { defaultValue: "Main navigation" })}
       >
-        <NavTab {...tabs[0]} accentColor={accentColorValue} />
-        <NavTab {...tabs[1]} accentColor={accentColorValue} />
+        <NavTab {...tabs[0]} />
+        <NavTab {...tabs[1]} />
 
         <button
           onClick={openAdd}
           aria-label={t("add_transaction")}
           className={cn(
-            "flex items-center justify-center",
-            "w-16 h-16 -translate-y-1.5 shrink-0",
-            "text-white",
-            "rounded-[24px]",
-            "transition-transform duration-150 active:scale-95"
+            "relative flex flex-col items-center justify-center gap-0.5 w-16 h-full",
+            "text-[rgba(255,255,255,0.82)]",
+            "transition-transform duration-150 active:scale-95 motion-reduce:transition-none"
           )}
           style={{
-            backgroundColor: `hsl(${accentColorValue})`,
-            boxShadow: `0 4px 16px -2px hsl(${accentColorValue} / 0.5)`,
             // Shared morph target with the add sheet (dropped while open so the
             // name lives on exactly one element during the transition).
             viewTransitionName: isDialogOpen ? "none" : "add-fab",
           }}
         >
-          <Plus className="w-7 h-7" strokeWidth={2.5} />
+          <Plus className="w-5 h-5" strokeWidth={2.5} />
+          <span className="text-[10px] font-semibold leading-none">{t("add")}</span>
         </button>
 
-        <NavTab {...tabs[2]} accentColor={accentColorValue} />
-        <NavTab {...tabs[3]} accentColor={accentColorValue} />
+        <NavTab {...tabs[2]} />
+        <NavTab {...tabs[3]} />
       </nav>
 
       <TransactionDialog
@@ -138,36 +119,40 @@ export function BottomNav({ collapsed = false }: { collapsed?: boolean }) {
   );
 }
 
-function NavTab({ href, icon: Icon, label, active, accentColor }: {
+function NavTab({ href, icon: Icon, label, active }: {
   href: string;
   icon: React.ElementType;
   label: string;
   active: boolean;
-  accentColor: string;
 }) {
   return (
     <Link
       to={href}
-      className="relative flex flex-col items-center justify-center gap-0.5 w-14 h-full"
+      className="relative flex flex-col items-center justify-center gap-0.5 w-16 h-full"
       aria-current={active ? "page" : undefined}
     >
+      {/* Frosted capsule behind the active tab (iOS liquid-glass "lens"),
+          neutral like the system tab bar: selection reads as material, not
+          color. */}
       <span
+        aria-hidden="true"
         className={cn(
-          "absolute top-1 w-6 h-0.5 rounded-full transition-opacity duration-200",
+          "absolute inset-x-0.5 inset-y-2 rounded-full bg-white/[0.16]",
+          "shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]",
+          "transition-opacity duration-200 motion-reduce:transition-none",
           active ? "opacity-100" : "opacity-0"
         )}
-        style={{ backgroundColor: active ? `hsl(${accentColor})` : undefined }}
       />
       <Icon
-        className="w-5 h-5 transition-colors duration-150"
+        className="relative w-5 h-5 transition-colors duration-150"
         style={{
-          color: active ? `hsl(${accentColor})` : "rgba(255, 255, 255, 0.75)"
+          color: active ? "rgba(255, 255, 255, 0.98)" : "rgba(255, 255, 255, 0.82)"
         }}
       />
       <span
-        className="text-[10px] font-semibold leading-none transition-colors duration-150"
+        className="relative text-[10px] font-semibold leading-none transition-colors duration-150"
         style={{
-          color: active ? `hsl(${accentColor})` : "rgba(255, 255, 255, 0.75)"
+          color: active ? "rgba(255, 255, 255, 0.98)" : "rgba(255, 255, 255, 0.82)"
         }}
       >
         {label}

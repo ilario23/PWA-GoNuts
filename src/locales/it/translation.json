@@ -1066,6 +1066,8 @@
     "changelog_v2_1_0_8": "Caricare una nuova foto profilo rimuove automaticamente quella vecchia.",
     "changelog_v2_1_0_9": "Hai modificato la stessa voce su due dispositivi? La modifica più recente vince automaticamente, con una notifica per tenerti informato.",
     "changelog_v2_1_0_10": "Accessibilità migliorata: i pulsanti con icona nell'app sono ora correttamente etichettati per VoiceOver e screen reader.",
+    "changelog_v2_1_2_0": "La barra di navigazione è stata ridisegnata come una pillola in vetro liquido con cinque tab uguali, nello stile frosted di iOS.",
+    "changelog_v2_1_2_1": "Il pulsante Aggiungi è ora un tab centrale standard, uguale agli altri — senza pulsante sopraelevato.",
     "changelog_v2_1_1_0": "La barra di navigazione in basso ora si nasconde scorrendo verso il basso, dando più spazio per sfogliare i movimenti.",
     "changelog_v2_1_1_1": "I pulsanti della calcolatrice su iOS non chiudono più la tastiera durante l'inserimento.",
     "changelog_v2_1_1_2": "Corretto uno spazio vuoto che appariva in fondo ai pannelli quando la tastiera virtuale era aperta su iPhone.",
