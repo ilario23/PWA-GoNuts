@@ -492,6 +492,45 @@
       0 12px 28px -10px hsl(var(--foreground) / 0.2);
   }
 
+  /* Liquid-glass material for the floating bottom nav (iOS tab-bar style).
+     Ink-tinted smoked glass in both themes; solid ink fallback when
+     backdrop-filter is unsupported or transparency is reduced. The specular
+     top edge + hairline ring come from inset shadows so they follow the
+     pill radius exactly. */
+  .nav-glass {
+    background-color: hsl(25 13% 11% / 0.97);
+    box-shadow:
+      0 8px 32px -4px hsl(25 13% 10% / 0.36),
+      0 2px 8px -2px hsl(25 13% 10% / 0.24),
+      inset 0 1px 0 hsl(0 0% 100% / 0.12),
+      inset 0 0 0 1px hsl(0 0% 100% / 0.06);
+  }
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .nav-glass {
+      /* Tint darkened to 10% lightness so white labels stay legible even
+         though the alpha is low; "more glass" comes from stronger blur. */
+      background-color: hsl(25 13% 10% / 0.5);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      backdrop-filter: blur(32px) saturate(180%);
+    }
+
+    .dark .nav-glass {
+      /* On a dark page the glass lifts slightly above the background,
+         like the iOS dark-mode tab bar. */
+      background-color: hsl(25 8% 24% / 0.42);
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .nav-glass,
+    .dark .nav-glass {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background-color: hsl(25 13% 11% / 0.97);
+    }
+  }
+
   /* Shimmer animation utility */
   .animate-shimmer {
     animation: shimmer 2s cubic-bezier(0.4, 0.0, 0.6, 1) infinite;
