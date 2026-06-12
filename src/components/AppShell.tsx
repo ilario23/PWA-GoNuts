@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useSettings } from "@/hooks/useSettings";
+import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { applyThemeColor } from "@/lib/theme-colors";
 import { PendingChangesIndicator } from "@/components/PendingChangesIndicator";
 import { BottomNav } from "@/components/BottomNav";
@@ -27,6 +28,12 @@ function AppHeader() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
+
+  // The bottom nav collapses while scrolling down through content and expands
+  // again on the way up — Instagram-style. The <main> below is the mobile
+  // scroll container, so we watch its direction directly.
+  const mainRef = useRef<HTMLElement>(null);
+  const navCollapsed = useScrollDirection(mainRef);
 
   // Apply accent color when settings or theme changes.
   // Derive isDark from settings (the source of truth), not next-themes which
@@ -57,11 +64,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <SidebarInset className="pt-0">
         <AppHeader />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 pt-[calc(1rem+env(safe-area-inset-top))] md:pt-8 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 pt-[calc(1rem+env(safe-area-inset-top))] md:pt-8 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-6xl space-y-6 min-w-0">{children}</div>
         </main>
       </SidebarInset>
-      <BottomNav />
+      <BottomNav collapsed={navCollapsed} />
     </SidebarProvider>
   );
 }
