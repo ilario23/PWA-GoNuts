@@ -516,6 +516,7 @@ export function TransactionDialog({
               )}
               <button
                 type='button'
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={toggleCalc}
                 aria-label={t('calculator', {defaultValue: 'Calculator'})}
                 aria-pressed={showCalc}

@@ -11,6 +11,10 @@ interface CalculatorProps {
     className?: string;
 }
 
+// Prevents buttons from stealing focus from the amount input (and dismissing
+// the keyboard on iOS) while still letting the click event fire normally.
+const noFocusSteal = (e: React.MouseEvent) => e.preventDefault();
+
 export function Calculator({
     onOperation,
     onEqual,
@@ -35,6 +39,7 @@ export function Calculator({
                 size="sm"
                 aria-label={t("calc_clear", { defaultValue: "Clear" })}
                 className="flex-1 h-9 bg-muted text-muted-foreground hover:text-foreground"
+                onMouseDown={noFocusSteal}
                 onClick={onClear}
             >
                 <Delete className="h-4 w-4" />
@@ -52,6 +57,7 @@ export function Calculator({
                             ? "bg-foreground text-background hover:bg-foreground"
                             : "bg-muted text-muted-foreground hover:text-foreground"
                     )}
+                    onMouseDown={noFocusSteal}
                     onClick={() => onOperation(op.label)}
                 >
                     <op.icon className="h-4 w-4" />
@@ -63,6 +69,7 @@ export function Calculator({
                 size="sm"
                 aria-label={t("calc_equals", { defaultValue: "Equals" })}
                 className="flex-1 h-9 bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary))]/90"
+                onMouseDown={noFocusSteal}
                 onClick={onEqual}
             >
                 <Equal className="h-4 w-4" />
