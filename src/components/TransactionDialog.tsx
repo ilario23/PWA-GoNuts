@@ -137,6 +137,36 @@ export function TransactionDialog({
     awaitingOperand: boolean;
   }>({prevValue: null, operation: null, awaitingOperand: false});
 
+  // Keeps the numeric keyboard open after tapping a calculator button, which
+  // would otherwise blur the input and dismiss the keyboard on iOS.
+  const amountInputRef = useRef<HTMLInputElement>(null);
+  const refocusAmount = () => amountInputRef.current?.focus();
+
+  // iOS positions `position: fixed` elements against the layout viewport, so a
+  // bottom-anchored sheet does not follow the visual viewport when the on-screen
+  // keyboard opens/closes — leaving a gap below it. Pin the sheet to the visual
+  // viewport instead.
+  const [viewport, setViewport] = useState<{inset: number; maxHeight: number} | null>(null);
+  useEffect(() => {
+    if (!open || !isMobile) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      const keyboardOpen = inset > 4;
+      const maxHeight = Math.round(keyboardOpen ? vv.height - 8 : vv.height * 0.92);
+      setViewport({inset, maxHeight});
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+      setViewport(null);
+    };
+  }, [open, isMobile]);
+
   const [showLargeValueConfirm, setShowLargeValueConfirm] = useState(false);
   const [pendingData, setPendingData] = useState<TransactionFormValues | null>(null);
 
@@ -285,6 +315,7 @@ export function TransactionDialog({
     // Swap the pending operation if the running total is still untouched.
     if (calcState.awaitingOperand) {
       setCalcState((s) => ({...s, operation: op}));
+      refocusAmount();
       return;
     }
     // Nothing to operate on yet.
@@ -295,9 +326,11 @@ export function TransactionDialog({
       prev = computeCalc(calcState.prevValue, calcState.operation, current);
     }
     setCalcState({prevValue: prev, operation: op, awaitingOperand: true});
-    // Prepopulate the running total — the next keystroke overwrites it.
+    // Clear the operand so it's obvious a second number is expected; the running
+    // total stays visible in the hint below the amount.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    form.setValue('amount', String(prev) as any, {shouldValidate: true});
+    form.setValue('amount', '' as any, {shouldValidate: true});
+    refocusAmount();
   };
 
   const handleEqual = () => {
@@ -319,6 +352,7 @@ export function TransactionDialog({
     setCalcState((s) => ({...s, awaitingOperand: false}));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     form.setValue('amount', '' as any, {shouldValidate: true});
+    refocusAmount();
   };
 
   const toggleCalc = () => {
@@ -453,28 +487,19 @@ export function TransactionDialog({
               <div className='inline-flex items-baseline gap-1'>
                 <span className='text-3xl font-bold text-muted-foreground'>{currencySymbol}</span>
                 <input
+                  ref={amountInputRef}
                   type='text'
                   inputMode='decimal'
                   aria-label={t('amount')}
                   placeholder='0'
                   value={String((watchedAmount as unknown) ?? '')}
                   onChange={(e) => {
-                    let v = e.target.value;
-                    // While the prepopulated total is shown, the first keystroke starts the
-                    // new operand: strip the total we appended onto.
-                    if (calcState.awaitingOperand) {
-                      const prevStr = String(calcState.prevValue ?? '');
-                      if (v.length > prevStr.length && v.startsWith(prevStr)) {
-                        v = v.slice(prevStr.length);
-                      }
-                      if (v === '' || /^[0-9]*([.,][0-9]{0,2})?$/.test(v)) {
-                        setCalcState((s) => ({...s, awaitingOperand: false}));
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        form.setValue('amount', v as any, {shouldValidate: true});
-                      }
-                      return;
-                    }
+                    const v = e.target.value;
                     if (v === '' || /^[0-9]*([.,][0-9]{0,2})?$/.test(v)) {
+                      // First keystroke after an operation starts the new operand.
+                      if (calcState.awaitingOperand) {
+                        setCalcState((s) => ({...s, awaitingOperand: false}));
+                      }
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       form.setValue('amount', v as any, {shouldValidate: true});
                     }
@@ -730,7 +755,10 @@ export function TransactionDialog({
             side='bottom'
             hideClose
             className='rounded-t-[28px] p-0 flex flex-col gap-0 max-h-[92dvh] focus:outline-none overflow-hidden'
-            style={{ viewTransitionName: editingTransaction ? undefined : 'add-fab' }}
+            style={{
+              viewTransitionName: editingTransaction ? undefined : 'add-fab',
+              ...(viewport ? {bottom: viewport.inset, maxHeight: viewport.maxHeight} : {}),
+            }}
           >
             <SheetTitle className='sr-only'>
               {editingTransaction ? t('edit_transaction') : t('new_transaction', {defaultValue: 'New transaction'})}
