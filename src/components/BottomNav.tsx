@@ -72,41 +72,50 @@ export function BottomNav({ collapsed = false }: { collapsed?: boolean }) {
       <nav
         className={cn(
           "md:hidden fixed z-50",
-          "left-3 right-3 bottom-[max(1.125rem,env(safe-area-inset-bottom))]",
-          "nav-glass",
-          "rounded-[28px] h-16",
-          "flex items-center justify-around px-2",
-          // Shrink the whole pill (FAB included) while scrolling down through
-          // content; transform-origin keeps it anchored to the bottom edge.
-          "origin-bottom transition-transform duration-300 ease-out motion-reduce:transition-none",
-          collapsed && "scale-[0.82]"
+          "left-3 right-3 bottom-[max(1.125rem,env(safe-area-inset-bottom))]"
+          // No transform on this fixed element: iOS Safari positions a fixed
+          // element that has a `transform` relative to the document instead of
+          // the viewport, which makes the pill drift upward while scrolled. The
+          // collapse scale lives on the inner pill below instead.
         )}
         role="navigation"
         aria-label={t("main_navigation", { defaultValue: "Main navigation" })}
       >
-        <NavTab {...tabs[0]} />
-        <NavTab {...tabs[1]} />
-
-        <button
-          onClick={openAdd}
-          aria-label={t("add_transaction")}
+        <div
           className={cn(
-            "relative flex flex-col items-center justify-center gap-0.5 w-16 h-full",
-            "text-[rgba(255,255,255,0.82)]",
-            "transition-transform duration-150 active:scale-95 motion-reduce:transition-none"
+            "nav-glass",
+            "rounded-[28px] h-16",
+            "flex items-center justify-around px-2",
+            // Shrink the whole pill (FAB included) while scrolling down through
+            // content; transform-origin keeps it anchored to the bottom edge.
+            "origin-bottom transition-transform duration-300 ease-out motion-reduce:transition-none",
+            collapsed && "scale-[0.82]"
           )}
-          style={{
-            // Shared morph target with the add sheet (dropped while open so the
-            // name lives on exactly one element during the transition).
-            viewTransitionName: isDialogOpen ? "none" : "add-fab",
-          }}
         >
-          <Plus className="w-5 h-5" strokeWidth={2.5} />
-          <span className="text-[10px] font-semibold leading-none">{t("add")}</span>
-        </button>
+          <NavTab {...tabs[0]} />
+          <NavTab {...tabs[1]} />
 
-        <NavTab {...tabs[2]} />
-        <NavTab {...tabs[3]} />
+          <button
+            onClick={openAdd}
+            aria-label={t("add_transaction")}
+            className={cn(
+              "relative flex flex-col items-center justify-center gap-0.5 w-16 h-full",
+              "text-[rgba(255,255,255,0.82)]",
+              "transition-transform duration-150 active:scale-95 motion-reduce:transition-none"
+            )}
+            style={{
+              // Shared morph target with the add sheet (dropped while open so the
+              // name lives on exactly one element during the transition).
+              viewTransitionName: isDialogOpen ? "none" : "add-fab",
+            }}
+          >
+            <Plus className="w-5 h-5" strokeWidth={2.5} />
+            <span className="text-[10px] font-semibold leading-none">{t("add")}</span>
+          </button>
+
+          <NavTab {...tabs[2]} />
+          <NavTab {...tabs[3]} />
+        </div>
       </nav>
 
       <TransactionDialog

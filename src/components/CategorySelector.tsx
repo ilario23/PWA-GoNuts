@@ -20,14 +20,15 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-  DrawerDescription,
-} from '@/components/ui/drawer';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import {useCategories} from '@/hooks/useCategories';
+import {useVisualViewportSheet} from '@/hooks/useVisualViewportSheet';
 import {Category} from '@/lib/db';
 import {getIconComponent} from '@/lib/icons';
 import {useTranslation} from 'react-i18next';
@@ -91,6 +92,10 @@ export function CategorySelector({
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = onExternalOpenChange !== undefined ? onExternalOpenChange : setInternalOpen;
   const [isMobile, setIsMobile] = React.useState(false);
+  // Pin the mobile sheet to the visual viewport (keyboard-aware) — the search
+  // field can raise the keyboard, and iOS otherwise leaves the sheet anchored
+  // to the layout viewport.
+  const viewport = useVisualViewportSheet(isMobile && open, 0.85);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [expandedRoots, setExpandedRoots] = React.useState<Set<string>>(
     new Set(),
@@ -710,9 +715,9 @@ export function CategorySelector({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
+      <Sheet open={open} onOpenChange={setOpen}>
         {externalOpen === undefined && (
-        <DrawerTrigger asChild>
+        <SheetTrigger asChild>
           {customTrigger ? (
             <span>{customTrigger}</span>
           ) : (
@@ -758,18 +763,28 @@ export function CategorySelector({
             <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
           </Button>
           )}
-        </DrawerTrigger>
+        </SheetTrigger>
         )}
-        <DrawerContent className='h-[85dvh] max-h-[85lvh] flex flex-col overflow-hidden fixed bottom-0 left-0 right-0 z-50'>
-          <DrawerHeader className='border-b px-4 py-3 shrink-0 text-left'>
-            <DrawerTitle>{t('select_category')}</DrawerTitle>
-            <DrawerDescription className='sr-only'>
+        <SheetContent
+          side='bottom'
+          hideClose
+          className='h-[85dvh] flex flex-col gap-0 overflow-hidden rounded-t-[28px] p-0'
+          style={
+            viewport
+              ? {bottom: viewport.inset, maxHeight: viewport.maxHeight}
+              : undefined
+          }
+        >
+          <div className='mx-auto w-10 h-1 rounded-full bg-muted mt-3 mb-2 shrink-0' />
+          <SheetHeader className='border-b px-4 py-3 shrink-0 space-y-0 text-left'>
+            <SheetTitle>{t('select_category')}</SheetTitle>
+            <SheetDescription className='sr-only'>
               {t('select_category')}
-            </DrawerDescription>
-          </DrawerHeader>
+            </SheetDescription>
+          </SheetHeader>
           {Content}
-        </DrawerContent>
-      </Drawer>
+        </SheetContent>
+      </Sheet>
     );
   }
 

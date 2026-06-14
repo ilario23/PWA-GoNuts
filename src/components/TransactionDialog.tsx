@@ -6,6 +6,7 @@ import {useContexts} from '@/hooks/useContexts';
 import {useCategories} from '@/hooks/useCategories';
 import {getLocalDate, cn} from '@/lib/utils';
 import {useIsMobile} from '@/hooks/use-mobile';
+import {useVisualViewportSheet} from '@/hooks/useVisualViewportSheet';
 import {
   Sheet,
   SheetContent,
@@ -146,26 +147,7 @@ export function TransactionDialog({
   // bottom-anchored sheet does not follow the visual viewport when the on-screen
   // keyboard opens/closes — leaving a gap below it. Pin the sheet to the visual
   // viewport instead.
-  const [viewport, setViewport] = useState<{inset: number; maxHeight: number} | null>(null);
-  useEffect(() => {
-    if (!open || !isMobile) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => {
-      const inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-      const keyboardOpen = inset > 4;
-      const maxHeight = Math.round(keyboardOpen ? vv.height - 8 : vv.height * 0.92);
-      setViewport({inset, maxHeight});
-    };
-    update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-      setViewport(null);
-    };
-  }, [open, isMobile]);
+  const viewport = useVisualViewportSheet(open && isMobile, 0.92);
 
   const [showLargeValueConfirm, setShowLargeValueConfirm] = useState(false);
   const [pendingData, setPendingData] = useState<TransactionFormValues | null>(null);
