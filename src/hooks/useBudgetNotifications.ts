@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../lib/db";
-import { useAuth } from "./useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { toast } from "sonner";
 import i18n from "@/i18n";
 import { format } from "date-fns";

@@ -1,3 +1,12 @@
+-- ============================================================================
+-- ⚠️  NON-AUTHORITATIVE SNAPSHOT — DO NOT APPLY DIRECTLY.
+-- The source of truth is supabase/migrations/. This file is a human-readable
+-- reference only and is known to lag (e.g. it predates settlement_payments and
+-- the 2026-06-16 security hardening). Regenerate with `supabase db dump` or
+-- read the migrations. Security-critical policies here have been corrected
+-- inline to avoid being misleading, but the full file may still drift.
+-- ============================================================================
+
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
@@ -474,10 +483,12 @@ create table if not exists public.profiles (
 alter table public.profiles enable row level security;
 
 -- 3. RLS Policies
--- Everyone can read profiles (needed for group members to see each other)
-create policy "Public profiles are viewable by everyone" 
-  on public.profiles for select 
-  using (true);
+-- A profile is readable by its owner and by users who share a group with them.
+-- (Corrected 2026-06-16: the old `using (true)` exposed every user's email to
+-- every authenticated user. See migration 20260616000000_security_hardening.)
+create policy "Profiles viewable by self or group co-members"
+  on public.profiles for select
+  using (id = (select auth.uid()) or public.shares_group_with(id));
 
 -- Users can only insert their own profile
 create policy "Users can insert their own profile" 

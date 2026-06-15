@@ -58,7 +58,7 @@ import { cn, getLocalDate } from "@/lib/utils";
 import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
 import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
-import { exportTransactionsToCSV } from "@/lib/exportUtils";
+import { exportTransactionsToCSV, exportTransactionsToJSON } from "@/lib/exportUtils";
 import { exportFullBackup, importFullBackup } from "@/lib/backup";
 
 function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -131,36 +131,40 @@ export function SettingsPage() {
   const [exportYear, setExportYear] = useState<string>(new Date().getFullYear().toString());
   const [exportMonth, setExportMonth] = useState<string>("all");
   const [isExportingCSV, setIsExportingCSV] = useState(false);
+  const [isExportingJSON, setIsExportingJSON] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const restoreInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Resolve the transaction set for the current year/month filter (shared by
+  // the CSV and JSON exports so they always cover identical data).
+  const getFilteredTransactions = async (userId: string) => {
+    if (exportYear === "all") {
+      const all = await db.transactions
+        .filter((t) => t.user_id === userId && !t.deleted_at)
+        .toArray();
+      all.sort((a, b) => b.date.localeCompare(a.date));
+      return all;
+    }
+    if (exportMonth === "all") {
+      return db.transactions
+        .where("year_month")
+        .between(`${exportYear}-01`, `${exportYear}-12\uffff`)
+        .filter((t) => t.user_id === userId && !t.deleted_at)
+        .toArray();
+    }
+    return db.transactions
+      .where("year_month")
+      .equals(`${exportYear}-${exportMonth}`)
+      .filter((t) => t.user_id === userId && !t.deleted_at)
+      .toArray();
+  };
 
   const handleCSVExport = async () => {
     if (!user) return;
     setIsExportingCSV(true);
     try {
-      // Fetch filtered transactions
-      let transactions;
-      if (exportYear === "all") {
-        // Export EVERYTHING for this user
-        transactions = await db.transactions
-          .filter((t) => t.user_id === user.id && !t.deleted_at)
-          .toArray();
-        // Sort by date descending
-        transactions.sort((a, b) => b.date.localeCompare(a.date));
-      } else if (exportMonth === "all") {
-        transactions = await db.transactions
-          .where("year_month")
-          .between(`${exportYear}-01`, `${exportYear}-12\uffff`)
-          .filter((t) => t.user_id === user.id && !t.deleted_at)
-          .toArray();
-      } else {
-        transactions = await db.transactions
-          .where("year_month")
-          .equals(`${exportYear}-${exportMonth}`)
-          .filter((t) => t.user_id === user.id && !t.deleted_at)
-          .toArray();
-      }
+      const transactions = await getFilteredTransactions(user.id);
 
       // Fetch related data for resolution
       const categories = await db.categories.toArray();
@@ -182,6 +186,21 @@ export function SettingsPage() {
       toast.error(t("export_error") || "Export failed");
     } finally {
       setIsExportingCSV(false);
+    }
+  };
+
+  const handleJSONExport = async () => {
+    if (!user) return;
+    setIsExportingJSON(true);
+    try {
+      const transactions = await getFilteredTransactions(user.id);
+      exportTransactionsToJSON(transactions);
+      toast.success(t("export_success"));
+    } catch (error) {
+      console.error("JSON export failed:", error);
+      toast.error(t("export_error") || "Export failed");
+    } finally {
+      setIsExportingJSON(false);
     }
   };
 
@@ -479,10 +498,16 @@ export function SettingsPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" className="w-full h-11 gap-2" onClick={handleCSVExport} disabled={isExportingCSV}>
-            {isExportingCSV ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 text-gonuts-good" />}
-            {t("download_csv") || "Download CSV"}
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" className="h-11 gap-2" onClick={handleCSVExport} disabled={isExportingCSV || isExportingJSON}>
+              {isExportingCSV ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 text-gonuts-good" />}
+              {t("download_csv") || "Download CSV"}
+            </Button>
+            <Button variant="outline" className="h-11 gap-2" onClick={handleJSONExport} disabled={isExportingCSV || isExportingJSON}>
+              {isExportingJSON ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-gonuts-good" />}
+              {t("download_json") || "Download JSON"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

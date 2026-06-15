@@ -28,7 +28,11 @@ describe("db", () => {
   });
 
   it("should have correct version", () => {
-    expect(db.verno).toBe(4);
+    expect(db.verno).toBe(5);
+  });
+
+  it("exposes the sync_conflicts table (v5)", () => {
+    expect(db.sync_conflicts).toBeDefined();
   });
 
   it("should index recurrence_key on transactions", () => {

@@ -17,7 +17,7 @@ jest.mock("@/hooks/useSettings", () => ({
     }),
 }));
 
-jest.mock("@/hooks/useAuth", () => ({
+jest.mock("@/contexts/AuthProvider", () => ({
     useAuth: () => ({
         user: { id: "test-user" },
     }),

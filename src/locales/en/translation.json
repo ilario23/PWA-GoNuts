@@ -739,6 +739,7 @@
     "export_csv": "Export Transactions (CSV)",
     "export_csv_desc": "Download your transactions for spreadsheets",
     "download_csv": "Download CSV",
+    "download_json": "Download JSON",
     "all_years": "All Years",
     "all_year": "Whole Year",
     "year": "Year",

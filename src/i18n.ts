@@ -32,4 +32,15 @@ i18n
         },
     });
 
+// Keep <html lang> in sync with the active language so assistive tech
+// pronounces content correctly (WCAG 3.1.1 / 3.1.2). The static lang="en"
+// in index.html otherwise never updates when the user switches to Italian.
+const syncHtmlLang = (lng: string) => {
+    if (typeof document !== "undefined") {
+        document.documentElement.lang = (lng || "en").split("-")[0];
+    }
+};
+syncHtmlLang(i18n.resolvedLanguage || i18n.language);
+i18n.on("languageChanged", syncHtmlLang);
+
 export default i18n;

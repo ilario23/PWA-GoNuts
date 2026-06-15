@@ -1,7 +1,7 @@
 import {useTranslation} from 'react-i18next';
 import {Transaction, Category, Context, Group} from '@/lib/db';
 import {GroupWithMembers} from '@/hooks/useGroups';
-import {useAuth} from '@/hooks/useAuth';
+import { useAuth } from "@/contexts/AuthProvider";
 import {
   Drawer,
   DrawerContent,

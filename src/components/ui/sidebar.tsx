@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- shadcn sidebar intentionally co-exports the useSidebar hook with its components */
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
@@ -629,10 +630,10 @@ const SidebarMenuSkeleton = React.forwardRef<
     HTMLDivElement,
     React.ComponentProps<"div"> & { showIcon?: boolean }
 >(({ className, showIcon = false, ...props }, ref) => {
-    // Random width between 50 to 90%.
-    const width = React.useMemo(() => {
-        return `${Math.floor(Math.random() * 40) + 50}%`
-    }, [])
+    // Random skeleton width 50–90%, computed once. useState's lazy initializer
+    // runs outside render, so it avoids react-hooks' "impure call in render" rule
+    // that a Math.random() inside useMemo trips.
+    const [width] = React.useState(() => `${Math.floor(Math.random() * 40) + 50}%`)
 
     return (
         <div

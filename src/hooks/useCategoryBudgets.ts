@@ -2,7 +2,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, CategoryBudget } from "../lib/db";
 import { syncManager } from "../lib/sync";
 import { v4 as uuidv4 } from "uuid";
-import { useAuth } from "./useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { getCategoryBudgetInputSchema, validate } from "../lib/validation";

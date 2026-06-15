@@ -5,7 +5,7 @@ import {
 } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { db } from "../lib/db";
-import { useAuth } from "./useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { handleError } from "@/lib/error-handler";
 import { REALTIME_CONFIG, TIMING } from "@/lib/constants";
 import { toast } from "sonner";

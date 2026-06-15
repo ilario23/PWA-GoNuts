@@ -13,9 +13,25 @@ export interface Insight {
     color?: string;
 }
 
+/** One income/expense/balance metric compared against the previous period.
+ *  Only `previous` and `change` are read by generateInsights; the rest are
+ *  optional so callers (and tests) may pass just what they have. */
+interface ComparisonMetric {
+    current?: number;
+    previous: number;
+    change: number;
+    trend?: string;
+}
+
+export interface MonthlyComparison {
+    income?: ComparisonMetric;
+    expense: ComparisonMetric;
+    balance?: ComparisonMetric;
+}
+
 export const generateInsights = (
     stats: StatisticsWorkerResponse["payload"],
-    monthlyComparison: any
+    monthlyComparison: MonthlyComparison
 ): Insight[] => {
     const insights: Insight[] = [];
 

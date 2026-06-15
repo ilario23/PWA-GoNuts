@@ -33,7 +33,7 @@ import { it, enUS } from "date-fns/locale";
 import { MobileTransactionRow } from "./MobileTransactionRow";
 import { TransactionDetailDrawer } from "./TransactionDetailDrawer";
 import { GroupWithMembers } from "@/hooks/useGroups";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import {
   extractSettlementNote,
   isSettlementTransaction,
