@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { useOnlineSync } from "@/hooks/useOnlineSync";
 import { useAuth } from "@/contexts/AuthProvider";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 import { db } from "@/lib/db";
 import { safeSync, syncManager } from "@/lib/sync";
 import { Button } from "@/components/ui/button";
@@ -112,7 +114,8 @@ function SettingsRow({
 export function SettingsPage() {
   const { settings, updateSettings } = useSettings();
   const { isOnline } = useOnlineSync();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { resolvedTheme, setTheme } = useTheme();
   const [lastSyncTime, setLastSyncTime] = useState<Date | undefined>();
@@ -132,6 +135,8 @@ export function SettingsPage() {
   const [isExportingJSON, setIsExportingJSON] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
   const restoreInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Resolve the transaction set for the current year/month filter (shared by
@@ -240,6 +245,32 @@ export function SettingsPage() {
       toast.error(t("cache_clear_error") || "Failed to clear cache.");
     }
     setClearingCache(false);
+  };
+
+  // Permanently delete the account + all server data via the delete_my_account
+  // RPC (GDPR erasure), then wipe local data and sign out. Irreversible.
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    if (!navigator.onLine) {
+      toast.error(t("delete_account_offline", "You must be online to delete your account."));
+      return;
+    }
+    setDeletingAccount(true);
+    try {
+      // RPC isn't in the generated Database types; cast the name only.
+      const { error } = await supabase.rpc("delete_my_account" as never);
+      if (error) throw error;
+      await db.clearLocalCache();
+      await signOut();
+      toast.success(t("account_deleted", "Your account and all data have been deleted."));
+      navigate("/auth");
+    } catch (error) {
+      console.error("[Settings] Account deletion failed:", error);
+      toast.error(t("delete_account_error", "Account deletion failed. Please try again."));
+    } finally {
+      setDeletingAccount(false);
+      setDeleteConfirm("");
+    }
   };
 
   const handleImportComplete = async (stats?: { transactions: number; categories: number }) => {
@@ -556,6 +587,50 @@ export function SettingsPage() {
             <AlertDialogFooter>
               <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
               <AlertDialogAction onClick={handleClearCache} className="bg-destructive text-destructive-foreground">{t("clear")}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog onOpenChange={(open) => { if (!open) setDeleteConfirm(""); }}>
+          <AlertDialogTrigger asChild>
+            <div>
+              <SettingsRow icon={Trash2} color="#B11D1D" label={t("delete_account", "Delete account")}
+                value={<span className="text-xs text-muted-foreground">{t("delete_account_desc", "Permanently delete your account and all data")}</span>}
+                action={deletingAccount ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
+                onClick={undefined}
+              />
+            </div>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />{t("delete_account_confirm_title", "Delete account?")}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-left">
+                {t("delete_account_confirm_desc", "This permanently deletes your account and all of your data from the server. This cannot be undone.")}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">
+                {t("delete_account_type_email", "Type your email to confirm:")}
+              </label>
+              <Input
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder={user?.email ?? ""}
+                autoComplete="off"
+                autoCapitalize="off"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteConfirm("")}>{t("cancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount || deleteConfirm.trim().toLowerCase() !== (user?.email ?? "").toLowerCase()}
+                className="bg-destructive text-destructive-foreground"
+              >
+                {t("delete_account_button", "Delete forever")}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
