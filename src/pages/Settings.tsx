@@ -54,8 +54,7 @@ import { THEME_COLORS } from "@/lib/theme-colors";
 import { toast } from "sonner";
 import { ImportWizard } from "@/components/import/ImportWizard";
 import { ImportRulesManager } from "@/components/settings/ImportRulesManager";
-import { cn, getLocalDate } from "@/lib/utils";
-import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
 import { exportTransactionsToCSV, exportTransactionsToJSON } from "@/lib/exportUtils";
@@ -121,7 +120,6 @@ export function SettingsPage() {
   const [fullSyncing, setFullSyncing] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
-  const [exportingData, setExportingData] = useState(false);
   const [isImportWizardOpen, setIsImportWizardOpen] = useState(false);
 
   // Welcome wizard hook for "Review Tutorial" button
@@ -252,79 +250,6 @@ export function SettingsPage() {
     }) || "Import successful");
   };
 
-  const handleExportData = async () => {
-    if (!user) return;
-
-    setExportingData(true);
-    try {
-      const transactions = await db.transactions
-        .filter((t) => t.user_id === user.id && !t.deleted_at)
-        .toArray();
-      const categories = await db.categories
-        .filter((c) => c.user_id === user.id && !c.deleted_at && c.id !== UNCATEGORIZED_CATEGORY.ID)
-        .toArray();
-      const contexts = await db.contexts
-        .filter((c) => c.user_id === user.id && !c.deleted_at)
-        .toArray();
-      const recurring = await db.recurring_transactions
-        .filter((r) => r.user_id === user.id && !r.deleted_at)
-        .toArray();
-      const budgets = await db.category_budgets
-        .filter((b) => b.user_id === user.id && !b.deleted_at)
-        .toArray();
-      const groups = await db.groups
-        .filter((g) => !g.deleted_at) // Groups might not have user_id directly if I'm just a member, but created_by is there. 
-        // Actually, for a backup, ideally we want groups I'm a member of.
-        // But simply filtering by created_by might miss groups where I am a guest/member.
-        // However, checking membership for every group is expensive.
-        // For now, let's export ALL local groups since this is a local-first app and I only have groups I'm involved in locally?
-        // Let's verify db.ts. 
-        // Sync pulls groups I'm in. So local DB should only have relevant groups.
-        .toArray();
-      const groupMembers = await db.group_members
-        .filter((m) => !m.removed_at)
-        .toArray();
-
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        userId: user.id,
-        transactions: transactions.map(
-          ({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest
-        ),
-        categories: categories.map(
-          ({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest
-        ),
-        contexts: contexts.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
-        recurring_transactions: recurring.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
-        category_budgets: budgets.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
-        groups: groups.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
-        group_members: groupMembers.map(({ pendingSync: _pendingSync, removed_at: _removed_at, ...rest }) => rest),
-      };
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `expense-tracker-export-${getLocalDate()}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.success(
-        t("export_success") ||
-        `Exported ${transactions.length} tx, ${categories.length} cat, ${recurring.length} recurring`
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      toast.error(t("export_error") || `Export failed: ${message}`);
-    } finally {
-      setExportingData(false);
-    }
-  };
-
   const handleThemeChange = (theme: string) => {
     updateSettings({ theme });
     setTheme(theme);
@@ -435,31 +360,7 @@ export function SettingsPage() {
       {/* ── DATA ─────────────────────────────────────────── */}
       <Eyebrow>{t("data_management")}</Eyebrow>
       <Card className="overflow-hidden">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <div>
-              <SettingsRow first icon={Download} color="#0E8A8A" label={t("export_data")}
-                value={<span className="text-xs text-muted-foreground">{t("export_data_desc")}</span>}
-                action={exportingData ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
-                onClick={undefined}
-              />
-            </div>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <Download className="h-5 w-5 text-primary" />{t("export_confirm_title")}
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-left">{t("export_confirm_desc")}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-              <AlertDialogAction onClick={handleExportData}>{t("export_data")}</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        <SettingsRow icon={Upload} color="#2F9E5A" label={t("import_data")}
+        <SettingsRow first icon={Upload} color="#2F9E5A" label={t("import_data")}
           value={<span className="text-xs text-muted-foreground">{t("import_data_desc")}</span>}
           onClick={() => setIsImportWizardOpen(true)}
         />
