@@ -27,7 +27,7 @@ A modern, offline-first Progressive Web App for managing personal finances. Trac
 - **Offline-First** - Full functionality without internet
 - **Cache-First Auth** - Instant startup with cached credentials
 - **Pending Changes Indicator** - Visual feedback for unsynced data
-- **Conflict Resolution** - Last-Write-Wins (LWW) strategy
+- **Conflict Resolution** - Last-Write-Wins (LWW) with a conflict-review drawer for dropped remote edits
 
 ### 📊 Analytics & UI
 - **Detailed Statistics** - Monthly and yearly trends
@@ -40,7 +40,8 @@ A modern, offline-first Progressive Web App for managing personal finances. Trac
 ### 🌍 Other Features
 - **Multi-language** - English and Italian (i18next)
 - **PWA Installable** - Works offline on mobile and desktop
-- **Export/Import** - Backup data as JSON
+- **Export/Import** - Transactions as CSV or JSON, plus full JSON backup & restore
+- **Account Deletion** - Erase your account and all server data (GDPR data erasure)
 
 ## 🚀 Quick Start
 
