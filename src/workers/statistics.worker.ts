@@ -832,7 +832,7 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
         ctx.postMessage({
             type: "STATS_ERROR",
             error: error instanceof Error ? error.message : "Unknown worker error"
-        } as any); // Cast to any because STATS_ERROR might not be in the type definition yet
+        });
     }
 };
 

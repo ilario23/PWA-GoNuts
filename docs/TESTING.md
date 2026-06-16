@@ -1,7 +1,7 @@
 # Testing Strategy
 
 ## Overview
-We use **Vitest** (compatible with Jest API) for unit tests and **Playwright** (recommended) for E2E.
+We use **Jest** (with `ts-jest` + JSDOM) for unit and component tests and **Playwright** for E2E.
 
 ## Testing Philosophy
 Since our logic is strictly separated:
@@ -25,7 +25,7 @@ Run with: `npm test`
 *   **Goal**: Verify that clicking "Save" calls the `onSave` prop. (Don't test the saving logic itself here).
 
 ## 3. End-to-End (E2E) Tests
-Run with: `npx playwright test` (if configured)
+Run with: `npm run test:e2e` (Playwright; specs in `e2e/`)
 
 *   **Goal**: Full User Flows.
     1.  Load App (Offline).

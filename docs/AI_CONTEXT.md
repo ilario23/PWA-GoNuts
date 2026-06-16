@@ -70,7 +70,9 @@ These tables exist in both Dexie and Supabase and are fully synchronized.
 ### Local-Only Tables
 These tables exist **ONLY** in Dexie (IndexedDB) on the specific device.
 *   `import_rules`: Regex/Matching rules for CSV imports (Device-specific privacy/preference).
-*   Note: While defined in `db.ts`, `import_rules` is **NOT** included in the `TABLES` array in `sync.ts`.
+*   `sync_errors`: Persisted push/pull failures + quarantine state (survives reloads).
+*   `sync_conflicts`: Remote edits dropped by last-write-wins, kept for user review (see the Sync conflicts card in Settings).
+*   Note: While defined in `db.ts`, these are **NOT** included in the `TABLES` array in `sync.ts` (never synced to Supabase).
 
 ## 6. Key Directory Roadmap
 

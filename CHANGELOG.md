@@ -5,6 +5,90 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-06-16
+
+Privacy, account control, and accessibility improvements, plus security hardening behind the scenes.
+
+### Added
+- **Delete your account**: Permanently erase your account and all of its data from the server, right from Settings (type your email to confirm). Supports GDPR-style data erasure.
+- **Review sync conflicts**: When your edit replaces one made on another device, the dropped version is now saved and reviewable in Settings — dismiss them once you've checked.
+- **Export transactions as JSON**: Alongside CSV, you can now download the selected period as JSON for lossless re-import.
+
+### Changed
+- **Simpler data export**: Removed a duplicate "export everything" control; Full backup is now the single all-data export.
+- **Even lighter**: The profile photo editor downloads only when you open it.
+
+### Fixed
+- **Profile privacy**: Your email and profile are now visible only to people who share a group with you — previously any signed-in user could read them.
+- **Accessibility**: Charts now expose a text description to screen readers.
+
+### Security
+- Tightened database access rules and added server-side validation of amounts and text length.
+- CSV exports are now protected against spreadsheet formula injection.
+
+---
+
+_🇮🇹 Italiano_
+
+Miglioramenti a privacy, controllo dell'account e accessibilità, con rafforzamenti di sicurezza dietro le quinte.
+
+### Aggiunto
+- **Elimina il tuo account**: Cancella definitivamente il tuo account e tutti i suoi dati dal server, direttamente dalle Impostazioni (digita la tua email per confermare). Supporta la cancellazione dei dati in stile GDPR.
+- **Rivedi i conflitti di sincronizzazione**: Quando una tua modifica sostituisce quella fatta su un altro dispositivo, la versione scartata viene ora salvata e consultabile nelle Impostazioni — ignorala dopo averla controllata.
+- **Esporta i movimenti in JSON**: Oltre al CSV, ora puoi scaricare il periodo selezionato in JSON per una reimportazione senza perdite.
+
+### Modificato
+- **Esportazione dati semplificata**: Rimosso un controllo "esporta tutto" duplicato; il Backup completo è ora l'unica esportazione di tutti i dati.
+- **Ancora più leggera**: L'editor della foto profilo si scarica solo quando lo apri.
+
+### Corretto
+- **Privacy del profilo**: La tua email e il tuo profilo sono ora visibili solo a chi condivide un gruppo con te — prima qualsiasi utente registrato poteva leggerli.
+- **Accessibilità**: I grafici ora espongono una descrizione testuale per gli screen reader.
+
+### Sicurezza
+- Irrigidite le regole di accesso al database e aggiunta la validazione lato server di importi e lunghezza del testo.
+- Le esportazioni CSV sono ora protette dall'iniezione di formule nei fogli di calcolo.
+
+---
+
+## [2.1.2] - 2026-06-13
+
+### Changed
+- **Bottom navigation redesign**: The bottom bar is now a liquid-glass pill with five equal tabs, matching the iOS-style frosted material.
+- **Add tab**: Add transaction is now a standard center tab — same size and weight as the other tabs, no raised button.
+
+---
+
+_🇮🇹 Italiano_
+
+### Modificato
+- **Nuova barra di navigazione**: La barra in basso è ora una pillola in vetro liquido con cinque tab uguali, nello stile frosted di iOS.
+- **Tab Aggiungi**: Il pulsante Aggiungi è ora un tab centrale standard, uguale agli altri — senza pulsante sopraelevato.
+
+---
+
+## [2.1.1] - 2026-06-13
+
+### Added
+- **Auto-hiding navigation**: The bottom navigation bar hides as you scroll down, giving more room to browse your transactions.
+
+### Fixed
+- **iOS calculator**: Calculator buttons no longer dismiss the keyboard mid-entry.
+- **iOS sheets**: Fixed a gap that appeared at the bottom of sheets when the on-screen keyboard was open on iPhone.
+
+---
+
+_🇮🇹 Italiano_
+
+### Aggiunto
+- **Navigazione a scomparsa**: La barra di navigazione in basso si nasconde scorrendo verso il basso, dando più spazio per sfogliare i movimenti.
+
+### Corretto
+- **Calcolatrice iOS**: I pulsanti della calcolatrice non chiudono più la tastiera durante l'inserimento.
+- **Pannelli iOS**: Corretto uno spazio vuoto in fondo ai pannelli quando la tastiera virtuale era aperta su iPhone.
+
+---
+
 ## [2.1.0] - 2026-06-10
 
 Security hardening, reliability improvements, and better tools for managing your data.

@@ -32,7 +32,7 @@ import { SetupStep } from "./steps/SetupStep";
 import { demoData, getDemoStats } from "@/lib/demoData";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/hooks/useSettings";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfiles";
 import { Theme } from "@/lib/types";
 

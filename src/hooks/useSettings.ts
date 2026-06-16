@@ -2,7 +2,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, Setting } from "../lib/db";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "./useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 
 /**
  * Hook for managing user preferences and application settings.

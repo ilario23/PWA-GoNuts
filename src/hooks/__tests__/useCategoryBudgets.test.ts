@@ -7,9 +7,9 @@ import { renderHook, act } from "@testing-library/react";
 import { useCategoryBudgets } from "../useCategoryBudgets";
 import { db } from "../../lib/db";
 import { syncManager } from "../../lib/sync";
-import { useAuth } from "../useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 
-jest.mock("../useAuth", () => ({
+jest.mock("@/contexts/AuthProvider", () => ({
   useAuth: jest.fn(),
 }));
 

@@ -124,6 +124,8 @@ export function StatsCategoryDistribution({
                     <ChartContainer
                         config={chartConfig}
                         className="mx-auto aspect-square max-w-[180px] h-[180px]"
+                        role="img"
+                        aria-label={t("category_distribution")}
                     >
                         <PieChart>
                             <ChartTooltip

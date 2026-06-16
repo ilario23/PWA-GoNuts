@@ -6,9 +6,9 @@
 import { renderHook, act } from "@testing-library/react";
 import { useGroups, calculateSettlement } from "../useGroups";
 import { db } from "../../lib/db";
-import { useAuth } from "../useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 
-jest.mock("../useAuth", () => ({
+jest.mock("@/contexts/AuthProvider", () => ({
   useAuth: jest.fn(),
 }));
 

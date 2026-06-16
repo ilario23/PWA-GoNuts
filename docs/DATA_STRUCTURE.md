@@ -100,6 +100,15 @@ One-to-one mapping with `users`. Contains preferences.
 | `accentColor` | `string` | Hex code for UI theming. |
 | `last_sync_token` | `number` | **Crucial**. The watermark of the last successful Pull. |
 
+### 7. Local-Only Tables (not mirrored to Supabase)
+
+These exist only in IndexedDB to manage sync state on the device — they are never pushed to the server.
+
+- **`sync_errors`** — Persisted push/pull failures so quarantine state and retry history survive reloads. Keyed by `"<table>:<itemId>"` (push) or `"pull:<table>"`. The `SyncManager` hydrates from this on startup.
+- **`sync_conflicts`** — Remote edits dropped by last-write-wins (when the local row had unsynced changes). Stores the dropped remote JSON, timestamps, and a `resolvedAt` watermark so the user can review/dismiss them. Surfaced by the **Sync conflicts** card in Settings.
+
+> **Schema version**: the Dexie DB is at **v5** — `db.version(5)` adds `sync_conflicts`; v4 added `sync_errors`.
+
 ---
 
 ## Type Mappings (Local vs Remote)

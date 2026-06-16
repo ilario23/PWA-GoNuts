@@ -9,7 +9,7 @@ import {
   Transaction,
 } from "../lib/db";
 import { syncManager } from "../lib/sync";
-import { useAuth } from "./useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { v4 as uuidv4 } from "uuid";
 import {
   getGroupInputSchema,

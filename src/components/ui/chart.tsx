@@ -44,11 +44,23 @@ const ChartContainer = React.forwardRef<
   const uniqueId = React.useId();
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
 
+  // A baseline text alternative so screen readers announce the chart instead
+  // of descending into the unlabeled recharts SVG. Composed from the series
+  // labels in `config`; callers can override with an explicit `aria-label`.
+  const defaultAriaLabel = React.useMemo(() => {
+    const labels = Object.values(config)
+      .map((c) => (typeof c.label === "string" ? c.label : null))
+      .filter(Boolean);
+    return labels.length ? labels.join(", ") : undefined;
+  }, [config]);
+
   return (
     <ChartContext.Provider value={{ config }}>
       <div
         data-chart={chartId}
         ref={ref}
+        role="img"
+        aria-label={defaultAriaLabel}
         className={cn(
           "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-axis-tick_text]:[font-family:'JetBrains_Mono',ui-monospace,monospace] [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/30 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border/50 [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted/50 [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
           className

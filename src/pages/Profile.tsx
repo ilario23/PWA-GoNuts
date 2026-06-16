@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { useUpdateProfile, useProfile } from "@/hooks/useProfiles";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTranslation } from "react-i18next";
@@ -15,7 +15,11 @@ import { useSafeLogout } from "@/hooks/useSafeLogout";
 import { SafeLogoutDialog } from "@/components/SafeLogoutDialog";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { UserAvatar } from "@/components/UserAvatar";
-import { AvatarUploadDialog } from "@/components/AvatarUploadDialog";
+// Lazy: the avatar dialog pulls react-easy-crop + browser-image-compression
+// (~60KB gzip). Load that chunk only when the user actually opens the dialog.
+const AvatarUploadDialog = lazy(() =>
+    import("@/components/AvatarUploadDialog").then((m) => ({ default: m.AvatarUploadDialog }))
+);
 
 // The identity spark tracks the user's chosen accent (the same token the
 // FAB and active nav read), so the profile stays on one accent per screen.
@@ -281,13 +285,17 @@ export function ProfilePage() {
                 pendingCount={pendingCount}
             />
 
-            <AvatarUploadDialog
-                open={isAvatarDialogOpen}
-                onOpenChange={setIsAvatarDialogOpen}
-                onUploadComplete={handleAvatarUpdate}
-                onRemove={() => setIsDeleteAvatarDialogOpen(true)}
-                hasCurrentAvatar={!!profile?.avatar_url}
-            />
+            {isAvatarDialogOpen && (
+                <Suspense fallback={null}>
+                    <AvatarUploadDialog
+                        open={isAvatarDialogOpen}
+                        onOpenChange={setIsAvatarDialogOpen}
+                        onUploadComplete={handleAvatarUpdate}
+                        onRemove={() => setIsDeleteAvatarDialogOpen(true)}
+                        hasCurrentAvatar={!!profile?.avatar_url}
+                    />
+                </Suspense>
+            )}
 
             <DeleteConfirmDialog
                 open={isDeleteAvatarDialogOpen}

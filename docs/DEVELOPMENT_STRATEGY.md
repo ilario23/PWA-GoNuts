@@ -31,7 +31,7 @@ Developing against a local Supabase instance is faster and safer than using a re
 
 ## 2. Testing Strategy
 
-### A. Unit Tests (Vitest)
+### A. Unit Tests (Jest)
 Used for pure logic (`src/lib/*.ts`) and utility functions.
 *   **Run**: `npm test`
 *   **Scope**: Currency formatting, Date calculations, Recurring transaction logic.

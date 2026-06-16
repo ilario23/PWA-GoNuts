@@ -358,6 +358,30 @@ export interface SyncErrorRecord {
   isQuarantined: boolean;
 }
 
+/**
+ * A captured edit conflict. When a local row has unpushed edits AND the remote
+ * copy also changed (newer sync_token), last-write-wins keeps the local version
+ * and would otherwise discard the remote one silently — costing a collaborator
+ * their edit on a shared group row. We stash the dropped remote version here so
+ * it is recoverable / reviewable instead of lost.
+ */
+export interface SyncConflict {
+  /** "<table>:<itemId>" — primary key, so re-detecting updates in place */
+  key: string;
+  table: string;
+  itemId: string;
+  /** Local row's updated_at at conflict time (the version that won) */
+  localUpdatedAt?: string | null;
+  /** Remote row's updated_at (the version that was dropped) */
+  remoteUpdatedAt?: string | null;
+  /** Full JSON of the dropped remote row, for recovery */
+  remoteData: string;
+  /** When the conflict was detected (ISO 8601) */
+  detectedAt: string;
+  /** Set when the user has reviewed/dismissed it (ISO 8601), null = open */
+  resolvedAt?: string | null;
+}
+
 export class AppDatabase extends Dexie {
   groups!: Table<Group>;
   group_members!: Table<GroupMember>;
@@ -371,6 +395,7 @@ export class AppDatabase extends Dexie {
   profiles!: Table<Profile>;
   import_rules!: Table<ImportRule>;
   sync_errors!: Table<SyncErrorRecord>;
+  sync_conflicts!: Table<SyncConflict>;
 
   constructor() {
     super("ExpenseTrackerDB");
@@ -432,6 +457,10 @@ export class AppDatabase extends Dexie {
     this.version(4).stores({
       sync_errors: "key",
     });
+    // v5: capture remote edits dropped by last-write-wins so they're recoverable
+    this.version(5).stores({
+      sync_conflicts: "key, table, resolvedAt",
+    });
   }
 
   /**
@@ -453,6 +482,7 @@ export class AppDatabase extends Dexie {
       this.profiles.clear(),
       this.import_rules.clear(),
       this.sync_errors.clear(),
+      this.sync_conflicts.clear(),
     ]);
 
     // Also purge service-worker runtime caches that may hold API responses

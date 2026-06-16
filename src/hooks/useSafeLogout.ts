@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useSync } from "@/hooks/useSync";
 import { useNavigate } from "react-router-dom";
 

@@ -834,7 +834,7 @@ export class SyncManager {
 
           console.log(`[Sync] Pulled ${data.length} items from ${tableName}`);
 
-          const tables = [db.table(tableName)];
+          const tables = [db.table(tableName), db.sync_conflicts];
           if (tableName === "transactions") {
             tables.push(db.group_members);
           }
@@ -958,7 +958,7 @@ export class SyncManager {
 
           console.log(`[Sync] Full pull: ${data.length} items from ${tableName}`);
 
-          const tables = [db.table(tableName)];
+          const tables = [db.table(tableName), db.sync_conflicts];
           if (tableName === "transactions") {
             tables.push(db.group_members);
           }
@@ -1070,22 +1070,26 @@ export class SyncManager {
     // Local has pending changes - ALWAYS keep local to avoid overwriting user work
     if (existing.pendingSync === 1) {
       // Remote changed too while we have unpushed edits: last-write-wins
-      // means our push will overwrite someone else's change. Surface it
-      // instead of losing it silently (once per table per sync run).
+      // means our push will overwrite someone else's change. Capture the
+      // remote version we're about to drop (so it's recoverable, not lost)
+      // and surface it (once per table per sync run).
       const remoteToken = remoteItem.sync_token || 0;
       const localToken = existing.sync_token || 0;
-      if (remoteToken > localToken && !this.conflictNotified.has(tableName)) {
-        this.conflictNotified.add(tableName);
-        toast.warning(
-          i18n.t("sync_conflict_title", { defaultValue: "Edit conflict" }),
-          {
-            description: i18n.t("sync_conflict_description", {
-              defaultValue:
-                "An item you edited was also changed elsewhere. Your version will be kept.",
-            }),
-            duration: 6000,
-          }
-        );
+      if (remoteToken > localToken) {
+        await this.recordConflict(tableName, remoteItem, existing);
+        if (!this.conflictNotified.has(tableName)) {
+          this.conflictNotified.add(tableName);
+          toast.warning(
+            i18n.t("sync_conflict_title", { defaultValue: "Edit conflict" }),
+            {
+              description: i18n.t("sync_conflict_description", {
+                defaultValue:
+                  "An item you edited was also changed elsewhere. Your version is kept; the other version is saved for review.",
+              }),
+              duration: 6000,
+            }
+          );
+        }
       }
       return { shouldUpdate: false, reason: 'pending' };
     }
@@ -1098,8 +1102,44 @@ export class SyncManager {
       return { shouldUpdate: true, reason: 'remote_newer' };
     }
 
+    // Deterministic tiebreak when tokens are equal: prefer the row with the
+    // later updated_at. ISO 8601 timestamps compare correctly as strings.
+    if (remoteToken === localToken) {
+      const localUpdated = (existing as { updated_at?: string }).updated_at;
+      const remoteUpdated = (remoteItem as { updated_at?: string }).updated_at;
+      if (localUpdated && remoteUpdated && remoteUpdated > localUpdated) {
+        return { shouldUpdate: true, reason: 'remote_newer' };
+      }
+    }
+
     // Already synced or local is newer - no action needed
     return { shouldUpdate: false, reason: 'already_synced' };
+  }
+
+  /**
+   * Persist a remote row that last-write-wins is about to discard, so a
+   * collaborator's overwritten edit is recoverable instead of silently lost.
+   * Best-effort: a failure here must never abort the sync.
+   */
+  private async recordConflict<T extends TableName>(
+    tableName: T,
+    remoteItem: Tables<T>,
+    localItem: { updated_at?: string | null }
+  ): Promise<void> {
+    try {
+      await db.sync_conflicts.put({
+        key: `${tableName}:${remoteItem.id}`,
+        table: tableName,
+        itemId: remoteItem.id,
+        localUpdatedAt: localItem.updated_at ?? null,
+        remoteUpdatedAt: (remoteItem as { updated_at?: string }).updated_at ?? null,
+        remoteData: JSON.stringify(remoteItem),
+        detectedAt: new Date().toISOString(),
+        resolvedAt: null,
+      });
+    } catch (e) {
+      console.warn(`[Sync] Failed to record conflict for ${tableName}:${remoteItem.id}`, e);
+    }
   }
 
   /**

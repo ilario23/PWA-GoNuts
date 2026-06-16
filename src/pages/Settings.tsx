@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { useOnlineSync } from "@/hooks/useOnlineSync";
 import { useAuth } from "@/contexts/AuthProvider";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 import { db } from "@/lib/db";
 import { safeSync, syncManager } from "@/lib/sync";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { SyncIndicator } from "@/components/SyncStatus";
+import { SyncConflictsCard } from "@/components/SyncConflictsCard";
 import { ContentLoader } from "@/components/ui/content-loader";
 import { Input } from "@/components/ui/input";
 import {
@@ -54,11 +57,10 @@ import { THEME_COLORS } from "@/lib/theme-colors";
 import { toast } from "sonner";
 import { ImportWizard } from "@/components/import/ImportWizard";
 import { ImportRulesManager } from "@/components/settings/ImportRulesManager";
-import { cn, getLocalDate } from "@/lib/utils";
-import { UNCATEGORIZED_CATEGORY } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
 import { useAvailableYears } from "@/hooks/useAvailableYears";
-import { exportTransactionsToCSV } from "@/lib/exportUtils";
+import { exportTransactionsToCSV, exportTransactionsToJSON } from "@/lib/exportUtils";
 import { exportFullBackup, importFullBackup } from "@/lib/backup";
 
 function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -113,7 +115,8 @@ function SettingsRow({
 export function SettingsPage() {
   const { settings, updateSettings } = useSettings();
   const { isOnline } = useOnlineSync();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { resolvedTheme, setTheme } = useTheme();
   const [lastSyncTime, setLastSyncTime] = useState<Date | undefined>();
@@ -121,7 +124,6 @@ export function SettingsPage() {
   const [fullSyncing, setFullSyncing] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
-  const [exportingData, setExportingData] = useState(false);
   const [isImportWizardOpen, setIsImportWizardOpen] = useState(false);
 
   // Welcome wizard hook for "Review Tutorial" button
@@ -131,36 +133,42 @@ export function SettingsPage() {
   const [exportYear, setExportYear] = useState<string>(new Date().getFullYear().toString());
   const [exportMonth, setExportMonth] = useState<string>("all");
   const [isExportingCSV, setIsExportingCSV] = useState(false);
+  const [isExportingJSON, setIsExportingJSON] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
   const restoreInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Resolve the transaction set for the current year/month filter (shared by
+  // the CSV and JSON exports so they always cover identical data).
+  const getFilteredTransactions = async (userId: string) => {
+    if (exportYear === "all") {
+      const all = await db.transactions
+        .filter((t) => t.user_id === userId && !t.deleted_at)
+        .toArray();
+      all.sort((a, b) => b.date.localeCompare(a.date));
+      return all;
+    }
+    if (exportMonth === "all") {
+      return db.transactions
+        .where("year_month")
+        .between(`${exportYear}-01`, `${exportYear}-12\uffff`)
+        .filter((t) => t.user_id === userId && !t.deleted_at)
+        .toArray();
+    }
+    return db.transactions
+      .where("year_month")
+      .equals(`${exportYear}-${exportMonth}`)
+      .filter((t) => t.user_id === userId && !t.deleted_at)
+      .toArray();
+  };
 
   const handleCSVExport = async () => {
     if (!user) return;
     setIsExportingCSV(true);
     try {
-      // Fetch filtered transactions
-      let transactions;
-      if (exportYear === "all") {
-        // Export EVERYTHING for this user
-        transactions = await db.transactions
-          .filter((t) => t.user_id === user.id && !t.deleted_at)
-          .toArray();
-        // Sort by date descending
-        transactions.sort((a, b) => b.date.localeCompare(a.date));
-      } else if (exportMonth === "all") {
-        transactions = await db.transactions
-          .where("year_month")
-          .between(`${exportYear}-01`, `${exportYear}-12\uffff`)
-          .filter((t) => t.user_id === user.id && !t.deleted_at)
-          .toArray();
-      } else {
-        transactions = await db.transactions
-          .where("year_month")
-          .equals(`${exportYear}-${exportMonth}`)
-          .filter((t) => t.user_id === user.id && !t.deleted_at)
-          .toArray();
-      }
+      const transactions = await getFilteredTransactions(user.id);
 
       // Fetch related data for resolution
       const categories = await db.categories.toArray();
@@ -182,6 +190,21 @@ export function SettingsPage() {
       toast.error(t("export_error") || "Export failed");
     } finally {
       setIsExportingCSV(false);
+    }
+  };
+
+  const handleJSONExport = async () => {
+    if (!user) return;
+    setIsExportingJSON(true);
+    try {
+      const transactions = await getFilteredTransactions(user.id);
+      exportTransactionsToJSON(transactions);
+      toast.success(t("export_success"));
+    } catch (error) {
+      console.error("JSON export failed:", error);
+      toast.error(t("export_error") || "Export failed");
+    } finally {
+      setIsExportingJSON(false);
     }
   };
 
@@ -225,85 +248,38 @@ export function SettingsPage() {
     setClearingCache(false);
   };
 
+  // Permanently delete the account + all server data via the delete_my_account
+  // RPC (GDPR erasure), then wipe local data and sign out. Irreversible.
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    if (!navigator.onLine) {
+      toast.error(t("delete_account_offline", "You must be online to delete your account."));
+      return;
+    }
+    setDeletingAccount(true);
+    try {
+      // RPC isn't in the generated Database types; cast the name only.
+      const { error } = await supabase.rpc("delete_my_account" as never);
+      if (error) throw error;
+      await db.clearLocalCache();
+      await signOut();
+      toast.success(t("account_deleted", "Your account and all data have been deleted."));
+      navigate("/auth");
+    } catch (error) {
+      console.error("[Settings] Account deletion failed:", error);
+      toast.error(t("delete_account_error", "Account deletion failed. Please try again."));
+    } finally {
+      setDeletingAccount(false);
+      setDeleteConfirm("");
+    }
+  };
+
   const handleImportComplete = async (stats?: { transactions: number; categories: number }) => {
     await safeSync("handleImportComplete");
     toast.success(t("import_success", {
       transactions: stats?.transactions || 0,
       categories: stats?.categories || 0
     }) || "Import successful");
-  };
-
-  const handleExportData = async () => {
-    if (!user) return;
-
-    setExportingData(true);
-    try {
-      const transactions = await db.transactions
-        .filter((t) => t.user_id === user.id && !t.deleted_at)
-        .toArray();
-      const categories = await db.categories
-        .filter((c) => c.user_id === user.id && !c.deleted_at && c.id !== UNCATEGORIZED_CATEGORY.ID)
-        .toArray();
-      const contexts = await db.contexts
-        .filter((c) => c.user_id === user.id && !c.deleted_at)
-        .toArray();
-      const recurring = await db.recurring_transactions
-        .filter((r) => r.user_id === user.id && !r.deleted_at)
-        .toArray();
-      const budgets = await db.category_budgets
-        .filter((b) => b.user_id === user.id && !b.deleted_at)
-        .toArray();
-      const groups = await db.groups
-        .filter((g) => !g.deleted_at) // Groups might not have user_id directly if I'm just a member, but created_by is there. 
-        // Actually, for a backup, ideally we want groups I'm a member of.
-        // But simply filtering by created_by might miss groups where I am a guest/member.
-        // However, checking membership for every group is expensive.
-        // For now, let's export ALL local groups since this is a local-first app and I only have groups I'm involved in locally?
-        // Let's verify db.ts. 
-        // Sync pulls groups I'm in. So local DB should only have relevant groups.
-        .toArray();
-      const groupMembers = await db.group_members
-        .filter((m) => !m.removed_at)
-        .toArray();
-
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        userId: user.id,
-        transactions: transactions.map(
-          ({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest
-        ),
-        categories: categories.map(
-          ({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest
-        ),
-        contexts: contexts.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
-        recurring_transactions: recurring.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
-        category_budgets: budgets.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
-        groups: groups.map(({ pendingSync: _pendingSync, deleted_at: _deleted_at, ...rest }) => rest),
-        group_members: groupMembers.map(({ pendingSync: _pendingSync, removed_at: _removed_at, ...rest }) => rest),
-      };
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `expense-tracker-export-${getLocalDate()}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.success(
-        t("export_success") ||
-        `Exported ${transactions.length} tx, ${categories.length} cat, ${recurring.length} recurring`
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      toast.error(t("export_error") || `Export failed: ${message}`);
-    } finally {
-      setExportingData(false);
-    }
   };
 
   const handleThemeChange = (theme: string) => {
@@ -416,31 +392,7 @@ export function SettingsPage() {
       {/* ── DATA ─────────────────────────────────────────── */}
       <Eyebrow>{t("data_management")}</Eyebrow>
       <Card className="overflow-hidden">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <div>
-              <SettingsRow first icon={Download} color="#0E8A8A" label={t("export_data")}
-                value={<span className="text-xs text-muted-foreground">{t("export_data_desc")}</span>}
-                action={exportingData ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
-                onClick={undefined}
-              />
-            </div>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <Download className="h-5 w-5 text-primary" />{t("export_confirm_title")}
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-left">{t("export_confirm_desc")}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-              <AlertDialogAction onClick={handleExportData}>{t("export_data")}</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        <SettingsRow icon={Upload} color="#2F9E5A" label={t("import_data")}
+        <SettingsRow first icon={Upload} color="#2F9E5A" label={t("import_data")}
           value={<span className="text-xs text-muted-foreground">{t("import_data_desc")}</span>}
           onClick={() => setIsImportWizardOpen(true)}
         />
@@ -479,10 +431,16 @@ export function SettingsPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" className="w-full h-11 gap-2" onClick={handleCSVExport} disabled={isExportingCSV}>
-            {isExportingCSV ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 text-gonuts-good" />}
-            {t("download_csv") || "Download CSV"}
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" className="h-11 gap-2" onClick={handleCSVExport} disabled={isExportingCSV || isExportingJSON}>
+              {isExportingCSV ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 text-gonuts-good" />}
+              {t("download_csv") || "Download CSV"}
+            </Button>
+            <Button variant="outline" className="h-11 gap-2" onClick={handleJSONExport} disabled={isExportingCSV || isExportingJSON}>
+              {isExportingJSON ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-gonuts-good" />}
+              {t("download_json") || "Download JSON"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -587,6 +545,9 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Surfaces only when the sync engine has captured dropped remote edits */}
+      <SyncConflictsCard />
+
       {/* ── ABOUT ─────────────────────────────────────────── */}
       <Eyebrow>{t("help_and_resources", "Help & Resources")}</Eyebrow>
       <Card className="overflow-hidden">
@@ -630,6 +591,50 @@ export function SettingsPage() {
             <AlertDialogFooter>
               <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
               <AlertDialogAction onClick={handleClearCache} className="bg-destructive text-destructive-foreground">{t("clear")}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog onOpenChange={(open) => { if (!open) setDeleteConfirm(""); }}>
+          <AlertDialogTrigger asChild>
+            <div>
+              <SettingsRow icon={Trash2} color="#B11D1D" label={t("delete_account", "Delete account")}
+                value={<span className="text-xs text-muted-foreground">{t("delete_account_desc", "Permanently delete your account and all data")}</span>}
+                action={deletingAccount ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
+                onClick={undefined}
+              />
+            </div>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />{t("delete_account_confirm_title", "Delete account?")}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-left">
+                {t("delete_account_confirm_desc", "This permanently deletes your account and all of your data from the server. This cannot be undone.")}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">
+                {t("delete_account_type_email", "Type your email to confirm:")}
+              </label>
+              <Input
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder={user?.email ?? ""}
+                autoComplete="off"
+                autoCapitalize="off"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteConfirm("")}>{t("cancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount || deleteConfirm.trim().toLowerCase() !== (user?.email ?? "").toLowerCase()}
+                className="bg-destructive text-destructive-foreground"
+              >
+                {t("delete_account_button", "Delete forever")}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
