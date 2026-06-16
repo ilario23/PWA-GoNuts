@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { SyncIndicator } from "@/components/SyncStatus";
+import { SyncConflictsCard } from "@/components/SyncConflictsCard";
 import { ContentLoader } from "@/components/ui/content-loader";
 import { Input } from "@/components/ui/input";
 import {
@@ -543,6 +544,9 @@ export function SettingsPage() {
           <p className="text-xs text-muted-foreground">{t("full_sync_hint")}</p>
         </CardContent>
       </Card>
+
+      {/* Surfaces only when the sync engine has captured dropped remote edits */}
+      <SyncConflictsCard />
 
       {/* ── ABOUT ─────────────────────────────────────────── */}
       <Eyebrow>{t("help_and_resources", "Help & Resources")}</Eyebrow>
