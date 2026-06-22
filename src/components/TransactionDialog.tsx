@@ -7,6 +7,7 @@ import {useCategories} from '@/hooks/useCategories';
 import {getLocalDate, cn} from '@/lib/utils';
 import {useIsMobile} from '@/hooks/use-mobile';
 import {useVisualViewportSheet} from '@/hooks/useVisualViewportSheet';
+import {useIOSBodyScrollLock} from '@/hooks/useIOSBodyScrollLock';
 import {
   Sheet,
   SheetContent,
@@ -148,6 +149,10 @@ export function TransactionDialog({
   // keyboard opens/closes — leaving a gap below it. Pin the sheet to the visual
   // viewport instead.
   const viewport = useVisualViewportSheet(open && isMobile, 0.92);
+
+  // Lock the document scroll while the mobile sheet is open so iOS can't drift
+  // the fixed bottom nav / strand the page scrolled-up after the keyboard closes.
+  useIOSBodyScrollLock(open && isMobile);
 
   const [showLargeValueConfirm, setShowLargeValueConfirm] = useState(false);
   const [pendingData, setPendingData] = useState<TransactionFormValues | null>(null);
