@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { UserAvatar } from "@/components/UserAvatar";
 import { SettlementHistory } from "@/components/groups/SettlementHistory";
+import { SettlementBreakdown } from "@/components/groups/SettlementBreakdown";
 import { generateSettlementShareText } from "@/lib/settlements";
 import { toast } from "sonner";
 import {
@@ -40,6 +41,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   CheckCircle2,
+  ChevronDown,
   ListOrdered,
   Users,
   History,
@@ -69,6 +71,7 @@ export function GroupBalancePage() {
   const [suggestedAmount, setSuggestedAmount] = useState<number | null>(null);
   const [paymentMode, setPaymentMode] = useState<"mark" | "manual">("manual");
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedEdge, setExpandedEdge] = useState<string | null>(null);
 
   const refresh = async () => {
     if (!groupId) return;
@@ -337,9 +340,14 @@ export function GroupBalancePage() {
             <div className="space-y-2">
               {settlements.map((s, i) => {
                 const iAmPayer = s.from === myMemberId;
+                const edgeKey = `${s.from}-${s.to}-${i}`;
+                const isOpen = expandedEdge === edgeKey;
+                const debtor = memberOptions.find(
+                  (b) => b.memberId === s.from
+                );
                 return (
                   <div
-                    key={i}
+                    key={edgeKey}
                     className="rounded-[var(--radius-sm)] bg-muted/50 p-3 space-y-2"
                   >
                     <div className="flex items-center gap-2">
@@ -366,6 +374,48 @@ export function GroupBalancePage() {
                       <CheckCircle2 className="h-4 w-4" />
                       {t("mark_as_paid")}
                     </Button>
+
+                    {debtor && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedEdge(isOpen ? null : edgeKey)
+                          }
+                          aria-expanded={isOpen}
+                          className="flex w-full items-center justify-center gap-1.5 pt-0.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-[var(--radius-sm)]"
+                        >
+                          <ChevronDown
+                            className={`h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none ${
+                              isOpen ? "rotate-180" : ""
+                            }`}
+                          />
+                          {isOpen
+                            ? t("settlement_breakdown_hide")
+                            : t("settlement_breakdown_view")}
+                        </button>
+                        <div
+                          className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${
+                            isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                          }`}
+                        >
+                          <div className="overflow-hidden">
+                            <SettlementBreakdown
+                              debtor={debtor}
+                              creditorName={
+                                s.to === myMemberId
+                                  ? t("you")
+                                  : nameByMemberId(s.to)
+                              }
+                              edgeAmount={s.amount}
+                              totalExpenses={balance.totalExpenses}
+                              expenses={balance.expenses}
+                              isMe={s.from === myMemberId}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 );
               })}

@@ -35,7 +35,7 @@ export interface SettlementTransaction {
   amount: number;
 }
 
-type BalanceSnapshotEntry = {
+export type BalanceSnapshotEntry = {
   userId: string;
   memberId: string;
   share: number;
@@ -48,6 +48,20 @@ type BalanceSnapshotEntry = {
   avatarUrl?: string;
   isGuest: boolean;
 };
+
+/**
+ * A single group expense, flattened for the settlement breakdown ledger.
+ * Lets the UI reconcile a settlement amount line-by-line: each member's
+ * effect on a line is `(paid_this ? amount : 0) - amount * share / 100`.
+ */
+export interface GroupExpenseLineItem {
+  id: string;
+  description: string;
+  date: string;
+  amount: number;
+  payerMemberId: string;
+  payerName: string;
+}
 
 export interface SettlementHistoryEntry {
   id: string;
@@ -744,9 +758,34 @@ export function useGroups() {
       }
     );
 
+    const expenseLineItems: GroupExpenseLineItem[] = expenses
+      .map((e) => {
+        const payerKey =
+          snapshot.memberKeyById.get(e.paid_by_member_id || "") ||
+          e.paid_by_member_id ||
+          "";
+        const payerName =
+          snapshot.balances[payerKey]?.displayName ||
+          snapshot.memberById.get(e.paid_by_member_id || "")?.guest_name ||
+          "Unknown";
+        return {
+          id: e.id,
+          description: e.description,
+          date: e.date,
+          amount: e.amount,
+          payerMemberId: e.paid_by_member_id || "",
+          payerName,
+        };
+      })
+      .sort((a, b) => {
+        const dateCmp = (b.date || "").localeCompare(a.date || "");
+        return dateCmp !== 0 ? dateCmp : b.amount - a.amount;
+      });
+
     return {
       totalExpenses: snapshot.totalExpenses,
       balances: snapshot.balances,
+      expenses: expenseLineItems,
       latestSettlement: latestSettlement
         ? {
             id: latestSettlement.id,

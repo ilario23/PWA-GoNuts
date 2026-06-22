@@ -217,19 +217,28 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
 
   useEffect(() => {
-    if (settings?.theme) {
-      const root = window.document.documentElement;
-      root.classList.remove("light", "dark");
+    if (!settings?.theme) return;
 
+    const root = window.document.documentElement;
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const applyTheme = () => {
+      root.classList.remove("light", "dark");
       if (settings.theme === "system") {
-        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-          .matches
-          ? "dark"
-          : "light";
-        root.classList.add(systemTheme);
+        root.classList.add(mediaQuery.matches ? "dark" : "light");
       } else {
         root.classList.add(settings.theme);
       }
+    };
+
+    applyTheme();
+
+    // When following the system, react to live OS theme changes (the user
+    // flipping dark/light without reloading). Without this listener the class
+    // is only computed once on mount, so "system" mode silently goes stale.
+    if (settings.theme === "system") {
+      mediaQuery.addEventListener("change", applyTheme);
+      return () => mediaQuery.removeEventListener("change", applyTheme);
     }
   }, [settings?.theme]);
 

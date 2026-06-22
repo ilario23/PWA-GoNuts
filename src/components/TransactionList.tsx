@@ -38,6 +38,8 @@ import {
   extractSettlementNote,
   isSettlementTransaction,
 } from "@/lib/settlements";
+import { resolvePayer } from "@/lib/payer";
+import { PayerBadge } from "./PayerBadge";
 
 interface TransactionListProps {
   transactions: Transaction[] | undefined;
@@ -225,21 +227,16 @@ export function TransactionList({
         : "";
 
       // Group Details Logic for Tooltip
-      let payerName = "";
       let myShareAmount = 0;
       let mySharePercentage = 0;
       const isGroupTransaction = !!group && !!t_item.group_id;
+      const payer =
+        isGroupTransaction && !isSettlement
+          ? resolvePayer(t_item, group, user?.id, t("unknown_user"))
+          : null;
+      const payerName = payer?.name ?? "";
 
       if (isGroupTransaction && user && group && "members" in group) {
-        if (t_item.paid_by_member_id) {
-          const payer = (group as GroupWithMembers).members.find((m) => m.id === t_item.paid_by_member_id);
-          payerName = payer?.displayName || t("unknown_user");
-        } else {
-          const payerId = t_item.user_id;
-          const payer = (group as GroupWithMembers).members.find((m) => m.user_id === payerId);
-          payerName = payer?.displayName || t("unknown_user");
-        }
-
         const myMemberInfo = (group as GroupWithMembers).members.find((m) => m.user_id === user.id);
         if (myMemberInfo) {
           mySharePercentage = myMemberInfo.share;
@@ -307,14 +304,19 @@ export function TransactionList({
               <span className="text-muted-foreground">-</span>
             )}
           </TableCell>
-          <TableCell className="w-[130px]">
+          <TableCell className="w-[150px]">
             {group ? (
               <TooltipProvider>
                 <Tooltip delayDuration={300}>
                   <TooltipTrigger asChild>
-                    <div className={`inline-flex items-center gap-1 text-xs ${GROUP_CHIP_CLASSES} px-2 py-1 rounded-md cursor-default`}>
-                      <Users className="h-3 w-3" aria-hidden="true" />
-                      {group.name}
+                    <div className="inline-flex flex-col items-start gap-1 cursor-default">
+                      <span className={`inline-flex items-center gap-1 text-xs ${GROUP_CHIP_CLASSES} px-2 py-1 rounded-md`}>
+                        <Users className="h-3 w-3" aria-hidden="true" />
+                        {group.name}
+                      </span>
+                      {payer && (
+                        <PayerBadge payer={payer} size="md" showName />
+                      )}
                     </div>
                   </TooltipTrigger>
                   <TooltipContent className="text-xs p-3 space-y-2">
@@ -637,7 +639,7 @@ export function TransactionList({
                 <TableHead>{t("description")}</TableHead>
                 <TableHead className="w-[180px]">{t("category")}</TableHead>
                 <TableHead className="w-[130px]">{t("context")}</TableHead>
-                <TableHead className="w-[130px]">{t("group")}</TableHead>
+                <TableHead className="w-[150px]">{t("group")}</TableHead>
                 <TableHead className="w-[100px]">{t("type")}</TableHead>
                 <TableHead className="text-right w-[120px]">{t("amount")}</TableHead>
                 {showActions && <TableHead className="w-[100px]"></TableHead>}
@@ -700,7 +702,7 @@ export function TransactionList({
               <TableHead>{t("description")}</TableHead>
               <TableHead className="w-[180px]">{t("category")}</TableHead>
               <TableHead className="w-[130px]">{t("context")}</TableHead>
-              <TableHead className="w-[130px]">{t("group")}</TableHead>
+              <TableHead className="w-[150px]">{t("group")}</TableHead>
               <TableHead className="w-[100px]">{t("type")}</TableHead>
               <TableHead className="text-right w-[120px]">{t("amount")}</TableHead>
               {showActions && <TableHead className="w-[100px]"></TableHead>}
