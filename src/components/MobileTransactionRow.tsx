@@ -10,6 +10,9 @@ import {
   extractSettlementNote,
   isSettlementTransaction,
 } from "@/lib/settlements";
+import { resolvePayer } from "@/lib/payer";
+import { PayerBadge } from "./PayerBadge";
+import { useAuth } from "@/contexts/AuthProvider";
 
 interface MobileTransactionRowProps {
   transaction: Transaction;
@@ -39,8 +42,13 @@ export function MobileTransactionRow({
   isFirst,
 }: MobileTransactionRowProps) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const IconComp = category?.icon ? getIconComponent(category.icon) : null;
   const isSettlement = isSettlementTransaction(transaction);
+  const payer =
+    group && !isSettlementTransaction(transaction)
+      ? resolvePayer(transaction, group, user?.id, t("unknown_user"))
+      : null;
   const settlementNote = isSettlement
     ? extractSettlementNote(transaction.description)
     : "";
@@ -71,7 +79,7 @@ export function MobileTransactionRow({
               }
             : undefined
         }
-        aria-label={`${transaction.description}, ${(personalAmount ?? transaction.amount).toFixed(2)}`}
+        aria-label={`${transaction.description}, ${(personalAmount ?? transaction.amount).toFixed(2)}${payer ? `, ${t("paid_by")} ${payer.name}` : ""}`}
       >
         {/* Category icon — solid fill, white glyph (matches dashboard) */}
         <div
@@ -118,6 +126,7 @@ export function MobileTransactionRow({
                 <span className="truncate max-w-[72px]">{group.name}</span>
               </span>
             )}
+            {payer && <PayerBadge payer={payer} size="sm" className="shrink-0" />}
             {context && !hideContext && (
               <span className="shrink-0 flex items-center gap-0.5 bg-primary/10 text-primary pl-1 pr-1.5 py-0.5 rounded-full text-[10px] font-medium">
                 <Tag className="h-2.5 w-2.5" />
