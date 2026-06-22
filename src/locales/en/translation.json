@@ -1105,6 +1105,7 @@
     "changelog_v2_2_0_2": "Export your transactions as JSON, not just CSV.",
     "changelog_v2_2_0_3": "Your email and profile are now visible only to people in your shared groups.",
     "changelog_v2_2_0_4": "Charts now include text descriptions for screen readers.",
+    "changelog_v2_2_2_0": "Fixed the bottom navigation bar drifting up the screen after closing the keyboard on iPhone.",
     "changelog_v2_2_1_0": "View a detailed breakdown of how each settlement was calculated from group expenses.",
     "changelog_v2_2_1_1": "UI labels in Italian now use proper sentence case for native fluency.",
     "changelog_v2_2_1_2": "Dark mode now updates instantly when you flip your device's theme preference.",
