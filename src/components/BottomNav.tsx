@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { LayoutDashboard, Receipt, PieChart, MoreHorizontal, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useVisualViewportBottomOffset } from "@/hooks/useVisualViewportBottomOffset";
 import { useAuth } from "@/contexts/AuthProvider";
 import { TransactionDialog, TransactionFormData } from "@/components/TransactionDialog";
 
@@ -20,6 +21,11 @@ export function BottomNav({ collapsed = false }: { collapsed?: boolean }) {
   const { user } = useAuth();
   const { addTransaction } = useTransactions();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  // iOS standalone PWA leaves the layout viewport keyboard-sized after the
+  // keyboard closes, stranding this fixed nav mid-screen. This signed offset
+  // re-pins `bottom` to the true visual-viewport bottom (negative when iOS has
+  // left the layout viewport stale-small).
+  const vvBottomOffset = useVisualViewportBottomOffset();
 
   // Morph the FAB into the add sheet via the View Transitions API when the
   // browser supports it and motion is allowed. The FAB and the add sheet share
@@ -72,12 +78,20 @@ export function BottomNav({ collapsed = false }: { collapsed?: boolean }) {
       <nav
         className={cn(
           "md:hidden fixed z-50",
-          "left-3 right-3 bottom-[max(1.125rem,env(safe-area-inset-bottom))]"
+          "left-3 right-3"
           // No transform on this fixed element: iOS Safari positions a fixed
           // element that has a `transform` relative to the document instead of
           // the viewport, which makes the pill drift upward while scrolled. The
           // collapse scale lives on the inner pill below instead.
         )}
+        style={{
+          // Anchored to the visual viewport: `vvBottomOffset` is 0 normally,
+          // positive while the keyboard is up, and negative when iOS has left
+          // the layout viewport stale-small after the keyboard closed — which is
+          // what pushes the pill back down to the true bottom instead of letting
+          // it strand mid-screen.
+          bottom: `calc(max(1.125rem, env(safe-area-inset-bottom)) + ${vvBottomOffset}px)`,
+        }}
         role="navigation"
         aria-label={t("main_navigation", { defaultValue: "Main navigation" })}
       >

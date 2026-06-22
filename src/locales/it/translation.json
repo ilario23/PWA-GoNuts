@@ -1087,6 +1087,7 @@
     "changelog_v2_2_0_2": "Esporta i tuoi movimenti in JSON, non solo in CSV.",
     "changelog_v2_2_0_3": "La tua email e il tuo profilo sono ora visibili solo a chi condivide un gruppo con te.",
     "changelog_v2_2_0_4": "I grafici ora includono descrizioni testuali per gli screen reader.",
+    "changelog_v2_2_2_0": "Corretta la barra di navigazione in basso che risaliva lo schermo dopo la chiusura della tastiera su iPhone.",
     "changelog_v2_2_1_0": "Visualizza il dettaglio di come ogni pagamento è stato calcolato dalle spese del gruppo.",
     "changelog_v2_2_1_1": "Le etichette dell'interfaccia in italiano ora usano il maiuscoletto corretto per una maggiore naturalezza.",
     "changelog_v2_2_1_2": "La modalità scura si aggiorna istantaneamente quando cambi la preferenza di tema del tuo dispositivo.",
