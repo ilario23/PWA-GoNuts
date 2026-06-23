@@ -7,6 +7,7 @@ import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { applyThemeColor } from "@/lib/theme-colors";
 import { PendingChangesIndicator } from "@/components/PendingChangesIndicator";
 import { BottomNav } from "@/components/BottomNav";
+import { ViewportDebug } from "@/components/ViewportDebug";
 
 // Desktop-only top bar. On mobile the header is hidden by design; navigation
 // (including back-out of secondary pages) lives in the bottom nav, and detail
@@ -68,6 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </SidebarInset>
       <BottomNav collapsed={navCollapsed} />
+      <ViewportDebug />
     </SidebarProvider>
   );
 }
