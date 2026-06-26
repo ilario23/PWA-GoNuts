@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Check, Clock } from "lucide-react";
 import {
   BalanceSnapshotEntry,
   GroupExpenseLineItem,
@@ -147,13 +148,16 @@ export function SettlementBreakdown({
                       <p className="truncate text-[0.9375rem] font-medium leading-tight">
                         {e.description || t("transaction")}
                       </p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {e.date}
-                        {" · "}
-                        {t("settlement_breakdown_paid_by", {
-                          name: paidThis && isMe ? t("you") : e.payerName,
-                        })}
-                      </p>
+                      <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <SettledTag settled={e.settled} />
+                        <span className="truncate">
+                          {e.date}
+                          {" · "}
+                          {t("settlement_breakdown_paid_by", {
+                            name: paidThis && isMe ? t("you") : e.payerName,
+                          })}
+                        </span>
+                      </div>
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="num text-sm font-semibold leading-tight tabular-nums">
@@ -192,6 +196,27 @@ export function SettlementBreakdown({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Compact status pill marking whether an expense falls before the group's
+ * settled-through checkpoint. State carries an icon + word, never colour alone.
+ */
+function SettledTag({ settled }: { settled: boolean }) {
+  const { t } = useTranslation();
+  const Icon = settled ? Check : Clock;
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-[0.06em] ${
+        settled
+          ? "bg-[hsl(var(--gonuts-good)/0.12)] text-[hsl(var(--gonuts-good))]"
+          : "bg-muted text-muted-foreground"
+      }`}
+    >
+      <Icon className="h-3 w-3" aria-hidden />
+      {settled ? t("settled") : t("not_settled")}
+    </span>
   );
 }
 

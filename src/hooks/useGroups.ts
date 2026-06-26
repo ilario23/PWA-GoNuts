@@ -61,6 +61,11 @@ export interface GroupExpenseLineItem {
   amount: number;
   payerMemberId: string;
   payerName: string;
+  /**
+   * Derived (not stored): true when this expense falls on or before the
+   * group's "settled-through" checkpoint — see {@link computeSettledThrough}.
+   */
+  settled: boolean;
 }
 
 export interface SettlementHistoryEntry {
@@ -269,6 +274,65 @@ function buildBalanceSnapshot(params: {
     memberKeyById,
     memberById,
   };
+}
+
+/**
+ * The latest date (YYYY-MM-DD) on which the whole group was square: replaying
+ * every expense and settlement payment up to and including that date, *all*
+ * members' running net balances return to ~0. Returns null if the group never
+ * fully zeroed out.
+ *
+ * Settlements net the whole group and aren't tied to individual expenses, so
+ * "which expenses are settled" can only be derived, not stored. This checkpoint
+ * closes the books up to a date: expenses on or before it are settled, later
+ * ones are still open. Uses the same net formula as buildBalanceSnapshot
+ * (balance = hasPaid − shouldPay + settlementSent − settlementReceived).
+ */
+export function computeSettledThrough(params: {
+  members: Array<Pick<GroupMember, "id" | "share">>;
+  expenses: Array<Pick<Transaction, "amount" | "paid_by_member_id" | "date">>;
+  settlementPayments: Array<
+    Pick<SettlementPayment, "amount" | "from_member_id" | "to_member_id" | "date">
+  >;
+}): string | null {
+  const { members, expenses, settlementPayments } = params;
+  if (members.length === 0) return null;
+
+  // Distinct event dates, oldest first.
+  const eventDates = Array.from(
+    new Set([
+      ...expenses.map((e) => e.date),
+      ...settlementPayments.map((p) => p.date),
+    ])
+  )
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+
+  let settledThrough: string | null = null;
+
+  for (const date of eventDates) {
+    const expensesToDate = expenses.filter((e) => e.date <= date);
+    const paymentsToDate = settlementPayments.filter((p) => p.date <= date);
+    const total = expensesToDate.reduce((sum, e) => sum + e.amount, 0);
+
+    const allSquare = members.every((member) => {
+      const shouldPay = (total * member.share) / 100;
+      const hasPaid = expensesToDate
+        .filter((e) => e.paid_by_member_id === member.id)
+        .reduce((sum, e) => sum + e.amount, 0);
+      const sent = paymentsToDate
+        .filter((p) => p.from_member_id === member.id)
+        .reduce((sum, p) => sum + p.amount, 0);
+      const received = paymentsToDate
+        .filter((p) => p.to_member_id === member.id)
+        .reduce((sum, p) => sum + p.amount, 0);
+      return Math.abs(hasPaid - shouldPay + sent - received) < 0.01;
+    });
+
+    if (allSquare) settledThrough = date;
+  }
+
+  return settledThrough;
 }
 
 /**
@@ -758,6 +822,12 @@ export function useGroups() {
       }
     );
 
+    const settledThrough = computeSettledThrough({
+      members,
+      expenses,
+      settlementPayments,
+    });
+
     const expenseLineItems: GroupExpenseLineItem[] = expenses
       .map((e) => {
         const payerKey =
@@ -775,6 +845,7 @@ export function useGroups() {
           amount: e.amount,
           payerMemberId: e.paid_by_member_id || "",
           payerName,
+          settled: !!settledThrough && (e.date || "") <= settledThrough,
         };
       })
       .sort((a, b) => {
@@ -786,6 +857,7 @@ export function useGroups() {
       totalExpenses: snapshot.totalExpenses,
       balances: snapshot.balances,
       expenses: expenseLineItems,
+      settledThrough,
       latestSettlement: latestSettlement
         ? {
             id: latestSettlement.id,
