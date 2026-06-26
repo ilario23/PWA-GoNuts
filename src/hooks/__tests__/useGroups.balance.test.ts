@@ -4,7 +4,11 @@
  * settlement payments, history and display-name resolution.
  */
 import { renderHook, act } from "@testing-library/react";
-import { useGroups, calculateSettlement } from "../useGroups";
+import {
+  useGroups,
+  calculateSettlement,
+  computeSettledThrough,
+} from "../useGroups";
 import { db } from "../../lib/db";
 import { useAuth } from "@/contexts/AuthProvider";
 
@@ -177,6 +181,101 @@ describe("calculateSettlement", () => {
 });
 
 // ---------------------------------------------------------------------------
+// computeSettledThrough (pure derivation of the settled checkpoint)
+// ---------------------------------------------------------------------------
+
+describe("computeSettledThrough", () => {
+  const members = [
+    { id: "m1", share: 50 },
+    { id: "m2", share: 50 },
+  ];
+
+  it("returns null when no expenses or settlements exist", () => {
+    expect(
+      computeSettledThrough({ members, expenses: [], settlementPayments: [] })
+    ).toBeNull();
+  });
+
+  it("returns null when the group never fully squares up", () => {
+    expect(
+      computeSettledThrough({
+        members,
+        expenses: [
+          { amount: 100, paid_by_member_id: "m1", date: "2024-01-10" },
+        ],
+        settlementPayments: [],
+      })
+    ).toBeNull();
+  });
+
+  it("checkpoints the date a full settlement zeroes everyone", () => {
+    expect(
+      computeSettledThrough({
+        members,
+        expenses: [
+          { amount: 100, paid_by_member_id: "m1", date: "2024-01-10" },
+        ],
+        settlementPayments: [
+          {
+            amount: 50,
+            from_member_id: "m2",
+            to_member_id: "m1",
+            date: "2024-02-01",
+          },
+        ],
+      })
+    ).toBe("2024-02-01");
+  });
+
+  it("does not advance the checkpoint past a still-open later expense", () => {
+    expect(
+      computeSettledThrough({
+        members,
+        expenses: [
+          { amount: 100, paid_by_member_id: "m1", date: "2024-01-10" },
+          // New expense after the settlement leaves the group unbalanced again.
+          { amount: 40, paid_by_member_id: "m1", date: "2024-03-05" },
+        ],
+        settlementPayments: [
+          {
+            amount: 50,
+            from_member_id: "m2",
+            to_member_id: "m1",
+            date: "2024-02-01",
+          },
+        ],
+      })
+    ).toBe("2024-02-01");
+  });
+
+  it("returns the latest checkpoint across repeated settle-ups", () => {
+    expect(
+      computeSettledThrough({
+        members,
+        expenses: [
+          { amount: 100, paid_by_member_id: "m1", date: "2024-01-10" },
+          { amount: 40, paid_by_member_id: "m1", date: "2024-03-05" },
+        ],
+        settlementPayments: [
+          {
+            amount: 50,
+            from_member_id: "m2",
+            to_member_id: "m1",
+            date: "2024-02-01",
+          },
+          {
+            amount: 20,
+            from_member_id: "m2",
+            to_member_id: "m1",
+            date: "2024-03-10",
+          },
+        ],
+      })
+    ).toBe("2024-03-10");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // getGroupBalance edge cases
 // ---------------------------------------------------------------------------
 
@@ -309,6 +408,67 @@ describe("getGroupBalance", () => {
     // guest: 0 paid - 50 share + 50 sent = 0
     expect(balance.balances["member-2"].balance).toBeCloseTo(0);
     expect(balance.balances["member-2"].settlementSent).toBe(50);
+  });
+
+  it("tags expenses settled up to the checkpoint and exposes settledThrough", async () => {
+    (db.group_members.filter as jest.Mock).mockReturnValue(
+      mockFilterResult([registeredMember, guestMember])
+    );
+    (db.transactions.filter as jest.Mock).mockReturnValue(
+      mockFilterResult([
+        {
+          id: "tx-old",
+          group_id: "group-1",
+          type: "expense",
+          amount: 100,
+          paid_by_member_id: "member-1",
+          date: "2024-01-10",
+          deleted_at: null,
+        },
+        {
+          id: "tx-new",
+          group_id: "group-1",
+          type: "expense",
+          amount: 40,
+          paid_by_member_id: "member-1",
+          date: "2024-03-05",
+          deleted_at: null,
+        },
+      ])
+    );
+    (db.settlement_payments.filter as jest.Mock).mockReturnValue(
+      mockFilterResult([
+        {
+          id: "sp-1",
+          group_id: "group-1",
+          from_member_id: "member-2",
+          to_member_id: "member-1",
+          amount: 50,
+          date: "2024-02-01",
+          note: null,
+          created_by: mockUser.id,
+          deleted_at: null,
+          created_at: "2024-02-01T10:00:00Z",
+        },
+      ])
+    );
+
+    const { result } = renderHook(() => useGroups());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let balance: any;
+    await act(async () => {
+      balance = await result.current.getGroupBalance("group-1");
+    });
+
+    expect(balance.settledThrough).toBe("2024-02-01");
+    const byId = Object.fromEntries(
+      balance.expenses.map((e: { id: string; settled: boolean }) => [
+        e.id,
+        e.settled,
+      ])
+    );
+    expect(byId["tx-old"]).toBe(true); // before checkpoint
+    expect(byId["tx-new"]).toBe(false); // after checkpoint
   });
 
   it("builds settlement history sorted newest-first with undo rights", async () => {

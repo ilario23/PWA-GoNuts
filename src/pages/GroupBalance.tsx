@@ -331,6 +331,12 @@ export function GroupBalancePage() {
             <ListOrdered className="h-3.5 w-3.5" />
             {t("settlement_plan")}
           </p>
+          {balance.settledThrough && (
+            <p className="-mt-1 mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--gonuts-good))]" />
+              {t("settled_through", { date: balance.settledThrough })}
+            </p>
+          )}
           {settlements.length === 0 ? (
             <div className="flex items-center gap-2 text-[hsl(var(--gonuts-good))]">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
