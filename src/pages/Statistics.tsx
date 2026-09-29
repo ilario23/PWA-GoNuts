@@ -68,6 +68,14 @@ import { StatsContextTrends } from "@/components/statistics/StatsContextTrends";
 import { StatsGroupBalances } from "@/components/statistics/StatsGroupBalances";
 import { StatsBudgetHealth } from "@/components/statistics/StatsBudgetHealth";
 import { BudgetHealthChart } from "@/components/statistics/BudgetHealthChart";
+import { StatsInsightsCard } from "@/components/statistics/StatsInsightsCard";
+import { StatsRecurringSplit } from "@/components/statistics/StatsRecurringSplit";
+import { StatsSavingsRateTrend } from "@/components/statistics/StatsSavingsRateTrend";
+import { StatsWeekdaySeasonality } from "@/components/statistics/StatsWeekdaySeasonality";
+import { StatsMultiYearTrend } from "@/components/statistics/StatsMultiYearTrend";
+import { StatsBudgetPacing } from "@/components/statistics/StatsBudgetPacing";
+import { StatsTopMerchants } from "@/components/statistics/StatsTopMerchants";
+import { StatsRootCategoryTrend } from "@/components/statistics/StatsRootCategoryTrend";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 
@@ -157,6 +165,14 @@ export function StatisticsPage() {
     monthlyContextTrends,
     groupBalances,
     monthlyBudgetHealth,
+    recurringVsOneOff,
+    savingsRateTrend,
+    weekdaySeasonality,
+    multiYearTrend,
+    budgetPacing,
+    topMerchants,
+    rootCategoryTrend,
+    insights,
     isLoading: isStatsLoading,
   } = useStatistics({
     selectedMonth,
@@ -244,6 +260,7 @@ export function StatisticsPage() {
     { value: "11", label: t("november") },
     { value: "12", label: t("december") },
   ];
+  const monthNames = months.map((m) => m.label);
 
   const handleYearChange = (year: string) => {
     setSelectedYear(year);
@@ -524,6 +541,23 @@ export function StatisticsPage() {
 
                   {/* Budget Health Chart */}
                   <BudgetHealthChart />
+
+                  {/* Derived insights — breakdown */}
+                  <StatsRecurringSplit
+                    data={recurringVsOneOff}
+                    monthNames={monthNames}
+                    isLoading={isLoading}
+                  />
+                  <StatsTopMerchants data={topMerchants} isLoading={isLoading} />
+                  <StatsWeekdaySeasonality
+                    data={weekdaySeasonality}
+                    isLoading={isLoading}
+                  />
+                  <StatsBudgetPacing
+                    data={budgetPacing}
+                    monthNames={monthNames}
+                    isLoading={isLoading}
+                  />
                 </div>
 
                 {/* Burn Rate / Spending Projection Card - Trend tab */}
@@ -1094,6 +1128,29 @@ export function StatisticsPage() {
                   />
                 </div>
 
+                {/* Yearly derived insights — breakdown */}
+                <div className={`space-y-4 min-w-0 ${viewTab !== "breakdown" ? "hidden" : ""}`}>
+                  <StatsRecurringSplit
+                    data={recurringVsOneOff}
+                    monthNames={monthNames}
+                    isLoading={isLoading}
+                  />
+                  <StatsTopMerchants data={topMerchants} isLoading={isLoading} />
+                  <StatsWeekdaySeasonality
+                    data={weekdaySeasonality}
+                    isLoading={isLoading}
+                  />
+                  <StatsRootCategoryTrend
+                    data={rootCategoryTrend}
+                    isLoading={isLoading}
+                  />
+                  <StatsBudgetPacing
+                    data={budgetPacing}
+                    monthNames={monthNames}
+                    isLoading={isLoading}
+                  />
+                </div>
+
                 {/* Period Comparison Section - Yearly */}
                 <Card className={`min-w-0 ${viewTab !== "trend" ? "hidden" : ""}`}>
                   <CardHeader>
@@ -1377,6 +1434,21 @@ export function StatisticsPage() {
 
           <div className="space-y-4">
             {/* === NEW CHARTS SECTION === */}
+
+            {/* Insights + long-run trends (both modes) */}
+            {viewTab === "trend" && (
+              <StatsInsightsCard insights={insights} isLoading={isLoading} />
+            )}
+            {activeTab === "yearly" && viewTab === "trend" && (
+              <StatsSavingsRateTrend
+                data={savingsRateTrend}
+                monthNames={monthNames}
+                isLoading={isLoading}
+              />
+            )}
+            {viewTab === "trend" && (
+              <StatsMultiYearTrend data={multiYearTrend} isLoading={isLoading} />
+            )}
 
             {/* Temporal Trend Chart (Line/Area) */}
             {activeTab === "yearly" && viewTab === "trend" && (

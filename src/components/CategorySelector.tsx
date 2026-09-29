@@ -193,6 +193,11 @@ export function CategorySelector({
       .slice(0, 6);
   }, [filteredCategories, usageFrequency, isSearching]);
 
+  const getParentName = (cat: Category) => {
+    if (!cat.parent_id) return null;
+    return categories?.find((c) => c.id === cat.parent_id)?.name ?? null;
+  };
+
   const selectedCategory = categories?.find((c) => c.id === value);
   const selectedGroupName = selectedCategory?.group_id
     ? groups.find((g) => g.id === selectedCategory.group_id)?.name
@@ -446,11 +451,13 @@ export function CategorySelector({
       <div className='flex flex-wrap gap-1.5'>
         {frequentCategories.map((c) => {
           const isSel = value === c.id;
+          const parentName = getParentName(c);
           return (
             <button
               key={c.id}
               type='button'
               onClick={() => handleSelect(c.id)}
+              title={parentName ? `${parentName} › ${c.name}` : c.name}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 text-[13px] font-semibold transition-colors',
                 isSel
@@ -459,7 +466,18 @@ export function CategorySelector({
               )}
             >
               {renderCategoryIcon(c.icon, c.color, 'sm')}
-              <span className='max-w-[140px] truncate'>{c.name}</span>
+              <span className='max-w-[140px] truncate'>
+                {parentName ? (
+                  <>
+                    <span className={cn('font-normal', isSel ? 'opacity-70' : 'text-muted-foreground')}>
+                      {parentName} ›
+                    </span>{' '}
+                    {c.name}
+                  </>
+                ) : (
+                  c.name
+                )}
+              </span>
             </button>
           );
         })}
@@ -468,8 +486,9 @@ export function CategorySelector({
     </div>
   );
 
-  // A single flat ledger row for the tabs layout. `drill` means tapping opens
-  // the category's children instead of selecting it.
+  // A single flat ledger row for the tabs layout. `drill` means the row has
+  // children: the body selects the category itself (one tap), while the
+  // trailing chevron/count badge drills into the children.
   const renderFlatRow = (
     category: Category,
     isFirst: boolean,
@@ -480,27 +499,24 @@ export function CategorySelector({
     const groupName = category.group_id
       ? groups.find((g) => g.id === category.group_id)?.name
       : null;
-    const act = () =>
-      drill ? setActiveParentId(category.id) : handleSelect(category.id);
+    const parentName = getParentName(category);
 
     return (
       <div
         key={category.id}
         role='button'
         tabIndex={0}
-        aria-pressed={!drill && isSelected}
-        onClick={act}
+        aria-pressed={isSelected}
+        onClick={() => handleSelect(category.id)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            act();
+            handleSelect(category.id);
           }
         }}
         className={cn(
           'group relative flex items-center gap-3 px-2.5 py-2 min-h-[52px] cursor-pointer rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-          !drill && isSelected
-            ? 'bg-muted'
-            : 'hover:bg-muted/50 active:bg-muted',
+          isSelected ? 'bg-muted' : 'hover:bg-muted/50 active:bg-muted',
           !isFirst &&
             'before:absolute before:inset-x-2.5 before:top-0 before:h-px before:bg-border/45',
         )}
@@ -511,7 +527,7 @@ export function CategorySelector({
             <span
               className={cn(
                 'truncate text-[15px] leading-tight',
-                !drill && isSelected ? 'font-bold' : 'font-semibold',
+                isSelected ? 'font-bold' : 'font-semibold',
               )}
             >
               {category.name}
@@ -526,9 +542,29 @@ export function CategorySelector({
               </Badge>
             )}
           </div>
+          {parentName && (
+            <span className='mt-0.5 block truncate text-[12px] text-muted-foreground'>
+              {t('in_category_name', {name: parentName})}
+            </span>
+          )}
         </div>
         {drill ? (
-          <div className='flex items-center gap-1 shrink-0 text-muted-foreground'>
+          <button
+            type='button'
+            aria-label={t('show_subcategories', {name: category.name, defaultValue: 'Show subcategories'})}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveParentId(category.id);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                setActiveParentId(category.id);
+              }
+            }}
+            className='flex items-center gap-1 shrink-0 text-muted-foreground -mr-1 pl-2 pr-1 min-h-[44px] min-w-[44px] rounded-lg hover:bg-foreground/[0.06] hover:text-foreground transition-colors'
+          >
             <Badge
               variant='secondary'
               className='num text-[10px] px-1.5 py-0 h-[18px] tabular-nums font-bold'
@@ -536,7 +572,7 @@ export function CategorySelector({
               {childCount}
             </Badge>
             <ChevronRight className='h-[18px] w-[18px]' />
-          </div>
+          </button>
         ) : (
           isSelected && (
             <Check className='h-[18px] w-[18px] shrink-0 text-[hsl(var(--primary))]' />
@@ -551,6 +587,12 @@ export function CategorySelector({
     : null;
   const tabParents = rootCategories.filter(
     (r) => getChildren(r.id).length > 0,
+  );
+
+  const emptyState = (
+    <div className='text-center py-8 text-muted-foreground text-sm'>
+      {t('no_categories_found', {defaultValue: 'No categories found'})}
+    </div>
   );
 
   const tabsContent = (
@@ -602,9 +644,7 @@ export function CategorySelector({
       >
         {isSearching ? (
           rootCategories.length === 0 ? (
-            <div className='text-center py-8 text-muted-foreground text-sm'>
-              {t('no_categories_found')}
-            </div>
+            emptyState
           ) : (
             <div>
               {rootCategories.map((root, i) =>
@@ -627,9 +667,7 @@ export function CategorySelector({
           <>
             {frequentStrip}
             {rootCategories.length === 0 ? (
-              <div className='text-center py-8 text-muted-foreground text-sm'>
-                {t('no_categories_found')}
-              </div>
+              emptyState
             ) : (
               <div>
                 {rootCategories.map((root, i) =>
@@ -695,11 +733,7 @@ export function CategorySelector({
         )}
 
         {/* No filtered results */}
-        {rootCategories.length === 0 && (
-          <div className='text-center py-8 text-muted-foreground text-sm'>
-            {t('no_categories_found')}
-          </div>
-        )}
+        {rootCategories.length === 0 && emptyState}
 
         {/* List */}
         <div>

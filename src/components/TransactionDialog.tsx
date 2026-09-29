@@ -247,10 +247,17 @@ export function TransactionDialog({
   useEffect(() => {
     const hasTypeChanged = previousTypeRef.current !== watchedType;
     previousTypeRef.current = watchedType;
-    if (!editingTransaction && hasTypeChanged && form.getValues('category_id')) {
-      form.setValue('category_id', '');
+    if (!editingTransaction && hasTypeChanged) {
+      const catId = form.getValues('category_id');
+      if (!catId) return;
+      const cat = categories?.find((c) => c.id === catId);
+      // Keep the pick when it still matches the new type; only drop it when
+      // the type actually makes it invalid.
+      if (cat && cat.type !== watchedType) {
+        form.setValue('category_id', '');
+      }
     }
-  }, [watchedType, editingTransaction, form]);
+  }, [watchedType, editingTransaction, form, categories]);
 
   useEffect(() => {
     if (editingTransaction === null || editingTransaction === undefined) {
@@ -358,12 +365,19 @@ export function TransactionDialog({
   };
 
   const handleFormSubmit = (data: TransactionFormValues) => {
-    if (data.amount > 5000) {
-      setPendingData(data);
+    // Finish a pending calculator operation as if Equals was pressed
+    // (e.g. 12 − 4 then Save submits 8, not 4).
+    const amount =
+      calcState.prevValue !== null && calcState.operation
+        ? computeCalc(calcState.prevValue, calcState.operation, parseAmount(data.amount))
+        : data.amount;
+    const resolved = {...data, amount};
+    if (resolved.amount > 5000) {
+      setPendingData(resolved);
       setShowLargeValueConfirm(true);
       return;
     }
-    finalSubmit(data);
+    finalSubmit(resolved);
   };
 
   const confirmLargeValue = () => {
@@ -377,6 +391,9 @@ export function TransactionDialog({
   // Derived display values
   const selectedCat = categories?.find((c) => c.id === watchedCategoryId) ?? null;
   const selectedCatIcon = selectedCat?.icon ? getIconComponent(selectedCat.icon) : null;
+  const selectedCatParent = selectedCat?.parent_id
+    ? categories?.find((c) => c.id === selectedCat.parent_id) ?? null
+    : null;
   const selectedCtx = contexts?.find((c) => c.id === watchedContextId) ?? null;
   const selectedGroup = groups?.find((g) => g.id === watchedGroupId) ?? null;
   const amountNum = parseAmount(watchedAmount);
@@ -557,7 +574,11 @@ export function TransactionDialog({
                 <div className='min-w-0'>
                   <div className='text-[10px] font-bold uppercase tracking-widest opacity-70'>{t('category')}</div>
                   <div className='text-sm font-bold leading-tight truncate'>
-                    {selectedCat?.name ?? t('choose', {defaultValue: 'Choose'})}
+                    {selectedCat
+                      ? selectedCatParent
+                        ? `${selectedCatParent.name} › ${selectedCat.name}`
+                        : selectedCat.name
+                      : t('choose', {defaultValue: 'Choose'})}
                   </div>
                 </div>
               </button>
@@ -866,7 +887,9 @@ export function TransactionDialog({
               onClick={() => {
                 form.setValue('group_id', null);
                 form.setValue('paid_by_member_id', null);
-                form.setValue('category_id', '');
+                // Personal scope only keeps personal categories
+                const cat = categories?.find((c) => c.id === form.getValues('category_id'));
+                if (cat?.group_id) form.setValue('category_id', '');
                 setGroupPickerOpen(false);
               }}
             >
@@ -882,7 +905,11 @@ export function TransactionDialog({
                 className='w-full flex items-center gap-3 px-5 py-3.5 hover:bg-muted text-left transition-colors'
                 onClick={() => {
                   const prevGroup = form.getValues('group_id');
-                  if (prevGroup !== group.id) form.setValue('category_id', '');
+                  if (prevGroup !== group.id) {
+                    // Group scope only keeps that group's categories
+                    const cat = categories?.find((c) => c.id === form.getValues('category_id'));
+                    if (cat && cat.group_id !== group.id) form.setValue('category_id', '');
+                  }
                   form.setValue('group_id', group.id);
                   const defaultMemberId = getDefaultPaidByMemberId(group.id);
                   if (defaultMemberId) form.setValue('paid_by_member_id', defaultMemberId);
