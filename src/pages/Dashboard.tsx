@@ -6,7 +6,15 @@ import { useContexts } from "@/hooks/useContexts";
 import { useGroups } from "@/hooks/useGroups";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
-import { ArrowDownLeft, TrendingUp, ChevronRight, Plus, Scale } from "lucide-react";
+import {
+  ArrowDownLeft,
+  TrendingUp,
+  TrendingDown,
+  ChevronRight,
+  Plus,
+  Scale,
+  Minus,
+} from "lucide-react";
 import {
   TransactionDialog,
   TransactionFormData,
@@ -71,6 +79,7 @@ export function Dashboard() {
     dailyCumulativeExpenses,
     isLoading,
     monthlyBudgetHealth,
+    monthlyComparison,
   } = useStatistics({ selectedMonth: currentMonth, userId: user?.id });
 
   const currencySymbol = getCurrencySymbol(settings?.currency ?? "EUR");
@@ -106,6 +115,16 @@ export function Dashboard() {
       tx.year_month === currentMonth
   ).length;
 
+  // MTD-aligned spend delta vs previous month (from useStatistics)
+  const expenseDelta = monthlyComparison.expense;
+  const deltaAbs = Math.abs(expenseDelta.current - expenseDelta.previous);
+  const deltaPct = Math.abs(expenseDelta.change);
+  const showDelta =
+    !isLoading &&
+    (expenseDelta.current > 0 || expenseDelta.previous > 0) &&
+    deltaPct >= 0.5;
+  const spendingLess = expenseDelta.current <= expenseDelta.previous;
+
   // Top categories for "Where it went" (top 4 by value, expenses only)
   const topCategories = useMemo(() => {
     const sorted = [...monthlyStats.byCategory]
@@ -114,7 +133,14 @@ export function Dashboard() {
       .slice(0, 4);
     return sorted.map((c) => {
       const fullCat = (categories ?? []).find((cat) => cat.name === c.name);
-      return { ...c, icon: fullCat?.icon ?? "Folder" };
+      const parent = fullCat?.parent_id
+        ? (categories ?? []).find((cat) => cat.id === fullCat.parent_id)
+        : undefined;
+      return {
+        ...c,
+        icon: fullCat?.icon ?? "Folder",
+        parentName: parent?.name,
+      };
     });
   }, [monthlyStats.byCategory, categories]);
 
@@ -247,9 +273,14 @@ export function Dashboard() {
       {/* ── Hero ───────────────────────────────────────────── */}
       <div className="px-0 pt-2 pb-5">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-            {monthName} · {t("so_far")}
-          </p>
+          <div className="flex items-baseline gap-2 min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground truncate">
+              {monthName} · {t("so_far")}
+            </p>
+            <p className="text-[11px] text-muted-foreground/70 shrink-0">
+              {t("day_x_of_y", { day: now.getDate(), total: daysInMonth })}
+            </p>
+          </div>
           {/* Desktop add button */}
           <Button
             variant="outline"
@@ -280,9 +311,39 @@ export function Dashboard() {
               </span>
               <span className="num text-2xl text-muted-foreground font-bold">{heroCents}</span>
             </div>
-            <p className="text-[13px] text-muted-foreground mt-1.5">
-              {t("spent_on_transactions", { count: expenseCount })}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5">
+              <p className="text-[13px] text-muted-foreground">
+                {t("spent_on_transactions", { count: expenseCount })}
+              </p>
+              {showDelta && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+                    spendingLess
+                      ? "bg-gonuts-good/10 text-gonuts-good"
+                      : "bg-gonuts-bad/10 text-gonuts-bad"
+                  )}
+                  title={t("vs_previous_month")}
+                >
+                  {spendingLess ? (
+                    deltaPct < 1 ? (
+                      <Minus className="w-3 h-3" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3" />
+                    )
+                  ) : (
+                    <TrendingUp className="w-3 h-3" />
+                  )}
+                  {spendingLess
+                    ? t("less_than_prev_month", {
+                        amount: `${currencySymbol}${deltaAbs.toFixed(0)}`,
+                      })
+                    : t("more_than_prev_month", {
+                        amount: `${currencySymbol}${deltaAbs.toFixed(0)}`,
+                      })}
+                </span>
+              )}
+            </div>
           </>
         )}
 
@@ -388,7 +449,7 @@ export function Dashboard() {
                           i > 0 && "border-t border-border/40"
                         )}
                       >
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <span
                             className="flex items-center justify-center w-8 h-8 rounded-[10px] shrink-0"
                             style={{ backgroundColor: c.color, color: "#fff" }}
@@ -399,7 +460,14 @@ export function Dashboard() {
                               <span className="text-xs font-bold">{c.name[0]}</span>
                             )}
                           </span>
-                          <span className="font-semibold text-sm">{c.name}</span>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-sm truncate">{c.name}</div>
+                            {c.parentName && (
+                              <div className="text-[11px] text-muted-foreground truncate">
+                                {t("in_category_name", { name: c.parentName })}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-baseline gap-2">
                           <span className="text-[11px] text-muted-foreground">{pct}%</span>

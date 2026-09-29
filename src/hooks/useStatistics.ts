@@ -122,6 +122,25 @@ export function useStatistics(params?: UseStatisticsParams) {
 
   const categoryBudgets = useLiveQuery(() => db.category_budgets.toArray());
 
+  const allTimeTransactions = useLiveQuery(
+    () =>
+      db.transactions.toArray().then(txs => {
+        const alive = txs.filter(t => !t.deleted_at);
+        return params?.groupId
+          ? alive.filter(t => t.group_id === params.groupId)
+          : alive;
+      }),
+    [params?.groupId]
+  );
+
+  const settings = useLiveQuery(
+    () =>
+      userId
+        ? db.user_settings.get(userId)
+        : db.user_settings.toArray().then(rows => rows[0]),
+    [userId]
+  );
+
   // --- Worker Management ---
   const workerRef = useRef<Worker | null>(null);
 
@@ -152,6 +171,14 @@ export function useStatistics(params?: UseStatisticsParams) {
 
     groupBalances: [],
     monthlyBudgetHealth: [],
+    categoryComparison: [],
+    recurringVsOneOff: { recurringTotal: 0, oneOffTotal: 0, recurringCount: 0, oneOffCount: 0, recurringPct: 0 },
+    savingsRateTrend: [],
+    weekdaySeasonality: { days: [], weekendPct: 0, busiestWeekday: 0 },
+    multiYearTrend: [],
+    budgetPacing: { monthlyBudget: 0, points: [], projectedYearEnd: 0, ytdActual: 0, ytdBudget: 0 },
+    topMerchants: [],
+    rootCategoryTrend: { categories: [], points: [] },
   });
 
   useEffect(() => {
@@ -274,7 +301,8 @@ export function useStatistics(params?: UseStatisticsParams) {
       (transactions || yearlyTransactions) &&
       categories &&
       contexts &&
-      categoryBudgets
+      categoryBudgets &&
+      allTimeTransactions
     ) {
       if (!isLoading) setIsLoading(true); // Set loading if not already matching
 
@@ -285,6 +313,8 @@ export function useStatistics(params?: UseStatisticsParams) {
           yearlyTransactions: yearlyTransactions || [],
           previousMonthTransactions: previousMonthTransactions || [],
           previousYearTransactions: previousYearTransactions || [],
+          allTimeTransactions: allTimeTransactions || [],
+          monthlyBudget: settings?.monthly_budget ?? undefined,
           categories,
           contexts,
           groupId: params?.groupId,
@@ -305,6 +335,8 @@ export function useStatistics(params?: UseStatisticsParams) {
     yearlyTransactions,
     previousMonthTransactions,
     previousYearTransactions,
+    allTimeTransactions,
+    settings?.monthly_budget,
     categories,
     contexts,
     params?.groupId,
@@ -474,7 +506,7 @@ export function useStatistics(params?: UseStatisticsParams) {
 
     // Placeholders
     previousMonthComparison: null,
-    categoryComparison: [] as CategoryComparisonData[],
+    categoryComparison: (workerResult.categoryComparison || []) as CategoryComparisonData[],
     previousMonth,
     previousYear,
     previousMonthCumulativeExpenses: workerResult.previousMonthCumulativeExpenses || [],

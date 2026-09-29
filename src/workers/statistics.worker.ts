@@ -1,5 +1,5 @@
 import { Category, Transaction, GroupMember, Context, CategoryBudget } from "../lib/db";
-import { StatisticsWorkerRequest, CategoryStat, CategoryPercentage, HierarchyNode, TrendData, CashFlowData, ContextStat, DailyCumulativeData, RadarData, ContextTrendData, GroupBalance, BudgetHealth, MonthlyCumulativeData } from "../types/worker";
+import { StatisticsWorkerRequest, CategoryStat, CategoryPercentage, HierarchyNode, TrendData, CashFlowData, ContextStat, DailyCumulativeData, RadarData, ContextTrendData, GroupBalance, BudgetHealth, MonthlyCumulativeData, CategoryComparisonData, RecurringSplit, SavingsRatePoint, WeekdayStat, WeekdaySeasonality, MultiYearPoint, BudgetPacingPoint, BudgetPacing, MerchantStat, RootCategoryTrendPoint, RootCategoryTrend } from "../types/worker";
 
 // Helper type for the worker context
 const ctx: Worker = self as unknown as Worker;
@@ -798,6 +798,46 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
             groupShareMap
         );
 
+        // --- 13-20. Derived insights ---
+        const activeTxs = mode === "monthly" ? transactions : yearlyTransactions;
+
+        const categoryComparison = mode === "monthly"
+            ? calculateCategoryComparison(monthlyStats.byCategory, previousMonthStats?.byCategory)
+            : [];
+
+        const recurringVsOneOff = calculateRecurringVsOneOff(
+            activeTxs,
+            groupShareMap,
+            mode === "yearly"
+        );
+
+        const savingsRateTrend = mode === "yearly"
+            ? calculateSavingsRateTrend(yearlyTransactions, groupShareMap)
+            : [];
+
+        const weekdaySeasonality = calculateWeekdaySeasonality(activeTxs, groupShareMap);
+
+        const multiYearTrend = calculateMultiYearTrend(
+            event.data.payload.allTimeTransactions,
+            groupShareMap
+        );
+
+        // Budget pacing spans the full selected year; prefer all-time data so it
+        // also works in monthly mode (yearlyTransactions is only fetched in yearly mode).
+        const budgetSourceTxs = event.data.payload.allTimeTransactions ?? yearlyTransactions;
+        const budgetPacing = calculateBudgetPacing(
+            budgetSourceTxs,
+            event.data.payload.monthlyBudget,
+            currentYear,
+            groupShareMap
+        );
+
+        const topMerchants = calculateTopMerchants(activeTxs, groupShareMap);
+
+        const rootCategoryTrend = mode === "yearly"
+            ? calculateRootCategoryTrend(yearlyTransactions, categoryMap, groupShareMap, currentYear)
+            : { categories: [], points: [] };
+
         // Send result back
         ctx.postMessage({
             type: "STATS_RESULT",
@@ -824,7 +864,16 @@ ctx.onmessage = (event: MessageEvent<StatisticsWorkerRequest>) => {
 
                 groupBalances,
                 monthlyBudgetHealth,
-                previousMonthStats
+                previousMonthStats,
+
+                categoryComparison,
+                recurringVsOneOff,
+                savingsRateTrend,
+                weekdaySeasonality,
+                multiYearTrend,
+                budgetPacing,
+                topMerchants,
+                rootCategoryTrend,
             },
         });
     } catch (error) {
@@ -915,4 +964,371 @@ const calculateBudgetHealth = (
     });
 
     return monthlyBudgetHealth.sort((a, b) => b.percentage - a.percentage);
+};
+
+// --- Helpers for derived insights ---
+
+const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+const isRecurringTx = (t: Transaction): boolean =>
+    Boolean(t.recurring_transaction_id) || Boolean(t.recurrence_key);
+
+/** Month index 0-11 from year_month/date parts (avoids Date TZ parsing). */
+const getMonthIndexFromTx = (t: Transaction): number => {
+    const fromYearMonth = t.year_month ? t.year_month.split("-")[1] : undefined;
+    if (fromYearMonth) {
+        const m = parseInt(fromYearMonth, 10);
+        if (!Number.isNaN(m) && m >= 1 && m <= 12) return m - 1;
+    }
+    const parts = t.date.split("-");
+    if (parts.length >= 2) {
+        const m = parseInt(parts[1], 10);
+        if (!Number.isNaN(m) && m >= 1 && m <= 12) return m - 1;
+    }
+    return -1;
+};
+
+/** Day of week 0=Sun..6=Sat from a local YYYY-MM-DD date (no TZ parsing). */
+const getWeekdayFromDate = (date: string): number | null => {
+    const parts = date.split("-");
+    if (parts.length < 3) return null;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const d = parseInt(parts[2], 10);
+    if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return null;
+    return new Date(y, m - 1, d).getDay();
+};
+
+const normalizeMerchantKey = (description: string): string =>
+    (description || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, "");
+
+// --- 13. Category comparison (current vs previous month) ---
+export const calculateCategoryComparison = (
+    current: CategoryStat[],
+    previous: CategoryStat[] | undefined
+): CategoryComparisonData[] => {
+    const prevMap = new Map<string, number>();
+    (previous || []).forEach((c) => prevMap.set(c.name, c.value));
+
+    const names = new Set<string>([
+        ...current.map((c) => c.name),
+        ...prevMap.keys(),
+    ]);
+
+    const result: CategoryComparisonData[] = [];
+    names.forEach((name) => {
+        const curr = current.find((c) => c.name === name)?.value ?? 0;
+        const prev = prevMap.get(name) ?? 0;
+        const change = prev === 0 ? (curr === 0 ? 0 : 100) : ((curr - prev) / prev) * 100;
+        result.push({
+            name,
+            current: curr,
+            previous: prev,
+            change,
+            // Expenses: lower is better. Equal spend is not "worsened".
+            trend: curr <= prev ? "improved" : "worsened",
+        });
+    });
+
+    result.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+    return result.slice(0, 8);
+};
+
+// --- 14. Recurring vs one-off expenses ---
+export const calculateRecurringVsOneOff = (
+    txs: Transaction[] | undefined,
+    groupShareMap: Map<string, number>,
+    includeMonthlySeries: boolean
+): RecurringSplit => {
+    let recurringTotal = 0;
+    let oneOffTotal = 0;
+    let recurringCount = 0;
+    let oneOffCount = 0;
+
+    const monthly = includeMonthlySeries
+        ? Array.from({ length: 12 }, (_, monthIndex) => ({ monthIndex, recurring: 0, oneOff: 0 }))
+        : undefined;
+
+    (txs || []).forEach((t) => {
+        if (t.deleted_at || t.type !== "expense") return;
+        const amount = getEffectiveAmount(t, groupShareMap);
+        const recurring = isRecurringTx(t);
+
+        if (recurring) {
+            recurringTotal += amount;
+            recurringCount += 1;
+        } else {
+            oneOffTotal += amount;
+            oneOffCount += 1;
+        }
+
+        if (monthly) {
+            const monthIdx = getMonthIndexFromTx(t);
+            if (monthIdx >= 0 && monthIdx <= 11) {
+                if (recurring) monthly[monthIdx].recurring += amount;
+                else monthly[monthIdx].oneOff += amount;
+            }
+        }
+    });
+
+    const expenseTotal = recurringTotal + oneOffTotal;
+    const split: RecurringSplit = {
+        recurringTotal: round2(recurringTotal),
+        oneOffTotal: round2(oneOffTotal),
+        recurringCount,
+        oneOffCount,
+        recurringPct: expenseTotal > 0 ? round2((recurringTotal / expenseTotal) * 100) : 0,
+    };
+    if (monthly) {
+        split.monthly = monthly.map((m) => ({
+            monthIndex: m.monthIndex,
+            recurring: round2(m.recurring),
+            oneOff: round2(m.oneOff),
+        }));
+    }
+    return split;
+};
+
+// --- 15. Savings rate trend (yearly) ---
+export const calculateSavingsRateTrend = (
+    txs: Transaction[] | undefined,
+    groupShareMap: Map<string, number>
+): SavingsRatePoint[] => {
+    const months = Array.from({ length: 12 }, () => ({ income: 0, expense: 0 }));
+
+    (txs || []).forEach((t) => {
+        if (t.deleted_at) return;
+        const monthIdx = getMonthIndexFromTx(t);
+        if (monthIdx < 0 || monthIdx > 11) return;
+        const amount = getEffectiveAmount(t, groupShareMap);
+        if (t.type === "income") months[monthIdx].income += amount;
+        else if (t.type === "expense") months[monthIdx].expense += amount;
+    });
+
+    return months.map((m, monthIndex) => ({
+        monthIndex,
+        savingsRate: m.income > 0 ? round2(((m.income - m.expense) / m.income) * 100) : 0,
+        balance: round2(m.income - m.expense),
+    }));
+};
+
+// --- 16. Weekday seasonality ---
+export const calculateWeekdaySeasonality = (
+    txs: Transaction[] | undefined,
+    groupShareMap: Map<string, number>
+): WeekdaySeasonality => {
+    const days: WeekdayStat[] = Array.from({ length: 7 }, (_, weekday) => ({
+        weekday,
+        total: 0,
+        count: 0,
+        avg: 0,
+    }));
+
+    let weekendTotal = 0;
+    let overallTotal = 0;
+
+    (txs || []).forEach((t) => {
+        if (t.deleted_at || t.type !== "expense") return;
+        const weekday = getWeekdayFromDate(t.date);
+        if (weekday === null) return;
+        const amount = getEffectiveAmount(t, groupShareMap);
+        days[weekday].total += amount;
+        days[weekday].count += 1;
+        overallTotal += amount;
+        if (weekday === 0 || weekday === 6) weekendTotal += amount;
+    });
+
+    days.forEach((d) => {
+        d.total = round2(d.total);
+        d.avg = d.count > 0 ? round2(d.total / d.count) : 0;
+    });
+
+    let busiestWeekday = 0;
+    days.forEach((d) => {
+        if (d.total > days[busiestWeekday].total) busiestWeekday = d.weekday;
+    });
+
+    return {
+        days,
+        weekendPct: overallTotal > 0 ? round2((weekendTotal / overallTotal) * 100) : 0,
+        busiestWeekday,
+    };
+};
+
+// --- 17. Multi-year expense trend with moving averages ---
+export const calculateMultiYearTrend = (
+    txs: Transaction[] | undefined,
+    groupShareMap: Map<string, number>
+): MultiYearPoint[] => {
+    const totals = new Map<string, number>();
+    (txs || []).forEach((t) => {
+        if (t.deleted_at || t.type !== "expense") return;
+        const ym = t.year_month;
+        if (!ym || !/^\d{4}-\d{2}$/.test(ym)) return;
+        totals.set(ym, (totals.get(ym) || 0) + getEffectiveAmount(t, groupShareMap));
+    });
+
+    if (totals.size === 0) return [];
+
+    const sortedKeys = Array.from(totals.keys()).sort();
+    const [startY, startM] = sortedKeys[0].split("-").map(Number);
+    const [endY, endM] = sortedKeys[sortedKeys.length - 1].split("-").map(Number);
+
+    // Continuous series with gaps filled as 0
+    const series: { period: string; expense: number }[] = [];
+    let y = startY;
+    let m = startM;
+    while (y < endY || (y === endY && m <= endM)) {
+        const period = `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}`;
+        series.push({ period, expense: round2(totals.get(period) || 0) });
+        m += 1;
+        if (m > 12) {
+            m = 1;
+            y += 1;
+        }
+    }
+
+    return series.map((point, i) => {
+        const ma = (windowSize: number): number | undefined => {
+            if (i + 1 < windowSize) return undefined;
+            let sum = 0;
+            for (let j = i - windowSize + 1; j <= i; j++) sum += series[j].expense;
+            return round2(sum / windowSize);
+        };
+        return {
+            period: point.period,
+            expense: point.expense,
+            ma3: ma(3),
+            ma6: ma(6),
+            ma12: ma(12),
+        };
+    });
+};
+
+// --- 18. Budget pacing (selected year vs monthly budget) ---
+export const calculateBudgetPacing = (
+    txs: Transaction[] | undefined,
+    monthlyBudget: number | undefined,
+    currentYear: string,
+    groupShareMap: Map<string, number>
+): BudgetPacing => {
+    const budget = monthlyBudget ?? 0;
+    const monthlyActual = Array.from({ length: 12 }, () => 0);
+
+    (txs || []).forEach((t) => {
+        if (t.deleted_at || t.type !== "expense") return;
+        if (!t.year_month || !t.year_month.startsWith(currentYear)) return;
+        const monthIdx = getMonthIndexFromTx(t);
+        if (monthIdx < 0 || monthIdx > 11) return;
+        monthlyActual[monthIdx] += getEffectiveAmount(t, groupShareMap);
+    });
+
+    const points: BudgetPacingPoint[] = monthlyActual.map((actual, monthIndex) => ({
+        monthIndex,
+        actual: round2(actual),
+        budget,
+        variance: round2(actual - budget),
+    }));
+
+    const today = new Date();
+    const isCurrentYear = currentYear === today.getFullYear().toString();
+    const isFutureYear = parseInt(currentYear, 10) > today.getFullYear();
+    const monthsElapsed = isCurrentYear ? today.getMonth() + 1 : isFutureYear ? 0 : 12;
+
+    let ytdActual = 0;
+    for (let i = 0; i < monthsElapsed; i++) ytdActual += monthlyActual[i];
+    ytdActual = round2(ytdActual);
+
+    const yearTotal = round2(monthlyActual.reduce((s, v) => s + v, 0));
+    const projectedYearEnd =
+        isCurrentYear && monthsElapsed > 0
+            ? round2((ytdActual / monthsElapsed) * 12)
+            : yearTotal;
+
+    return {
+        monthlyBudget: budget,
+        points,
+        projectedYearEnd,
+        ytdActual,
+        ytdBudget: round2(budget * monthsElapsed),
+    };
+};
+
+// --- 19. Top merchants (expense descriptions) ---
+export const calculateTopMerchants = (
+    txs: Transaction[] | undefined,
+    groupShareMap: Map<string, number>
+): MerchantStat[] => {
+    const map = new Map<string, { name: string; total: number; count: number }>();
+
+    (txs || []).forEach((t) => {
+        if (t.deleted_at || t.type !== "expense") return;
+        const key = normalizeMerchantKey(t.description);
+        if (!key) return;
+        const amount = getEffectiveAmount(t, groupShareMap);
+        const existing = map.get(key);
+        if (existing) {
+            existing.total += amount;
+            existing.count += 1;
+        } else {
+            map.set(key, {
+                name: (t.description || "").trim(),
+                total: amount,
+                count: 1,
+            });
+        }
+    });
+
+    return Array.from(map.values())
+        .map((m) => ({
+            name: m.name,
+            total: round2(m.total),
+            count: m.count,
+            avg: round2(m.total / m.count),
+        }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10);
+};
+
+// --- 20. Root category trend over the selected year ---
+export const calculateRootCategoryTrend = (
+    txs: Transaction[] | undefined,
+    categoryMap: Map<string, Category>,
+    groupShareMap: Map<string, number>,
+    currentYear: string
+): RootCategoryTrend => {
+    const monthValues: Record<string, number>[] = Array.from({ length: 12 }, () => ({}));
+    const totals = new Map<string, { name: string; color: string; total: number }>();
+
+    (txs || []).forEach((t) => {
+        if (t.deleted_at || t.type !== "expense" || !t.category_id) return;
+        const root = getRootCategory(t.category_id, categoryMap);
+        if (!root) return;
+        const monthIdx = getMonthIndexFromTx(t);
+        if (monthIdx < 0 || monthIdx > 11) return;
+        const amount = getEffectiveAmount(t, groupShareMap);
+
+        monthValues[monthIdx][root.name] = (monthValues[monthIdx][root.name] || 0) + amount;
+
+        const entry = totals.get(root.id);
+        if (entry) entry.total += amount;
+        else totals.set(root.id, { name: root.name, color: root.color, total: amount });
+    });
+
+    const categories = Array.from(totals.values())
+        .sort((a, b) => b.total - a.total)
+        .map((c) => ({ name: c.name, color: c.color }));
+
+    const points: RootCategoryTrendPoint[] = monthValues.map((values, i) => ({
+        period: `${currentYear}-${String(i + 1).padStart(2, "0")}`,
+        values: Object.fromEntries(
+            Object.entries(values).map(([name, amount]) => [name, round2(amount)])
+        ),
+    }));
+
+    return { categories, points };
 };

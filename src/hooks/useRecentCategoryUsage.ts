@@ -5,7 +5,7 @@ import { subDays, format } from "date-fns";
 /**
  * Hook to get the usage frequency of categories in the last specific number of days.
  * Returns a map of category_id -> count.
- * 
+ *
  * @param days Lookback period in days (default: 30)
  */
 export function useRecentCategoryUsage(days: number = 30) {
