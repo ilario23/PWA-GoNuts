@@ -1170,6 +1170,7 @@
     "changelog_v2_3_3": "Salvare con la calcolatrice completa l'operazione in corso — 12 − 4 poi Aggiungi registra 8, non 4.",
     "changelog_v2_3_4": "L'inserimento rapido non preseleziona più l'ultima categoria usata.",
     "changelog_v2_3_5": "Cambiando tipo o gruppo, la categoria selezionata resta se ancora valida.",
+    "changelog_v2_3_1_0": "Novità: da ospite a utente reale. Da Gestisci membri puoi invitare un ospite con un link monouso — dopo l'accesso e l'accettazione subentra al suo posto mantenendo tutte le spese, le quote e i saldi esistenti.",
     "changelog_v2_2_3_0": "Il saldo di gruppo ora mostra quali spese sono già saldate, contrassegnando ognuna come Saldato o Da saldare nel dettaglio.",
     "changelog_v2_2_3_1": "Aggiunta la data \"Saldato fino al\" per vedere a colpo d'occhio quando il gruppo ha chiuso i conti l'ultima volta.",
     "changelog_v2_2_2_0": "Corretta la barra di navigazione in basso che risaliva lo schermo dopo la chiusura della tastiera su iPhone.",

@@ -1188,6 +1188,7 @@
     "changelog_v2_3_3": "Saving with the calculator finishes the pending operation — 12 − 4 then Add stores 8, not 4.",
     "changelog_v2_3_4": "Quick Add no longer preselects the last-used category.",
     "changelog_v2_3_5": "Switching type or group keeps the selected category when it's still valid.",
+    "changelog_v2_3_1_0": "New: turn a guest into a real user. From Manage members, invite a guest with a single-use link — once they sign in and accept, they take over that spot and keep every existing expense, share and balance.",
     "changelog_v2_2_3_0": "Group settle-up now shows which expenses are already settled, marking each one Settled or Open in the breakdown.",
     "changelog_v2_2_3_1": "Added a \"Settled up to\" date so you can see at a glance when the group last squared up.",
     "changelog_v2_2_2_0": "Fixed the bottom navigation bar drifting up the screen after closing the keyboard on iPhone.",
