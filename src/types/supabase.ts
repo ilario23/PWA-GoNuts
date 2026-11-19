@@ -644,6 +644,24 @@ export interface Database {
                 }
                 Returns: boolean
             }
+            claim_guest_invite: {
+                Args: {
+                    p_token: string
+                }
+                Returns: string
+            }
+            create_guest_invite: {
+                Args: {
+                    p_member_id: string
+                }
+                Returns: string
+            }
+            get_guest_invite: {
+                Args: {
+                    p_token: string
+                }
+                Returns: Json
+            }
             is_group_creator: {
                 Args: {
                     group_id: string

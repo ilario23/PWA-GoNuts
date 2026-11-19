@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { syncManager } from "@/lib/sync";
+import { getPendingInvite } from "@/lib/guestInvites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -65,7 +66,10 @@ export function AuthPage() {
         toast.dismiss();
 
         // Redirect to dashboard after successful sign in and sync
-        navigate("/");
+        const pendingInvite = getPendingInvite();
+        navigate(
+          pendingInvite ? `/join/${encodeURIComponent(pendingInvite)}` : "/"
+        );
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : t("auth_error"));

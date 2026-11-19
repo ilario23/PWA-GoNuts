@@ -31,7 +31,9 @@ import {
     Copy,
     ArrowLeft,
     X,
+    Link2,
 } from "lucide-react";
+import { GuestInviteDialog } from "@/components/groups/GuestInviteDialog";
 import {
     Dialog,
     DialogContent,
@@ -166,8 +168,15 @@ export function ManageMembersDrawer({
     const [newGuestName, setNewGuestName] = useState("");
     const [memberShares, setMemberShares] = useState<Record<string, string>>({});
     const [copiedId, setCopiedId] = useState(false);
+    const [inviteMember, setInviteMember] = useState<{
+        id: string;
+        guest_name?: string | null;
+    } | null>(null);
 
     if (!group) return null;
+
+    // Only the group creator may bind a guest to a real user (server-enforced).
+    const canInviteGuests = group.created_by === user?.id;
 
     // Derived state
     const totalShare = group.members.reduce(
@@ -281,7 +290,7 @@ export function ManageMembersDrawer({
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-end gap-2 w-[120px] shrink-0">
+                                            <div className="flex items-center justify-end gap-2 shrink-0">
                                                 <div className="relative w-16">
                                                     <Input
                                                         type="text"
@@ -300,6 +309,17 @@ export function ManageMembersDrawer({
                                                     <span className="absolute right-2 top-2 text-xs text-muted-foreground">%</span>
                                                 </div>
 
+                                                {canInviteGuests && member.is_guest && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                        onClick={() => setInviteMember(member)}
+                                                        aria-label={t("invite_guest_action")}
+                                                    >
+                                                        <Link2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                                 <div className="w-8 flex justify-center">
                                                     {canDelete ? (
                                                         <Button
@@ -358,6 +378,7 @@ export function ManageMembersDrawer({
                         )}
                     </DrawerFooter>
                 </DrawerContent>
+                <GuestInviteDialog member={inviteMember} onClose={() => setInviteMember(null)} />
             </Drawer>
         );
     }
@@ -402,7 +423,7 @@ export function ManageMembersDrawer({
                                         <TableHead>{t("name")}</TableHead>
                                         <TableHead>{t("type")}</TableHead>
                                         <TableHead className="text-right w-[100px]">{t("share")} (%)</TableHead>
-                                        <TableHead className="w-[50px]"></TableHead>
+                                        <TableHead className="w-[90px]"></TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -444,7 +465,18 @@ export function ManageMembersDrawer({
                                                         }}
                                                     />
                                                 </TableCell>
-                                                <TableCell>
+                                                <TableCell className="flex items-center justify-end">
+                                                    {canInviteGuests && member.is_guest && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                            onClick={() => setInviteMember(member)}
+                                                            aria-label={t("invite_guest_action")}
+                                                        >
+                                                            <Link2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
                                                     {(member.user_id !== user?.id || member.is_guest) && (
                                                         <Button
                                                             variant="ghost"
@@ -505,6 +537,7 @@ export function ManageMembersDrawer({
                     </div>
                 </DialogFooter>
             </DialogContent>
+            <GuestInviteDialog member={inviteMember} onClose={() => setInviteMember(null)} />
         </Dialog>
     );
 }

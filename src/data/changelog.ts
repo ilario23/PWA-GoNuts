@@ -11,6 +11,13 @@ export interface ChangeLogEntry {
 
 export const changelogData: ChangeLogEntry[] = [
   {
+    version: '2.3.1',
+    date: '2026-11-19',
+    changes: [
+      {type: 'feat', description: 'changelog_v2_3_1_0'},
+    ],
+  },
+  {
     version: '2.3.0',
     date: '2026-09-30',
     changes: [
