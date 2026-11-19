@@ -24,6 +24,8 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { WifiOff, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { WelcomeWizard } from "@/components/welcome/WelcomeWizard";
+import { JoinGroupPage } from "@/pages/JoinGroup";
+import { getPendingInvite } from "@/lib/guestInvites";
 import { useWelcomeWizard } from "@/hooks/useWelcomeWizard";
 
 
@@ -296,6 +298,13 @@ function AppRoutes() {
   const location = useLocation();
   useVersionCheck();
 
+  // A guest-invite link opened while logged out parks its token in storage; once
+  // the user is signed in (incl. after the email-confirmation round trip) resume it.
+  const pendingInvite = getPendingInvite();
+  if (pendingInvite) {
+    return <Navigate to={`/join/${encodeURIComponent(pendingInvite)}`} replace />;
+  }
+
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
@@ -333,6 +342,7 @@ function App() {
             <OfflineIndicator />
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/join/:token" element={<JoinGroupPage />} />
               <Route
                 path="/auth/reset-password"
                 element={
